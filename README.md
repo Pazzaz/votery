@@ -1,0 +1,2 @@
+# Votery
+This is a [Rust](https://www.rust-lang.org/) crate using and researching different types of voting systems (a.k.a electoral systems, preference aggregation, social choice, etc.). It is currently in very early development, so there's not much interesting here yet.
