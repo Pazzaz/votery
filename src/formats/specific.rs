@@ -118,7 +118,13 @@ impl<'a> VoteFormat<'a> for Specific {
     }
 
     fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        unimplemented!();
+        let n = self.votes.len();
+        TiedOrdersIncomplete {
+            votes: self.votes,
+            ties: Vec::new(),
+            vote_len: vec![1; n],
+            candidates: self.candidates,
+        }
     }
 
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_voters: usize) {
@@ -193,5 +199,10 @@ mod tests {
             (None, []) => true,
             (_, _) => false,
         }
+    }
+
+    #[quickcheck]
+    fn to_partial_ranking(votes: Specific) -> bool {
+        votes.to_partial_ranking().valid()
     }
 }

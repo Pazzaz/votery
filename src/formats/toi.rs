@@ -19,7 +19,7 @@ pub struct TiedOrdersIncomplete {
     // Has length voters * (candidates - 1)
     pub(crate) ties: Vec<bool>,
     pub(crate) vote_len: Vec<usize>,
-    candidates: usize,
+    pub(crate) candidates: usize,
 }
 
 /// A vote with possible ties.
@@ -136,7 +136,7 @@ impl TiedOrdersIncomplete {
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         let mut votes_len = 0;
         let mut ties_len = 0;
         for &i in &self.vote_len {
