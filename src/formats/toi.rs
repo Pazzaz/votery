@@ -99,6 +99,10 @@ impl<'a> TiedVoteRef<'a> {
     pub fn owned(self) -> TiedVote {
         TiedVote::new(self.order.to_vec(), self.tied.to_vec())
     }
+
+    pub fn iter_groups(self) -> GroupIterator<'a> {
+        GroupIterator { vote: self, start: 0 }
+    }
 }
 
 impl TiedOrdersIncomplete {
@@ -199,7 +203,7 @@ impl TiedOrdersIncomplete {
         }
         let mut firsts = vec![0; self.candidates];
         for vote in self {
-            for &c in grouped(vote).next().unwrap() {
+            for &c in vote.iter_groups().next().unwrap() {
                 firsts[c] += 1;
             }
         }
@@ -226,7 +230,7 @@ impl TiedOrdersIncomplete {
         for vote in self {
             let mut seen_n = false;
             let mut seen_i = false;
-            for group in grouped(vote) {
+            for group in vote.iter_groups() {
                 // We first check what's in the current group
                 let mut has_clone = false;
                 let mut has_normal = false;
@@ -347,10 +351,6 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
 pub struct GroupIterator<'a> {
     vote: TiedVoteRef<'a>,
     start: usize,
-}
-
-pub fn grouped<'a>(vote: TiedVoteRef<'a>) -> GroupIterator<'a> {
-    GroupIterator { vote, start: 0 }
 }
 
 impl<'a> Iterator for GroupIterator<'a> {

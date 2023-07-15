@@ -2,10 +2,7 @@
 // every variation. See also the Dowdall system, a similar method.
 
 use crate::{
-    formats::{
-        toi::{grouped, TiedOrdersIncomplete},
-        VoteFormat,
-    },
+    formats::{toi::TiedOrdersIncomplete, VoteFormat},
     methods::VotingMethod,
 };
 
@@ -21,7 +18,7 @@ impl<'a> VotingMethod<'a> for Borda {
         let mut score: Vec<usize> = vec![0; n];
         for vote in data {
             let mut seen = 0;
-            for group in grouped(vote) {
+            for group in vote.iter_groups() {
                 let ties = group.len();
                 debug_assert!(n >= (1 + seen + ties));
                 let ranked_below = n - (1 + seen + ties);
