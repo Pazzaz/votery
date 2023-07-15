@@ -7,7 +7,7 @@ use std::{
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
-use super::{partial_ranking::PartialRanking, remove_newline, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
 use crate::{methods::get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -54,41 +54,8 @@ impl TotalRanking {
         }
         true
     }
-}
 
-impl Display for TotalRanking {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.voters {
-            for j in 0..(self.candidates - 1) {
-                let v = self.votes[i * self.candidates + j];
-                write!(f, "{},", v)?;
-            }
-            let v_last = self.votes[i * self.candidates + (self.candidates - 1)];
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> VoteFormat<'a> for TotalRanking {
-    type Vote = &'a [usize];
-    fn candidates(&self) -> usize {
-        self.candidates
-    }
-
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
-        if v.len() != self.candidates {
-            return Err("Vote must contains all candidates");
-        }
-        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
-        for c in v {
-            self.votes.push(*c);
-        }
-        self.voters += 1;
-        Ok(())
-    }
-
-    fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
+    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
         if self.candidates == 0 {
             return Ok(());
         }
@@ -135,8 +102,42 @@ impl<'a> VoteFormat<'a> for TotalRanking {
         debug_assert!(self.valid());
         Ok(())
     }
+}
 
-    fn remove_candidates(&mut self, targets: &[usize]) -> Result<(), &'static str> {
+impl Display for TotalRanking {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in 0..self.voters {
+            for j in 0..(self.candidates - 1) {
+                let v = self.votes[i * self.candidates + j];
+                write!(f, "{},", v)?;
+            }
+            let v_last = self.votes[i * self.candidates + (self.candidates - 1)];
+            writeln!(f, "{}", v_last)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> VoteFormat<'a> for TotalRanking {
+    type Vote = &'a [usize];
+    fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+        if v.len() != self.candidates {
+            return Err("Vote must contains all candidates");
+        }
+        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
+        for c in v {
+            self.votes.push(*c);
+        }
+        self.voters += 1;
+        Ok(())
+    }
+
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+        let targets = &[target];
         if targets.is_empty() {
             return Ok(());
         }
@@ -167,8 +168,8 @@ impl<'a> VoteFormat<'a> for TotalRanking {
         Ok(())
     }
 
-    fn to_partial_ranking(self) -> PartialRanking {
-        PartialRanking { votes: self.votes, candidates: self.candidates, voters: self.voters }
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
+        unimplemented!();
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {

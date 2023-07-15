@@ -4,7 +4,7 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::{soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
+use super::{soi::StrictOrdersIncomplete, toc::TiedOrdersComplete, VoteFormat};
 
 /// TOI - Orders with Ties - Incomplete List
 ///
@@ -111,25 +111,6 @@ impl TiedOrdersIncomplete {
         }
     }
 
-    pub fn add(&mut self, vote: TiedVoteRef) {
-        debug_assert!(vote.len() < self.candidates);
-        debug_assert!(0 < vote.len());
-        self.votes.reserve(vote.len());
-        self.ties.reserve(vote.len() - 1);
-        let mut seen = vec![false; self.candidates];
-        for &i in vote.order {
-            debug_assert!(i < self.candidates || !seen[i]);
-            seen[i] = true;
-            self.votes.push(i);
-        }
-        self.ties.extend(vote.tied);
-        debug_assert!(self.valid());
-    }
-
-    pub fn candidates(&self) -> usize {
-        self.candidates
-    }
-
     pub fn voters(&self) -> usize {
         self.vote_len.len()
     }
@@ -145,7 +126,7 @@ impl TiedOrdersIncomplete {
         match TiedVote::parse_vote(s, self.candidates) {
             Some(vote) => {
                 for _ in 0..i {
-                    self.add(vote.slice());
+                    self.add(vote.slice()).unwrap();
                     debug_assert!(self.valid());
                 }
                 true
@@ -181,68 +162,10 @@ impl TiedOrdersIncomplete {
         true
     }
 
-    pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
-        if self.candidates == 0 {
-            return;
-        }
-        let mut v: Vec<usize> = (0..self.candidates).collect();
-        self.votes.reserve(new_voters * self.candidates);
-        self.ties.reserve(new_voters * (self.candidates - 1));
-        let dist = Bernoulli::new(0.5).unwrap();
-        let range = Uniform::from(0..self.candidates);
-        for _ in 0..new_voters {
-            let candidates = range.sample(rng) + 1;
-            v.shuffle(rng);
-            for i in 0..candidates {
-                self.votes.push(v[i]);
-            }
-
-            for _ in 0..(candidates - 1) {
-                let b = dist.sample(rng);
-                self.ties.push(b);
-            }
-            self.vote_len.push(candidates);
-        }
-        debug_assert!(self.valid());
-    }
-
     // Increase the number of candidates to `n`. Panics if `n < self.candidates`
     pub fn set_candidates(&mut self, n: usize) {
         debug_assert!(n >= self.candidates);
         self.candidates = n;
-    }
-
-    /// Remove the candidate with index `n`, and shift indices of candidates
-    /// with higher index. May remove votes if they only voted for `n`.
-    pub fn remove_candidate(&mut self, n: usize) {
-        let mut res: TiedOrdersIncomplete = self
-            .into_iter()
-            .filter_map(|vote| {
-                let mut order: Vec<usize> = Vec::with_capacity(vote.order.len() - 1);
-                let mut tied: Vec<bool> = Vec::with_capacity(vote.tied.len().saturating_sub(1));
-                for i in 0..order.len() {
-                    let mut v = order[i];
-                    if v == n {
-                        continue;
-                    }
-                    if v > n {
-                        v -= 1;
-                    }
-                    order.push(v);
-                    if i != tied.len() {
-                        tied.push(tied[i]);
-                    }
-                }
-                if order.is_empty() {
-                    None
-                } else {
-                    Some(TiedVote::new(order, tied))
-                }
-            })
-            .collect();
-        res.candidates -= 1;
-        debug_assert!(self.valid());
-        *self = res;
     }
 
     /// If a vote ranks candidate `n`, then add a tie with a new candidate,
@@ -333,13 +256,100 @@ impl TiedOrdersIncomplete {
     }
 }
 
+impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
+    type Vote = TiedVoteRef<'a>;
+    /// List the number of candidates
+    fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    fn add(&mut self, vote: TiedVoteRef) -> Result<(), &'static str> {
+        debug_assert!(vote.len() < self.candidates);
+        debug_assert!(0 < vote.len());
+        self.votes.reserve(vote.len());
+        self.ties.reserve(vote.len() - 1);
+        let mut seen = vec![false; self.candidates];
+        for &i in vote.order {
+            debug_assert!(i < self.candidates || !seen[i]);
+            seen[i] = true;
+            self.votes.push(i);
+        }
+        self.ties.extend(vote.tied);
+        debug_assert!(self.valid());
+        Ok(())
+    }
+
+    /// Remove the candidate with index `n`, and shift indices of candidates
+    /// with higher index. May remove votes if they only voted for `n`.
+    fn remove_candidate(&mut self, n: usize) -> Result<(), &'static str> {
+        let mut res: TiedOrdersIncomplete = self
+            .into_iter()
+            .filter_map(|vote| {
+                let mut order: Vec<usize> = Vec::with_capacity(vote.order.len() - 1);
+                let mut tied: Vec<bool> = Vec::with_capacity(vote.tied.len().saturating_sub(1));
+                for i in 0..order.len() {
+                    let mut v = order[i];
+                    if v == n {
+                        continue;
+                    }
+                    if v > n {
+                        v -= 1;
+                    }
+                    order.push(v);
+                    if i != tied.len() {
+                        tied.push(tied[i]);
+                    }
+                }
+                if order.is_empty() {
+                    None
+                } else {
+                    Some(TiedVote::new(order, tied))
+                }
+            })
+            .collect();
+        res.candidates -= 1;
+        debug_assert!(self.valid());
+        *self = res;
+        Ok(())
+    }
+
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
+        if self.candidates == 0 {
+            return;
+        }
+        let mut v: Vec<usize> = (0..self.candidates).collect();
+        self.votes.reserve(new_voters * self.candidates);
+        self.ties.reserve(new_voters * (self.candidates - 1));
+        let dist = Bernoulli::new(0.5).unwrap();
+        let range = Uniform::from(0..self.candidates);
+        for _ in 0..new_voters {
+            let candidates = range.sample(rng) + 1;
+            v.shuffle(rng);
+            for i in 0..candidates {
+                self.votes.push(v[i]);
+            }
+
+            for _ in 0..(candidates - 1) {
+                let b = dist.sample(rng);
+                self.ties.push(b);
+            }
+            self.vote_len.push(candidates);
+        }
+        debug_assert!(self.valid());
+    }
+
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
+        self
+    }
+}
+
 // Splits a vote up into its rankings
-struct GroupIterator<'a> {
+pub struct GroupIterator<'a> {
     vote: TiedVoteRef<'a>,
     start: usize,
 }
 
-fn grouped<'a>(vote: TiedVoteRef<'a>) -> GroupIterator<'a> {
+pub fn grouped<'a>(vote: TiedVoteRef<'a>) -> GroupIterator<'a> {
     GroupIterator { vote, start: 0 }
 }
 
@@ -500,7 +510,6 @@ mod tests {
             return true;
         }
         votes.add_clone(i % c);
-        votes.remove_candidate(c);
-        true
+        votes.remove_candidate(c).is_ok()
     }
 }

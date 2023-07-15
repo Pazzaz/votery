@@ -3,31 +3,29 @@
 //! Each vote format consists of a struct which stores all the votes and
 //! implements [`VoteFormat`].
 
-use std::{fmt::Display, io::BufRead};
-
 use rand::Rng;
 
 // Lifetime needed because `Vote` may be a reference which then needs a lifetime
-pub trait VoteFormat<'a>: Display {
+pub trait VoteFormat<'a> {
     type Vote;
     /// List the number of candidates
     fn candidates(&self) -> usize;
 
     /// Add more votes from `f`
-    fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str>;
+    // fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str>;
 
     fn add(&mut self, v: Self::Vote) -> Result<(), &'static str>;
 
-    /// Removes candidates from the votes, offsetting the other candidates to
-    /// take their place. Assumes `target` is sorted.
-    fn remove_candidates(&mut self, targets: &[usize]) -> Result<(), &'static str>;
+    /// Removes candidate from the votes, offsetting the other candidates to
+    /// take their place.
+    fn remove_candidate(&mut self, targets: usize) -> Result<(), &'static str>;
 
     /// Sample and add `new_voters` uniformly random votes for this format,
     /// using random numbers from `rng`.
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_voters: usize);
 
     /// Treat each vote as a partial ranking
-    fn to_partial_ranking(self) -> PartialRanking;
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete;
 }
 
 pub mod soc;
@@ -39,12 +37,12 @@ mod binary;
 pub use binary::Binary;
 mod cardinal;
 pub use cardinal::Cardinal;
-mod partial_ranking;
-pub use partial_ranking::PartialRanking;
 mod specific;
 pub use specific::Specific;
 mod total_ranking;
 pub use total_ranking::TotalRanking;
+
+use self::toi::TiedOrdersIncomplete;
 
 // Utility functions
 fn remove_newline(buf: &mut String) {

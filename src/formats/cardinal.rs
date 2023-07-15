@@ -5,7 +5,7 @@ use std::{
 
 use rand::distributions::{Distribution, Uniform};
 
-use super::{partial_ranking::PartialRanking, remove_newline, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -93,41 +93,8 @@ impl Cardinal {
         self.max = new_max;
         debug_assert!(self.valid());
     }
-}
 
-impl Display for Cardinal {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.voters {
-            for j in 0..(self.candidates - 1) {
-                let v = self.votes[i * self.candidates + j];
-                write!(f, "{},", v)?;
-            }
-            let v_last = self.votes[i * self.candidates + (self.candidates - 1)];
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> VoteFormat<'a> for Cardinal {
-    type Vote = &'a [usize];
-    fn candidates(&self) -> usize {
-        self.candidates
-    }
-
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
-        if v.len() != self.candidates {
-            return Err("Vote must contains all candidates");
-        }
-        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
-        for c in v {
-            self.votes.push(*c);
-        }
-        self.voters += 1;
-        Ok(())
-    }
-
-    fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
+    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
         if self.candidates == 0 {
             return Ok(());
         }
@@ -162,8 +129,42 @@ impl<'a> VoteFormat<'a> for Cardinal {
         debug_assert!(self.valid());
         Ok(())
     }
+}
 
-    fn remove_candidates(&mut self, targets: &[usize]) -> Result<(), &'static str> {
+impl Display for Cardinal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in 0..self.voters {
+            for j in 0..(self.candidates - 1) {
+                let v = self.votes[i * self.candidates + j];
+                write!(f, "{},", v)?;
+            }
+            let v_last = self.votes[i * self.candidates + (self.candidates - 1)];
+            writeln!(f, "{}", v_last)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> VoteFormat<'a> for Cardinal {
+    type Vote = &'a [usize];
+    fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+        if v.len() != self.candidates {
+            return Err("Vote must contains all candidates");
+        }
+        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
+        for c in v {
+            self.votes.push(*c);
+        }
+        self.voters += 1;
+        Ok(())
+    }
+
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+        let targets = &[target];
         if targets.is_empty() {
             return Ok(());
         }
@@ -190,7 +191,7 @@ impl<'a> VoteFormat<'a> for Cardinal {
         Ok(())
     }
 
-    fn to_partial_ranking(self) -> PartialRanking {
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
         unimplemented!();
     }
 

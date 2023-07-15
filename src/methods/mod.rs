@@ -56,35 +56,33 @@ pub fn get_order<T: Ord>(v: &[T], reverse: bool) -> Vec<usize> {
     out
 }
 
-use std::cmp::Ordering;
-
 // TODO: This method makes no sense
 // Returns
 //     Ordering::Less    if i is ranked better than j
 //     Ordering::Equal   if they are ranked equally
 //     Ordering::Greater if i is ranked worse than j
-pub fn pairwise_comparison<'a, M, F>(mut v: F, i: usize, j: usize) -> Result<Ordering, &'static str>
-where
-    F: VoteFormat<'a> + Clone,
-    M: VotingMethod<'a, Format = F>,
-{
-    let c = v.candidates();
-    debug_assert!(i < c && j < c);
-    if i == j {
-        return Ok(Ordering::Equal);
-    }
-    let remove: Vec<usize> = (0..c).filter(|&x| x != i && x != j).collect();
-    v.remove_candidates(&remove)?;
-    debug_assert!(v.candidates() == 2);
-    let order = M::count(&v)?.get_order();
-    debug_assert!(order.len() == 2);
-    let o = order[0].cmp(&order[1]);
-    if i > j {
-        Ok(o.reverse())
-    } else {
-        Ok(o)
-    }
-}
+// pub fn pairwise_comparison<'a, M, F>(mut v: F, i: usize, j: usize) ->
+// Result<Ordering, &'static str> where
+//     F: VoteFormat<'a> + Clone,
+//     M: VotingMethod<'a, Format = F>,
+// {
+//     let c = v.candidates();
+//     debug_assert!(i < c && j < c);
+//     if i == j {
+//         return Ok(Ordering::Equal);
+//     }
+//     let remove: Vec<usize> = (0..c).filter(|&x| x != i && x != j).collect();
+//     v.remove_candidates(&remove)?;
+//     debug_assert!(v.candidates() == 2);
+//     let order = M::count(&v)?.get_order();
+//     debug_assert!(order.len() == 2);
+//     let o = order[0].cmp(&order[1]);
+//     if i > j {
+//         Ok(o.reverse())
+//     } else {
+//         Ok(o)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {

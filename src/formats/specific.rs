@@ -5,7 +5,7 @@ use rand::{
     Rng,
 };
 
-use super::{partial_ranking::PartialRanking, remove_newline, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,31 +45,8 @@ impl Specific {
         }
         true
     }
-}
 
-impl Display for Specific {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for v in &self.votes {
-            writeln!(f, "{}", v)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> VoteFormat<'a> for Specific {
-    type Vote = usize;
-    fn candidates(&self) -> usize {
-        self.candidates
-    }
-
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
-        // TODO: check
-        self.votes.try_reserve(1).or(Err("Could not add vote"))?;
-        self.votes.push(v);
-        Ok(())
-    }
-
-    fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
+    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
         if self.candidates == 0 {
             return Ok(());
         }
@@ -95,8 +72,32 @@ impl<'a> VoteFormat<'a> for Specific {
         debug_assert!(self.valid());
         Ok(())
     }
+}
 
-    fn remove_candidates(&mut self, targets: &[usize]) -> Result<(), &'static str> {
+impl Display for Specific {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for v in &self.votes {
+            writeln!(f, "{}", v)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> VoteFormat<'a> for Specific {
+    type Vote = usize;
+    fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+        // TODO: check
+        self.votes.try_reserve(1).or(Err("Could not add vote"))?;
+        self.votes.push(v);
+        Ok(())
+    }
+
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+        let targets = &[target];
         if targets.is_empty() {
             return Ok(());
         }
@@ -116,15 +117,8 @@ impl<'a> VoteFormat<'a> for Specific {
         Ok(())
     }
 
-    fn to_partial_ranking(self) -> PartialRanking {
-        let mut votes = Vec::with_capacity(self.candidates * self.votes.len());
-        for &vote in &self.votes {
-            for i in 0..self.candidates {
-                let v = if i == vote { 0 } else { 1 };
-                votes.push(v);
-            }
-        }
-        PartialRanking { votes, candidates: self.candidates, voters: self.votes.len() }
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
+        unimplemented!();
     }
 
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_voters: usize) {
@@ -166,18 +160,18 @@ mod tests {
         }
 
         // We shrink both the number of candidates, and the votes.
-        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-            let c = self.candidates;
-            let candidates: Vec<usize> = (0..c).collect();
-            Box::new(self.votes.shrink().zip(candidates.shrink()).map(
-                move |(shrink_votes, shrink_candidates)| {
-                    let mut new_votes = Specific { votes: shrink_votes, candidates: c };
-                    new_votes.remove_candidates(&shrink_candidates).unwrap();
-                    debug_assert!(new_votes.valid());
-                    new_votes
-                },
-            ))
-        }
+        // fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+        //     let c = self.candidates;
+        //     let candidates: Vec<usize> = (0..c).collect();
+        //     Box::new(self.votes.shrink().zip(candidates.shrink()).map(
+        //         move |(shrink_votes, shrink_candidates)| {
+        //             let mut new_votes = Specific { votes: shrink_votes, candidates: c
+        // };             
+        // new_votes.remove_candidates(&shrink_candidates).unwrap();            
+        // debug_assert!(new_votes.valid());             new_votes
+        //         },
+        //     ))
+        // }
     }
 
     #[quickcheck]

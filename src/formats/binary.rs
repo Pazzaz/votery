@@ -8,7 +8,7 @@ use rand::{
     Rng,
 };
 
-use super::{partial_ranking::PartialRanking, remove_newline, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,43 +45,8 @@ impl Binary {
         }
         debug_assert!(data.valid());
     }
-}
 
-impl Display for Binary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.voters {
-            for j in 0..(self.candidates - 1) {
-                let b = self.votes[i * self.candidates + j];
-                let v = if b { '1' } else { '0' };
-                write!(f, "{},", v)?;
-            }
-            let b_last = self.votes[i * self.candidates + (self.candidates - 1)];
-            let v_last = if b_last { '1' } else { '0' };
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
-    }
-}
-
-impl<'a> VoteFormat<'a> for Binary {
-    type Vote = &'a [bool];
-    fn candidates(&self) -> usize {
-        self.candidates
-    }
-
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
-        if v.len() != self.candidates {
-            return Err("Vote must contains all candidates");
-        }
-        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
-        for c in v {
-            self.votes.push(*c);
-        }
-        self.voters += 1;
-        Ok(())
-    }
-
-    fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
+    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
         if self.candidates == 0 {
             return Ok(());
         }
@@ -119,8 +84,44 @@ impl<'a> VoteFormat<'a> for Binary {
         debug_assert!(self.valid());
         Ok(())
     }
+}
 
-    fn remove_candidates(&mut self, targets: &[usize]) -> Result<(), &'static str> {
+impl Display for Binary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for i in 0..self.voters {
+            for j in 0..(self.candidates - 1) {
+                let b = self.votes[i * self.candidates + j];
+                let v = if b { '1' } else { '0' };
+                write!(f, "{},", v)?;
+            }
+            let b_last = self.votes[i * self.candidates + (self.candidates - 1)];
+            let v_last = if b_last { '1' } else { '0' };
+            writeln!(f, "{}", v_last)?;
+        }
+        Ok(())
+    }
+}
+
+impl<'a> VoteFormat<'a> for Binary {
+    type Vote = &'a [bool];
+    fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+        if v.len() != self.candidates {
+            return Err("Vote must contains all candidates");
+        }
+        self.votes.try_reserve(self.candidates).or(Err("Could not add vote"))?;
+        for c in v {
+            self.votes.push(*c);
+        }
+        self.voters += 1;
+        Ok(())
+    }
+
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+        let targets = &[target];
         if targets.is_empty() {
             return Ok(());
         }
@@ -151,13 +152,8 @@ impl<'a> VoteFormat<'a> for Binary {
         Binary::bernoulli(self, rng, new_voters, 0.5);
     }
 
-    fn to_partial_ranking(self) -> PartialRanking {
-        let mut votes = Vec::with_capacity(self.votes.len());
-        for vote in self.votes {
-            let i = if vote { 0 } else { 1 };
-            votes.push(i);
-        }
-        PartialRanking { votes, candidates: self.candidates, voters: self.voters }
+    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
+        unimplemented!();
     }
 }
 

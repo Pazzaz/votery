@@ -67,16 +67,16 @@ fn pairwise_lt(v: &[usize]) -> bool {
 }
 
 // Test if list is strictly ordered from largest to smallest
-fn pairwise_gt(v: &[usize]) -> bool {
-    if v.len() >= 2 {
-        for i in 0..(v.len() - 1) {
-            if !(v[i] > v[i + 1]) {
-                return false;
-            }
-        }
-    }
-    true
-}
+// fn pairwise_gt(v: &[usize]) -> bool {
+//     if v.len() >= 2 {
+//         for i in 0..(v.len() - 1) {
+//             if !(v[i] > v[i + 1]) {
+//                 return false;
+//             }
+//         }
+//     }
+//     true
+// }
 
 pub mod orders;
 pub mod tarjan;
