@@ -1,6 +1,6 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
-use super::soc::StrictOrdersComplete;
+use super::{soc::StrictOrdersComplete, VoteFormat};
 
 /// SOI - Strict Orders - Incomplete List
 ///
@@ -17,20 +17,6 @@ pub struct StrictOrdersIncomplete {
 impl StrictOrdersIncomplete {
     pub fn new(candidates: usize) -> Self {
         StrictOrdersIncomplete { votes: Vec::new(), vote_len: Vec::new(), candidates }
-    }
-
-    pub fn add(&mut self, vote: &[usize]) {
-        debug_assert!(vote.len() < self.candidates);
-        debug_assert!(0 < vote.len());
-        self.votes.reserve(vote.len());
-        let mut seen = vec![false; self.candidates];
-        for &i in vote {
-            debug_assert!(i < self.candidates || !seen[i]);
-            seen[i] = true;
-            self.votes.push(i);
-        }
-        self.vote_len.push(vote.len());
-        debug_assert!(self.valid());
     }
 
     pub fn voters(&self) -> usize {
@@ -72,7 +58,38 @@ impl StrictOrdersIncomplete {
         true
     }
 
-    pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
+    pub fn vote_i(&self, i: usize) -> &[usize] {
+        todo!();
+    }
+}
+
+impl<'a> VoteFormat<'a> for StrictOrdersIncomplete {
+    type Vote = &'a [usize];
+
+    fn candidates(&self) -> usize {
+        self.candidates()
+    }
+
+    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+        debug_assert!(v.len() < self.candidates);
+        debug_assert!(0 < v.len());
+        self.votes.reserve(v.len());
+        let mut seen = vec![false; self.candidates];
+        for &i in v {
+            debug_assert!(i < self.candidates || !seen[i]);
+            seen[i] = true;
+            self.votes.push(i);
+        }
+        self.vote_len.push(v.len());
+        debug_assert!(self.valid());
+        Ok(())
+    }
+
+    fn remove_candidate(&mut self, targets: usize) -> Result<(), &'static str> {
+        todo!()
+    }
+
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
         if self.candidates == 0 {
             return;
         }
@@ -88,6 +105,10 @@ impl StrictOrdersIncomplete {
             self.vote_len.push(candidates);
         }
         debug_assert!(self.valid());
+    }
+
+    fn to_partial_ranking(self) -> super::toi::TiedOrdersIncomplete {
+        todo!()
     }
 }
 

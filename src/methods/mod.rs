@@ -23,6 +23,33 @@ pub trait VotingMethod<'a> {
     }
 }
 
+/// A version of `VotingMethod`, but randomness can be used when calculating the
+/// winner
+pub trait RandomVotingMethod<'a> {
+    /// Every voting method accepts some specific vote format as input.
+    type Format: VoteFormat<'a> + Clone;
+
+    /// Counts all the votes, into a format which makes it fast to compute other
+    /// methods such as `get_order`. Uses `rng` to perform random decisions.
+    /// `positions` may be used to somplify the method if we only care about the
+    /// top `positions`.
+    fn count<R>(data: &Self::Format, rng: &mut R, positions: usize) -> Result<Self, &'static str>
+    where
+        R: Rng,
+        Self: Sized;
+
+    /// Internal score, e.g. the number of votes for each candidate for methods
+    /// like first-past-the-post, but may not make sense for all methods.
+    /// Return value should be able to be used by `get_order` to get the
+    /// result of the voting method. Larger values are higher rank.
+    fn get_score(&self) -> &Vec<usize>;
+
+    /// Gets a partial order of the candidates
+    fn get_order(&self) -> Vec<usize> {
+        get_order(self.get_score(), true)
+    }
+}
+
 // Convert a list of numbers to the partial order of the list. High numbers in
 // input list will get high numbers in new list, but can be changed using
 // `reverse`. We do not clone the original list.
@@ -159,3 +186,5 @@ mod borda;
 pub use borda::Borda;
 mod fptp;
 pub use fptp::Fptp;
+pub mod random_ballot;
+use rand::Rng;

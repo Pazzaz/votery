@@ -18,6 +18,8 @@ pub struct TiedOrdersIncomplete {
     // Says if a value is tied with the next value.
     // Has length voters * (candidates - 1)
     pub(crate) ties: Vec<bool>,
+
+    // TODO: Have vote_len say where the value starts, to allow for random access into the votes
     pub(crate) vote_len: Vec<usize>,
     pub(crate) candidates: usize,
 }
@@ -26,6 +28,55 @@ pub struct TiedOrdersIncomplete {
 pub struct TiedVote {
     order: Vec<usize>,
     tied: Vec<bool>,
+}
+
+fn unique<T>(l: &[T]) -> bool
+where
+    T: std::cmp::PartialEq,
+{
+    for i in 0..l.len() {
+        for j in 0..l.len() {
+            if i == j {
+                break;
+            }
+            if l[i] == l[j] {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+// A vote without any ties
+pub struct Vote {
+    order: Vec<usize>,
+}
+
+impl Vote {
+    pub fn new(order: Vec<usize>) -> Self {
+        debug_assert!(unique(&order));
+        Vote { order }
+    }
+
+    pub fn len(&self) -> usize {
+        self.order.len()
+    }
+
+    pub fn parse_vote(s: &str, candidates: usize) -> Option<Self> {
+        let mut order: Vec<usize> = Vec::with_capacity(candidates);
+        for number in s.split(',') {
+            let n: usize = match number.parse() {
+                Ok(n) => n,
+                Err(_) => return None,
+            };
+            if !(n < candidates) {
+                return None;
+            }
+            order.push(n);
+        }
+
+        Some(Vote::new(order))
+    }
 }
 
 impl TiedVote {
@@ -113,6 +164,10 @@ impl TiedOrdersIncomplete {
             vote_len: Vec::new(),
             candidates,
         }
+    }
+
+    pub fn vote_i(&self, i: usize) -> TiedVoteRef {
+        unimplemented!()
     }
 
     pub fn voters(&self) -> usize {
