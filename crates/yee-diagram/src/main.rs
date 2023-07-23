@@ -50,7 +50,12 @@ struct ImageConfig {
     variance: f64,
     adapt_mode: Adaptive,
     around_size: usize,
-    use_max: bool,
+    blending: Blending,
+}
+
+enum Blending {
+    Max,
+    Average,
 }
 
 impl Default for ImageConfig {
@@ -64,7 +69,7 @@ impl Default for ImageConfig {
             variance: 0.2,
             adapt_mode: Adaptive::Enable,
             around_size: 2,
-            use_max: false,
+            blending: Blending::Max,
         }
     }
 }
@@ -223,11 +228,22 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
                 done = false;
                 continue;
             }
-            let old_color = blend_colors(old);
-            old.extend(new);
-            let new_color = blend_colors(old);
-            let d = old_color.dist(&new_color);
-            if d > config.max_noise {
+            let more_samples = match config.blending {
+                Blending::Max => {
+                    let old_color = most_common(old);
+                    old.extend(new);
+                    let new_color = most_common(old);
+                    old_color != new_color
+                },
+                Blending::Average => {
+                    let old_color = blend_colors(old);
+                    old.extend(new);
+                    let new_color = blend_colors(old);
+                    let d = old_color.dist(&new_color);
+                    d > config.max_noise
+                }
+            };
+            if more_samples {
                 done = false;
                 let max_xi = xi.saturating_add(config.around_size).min(config.resolution - 1);
                 let min_xi = xi.saturating_sub(config.around_size);
@@ -267,16 +283,18 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
     writer.write_image_data(&image_bytes).unwrap();
 }
 
-fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
+fn most_common<T>(v: &mut Vec<T>) -> T
+where T: Default + PartialOrd + Clone
+{
     if v.len() == 0 {
-        return [0.0, 0.0, 0.0];
+        return T::default();
     }
     v.sort_by(|a, b| a.partial_cmp(&b).unwrap());
     let mut most_common = None;
     let mut current_count = 0;
     let mut max_count = 0;
     let mut prev = None;
-    for &o in v.iter() {
+    for o in v.iter() {
         match most_common {
             Some(_) => {
                 if prev.unwrap() == o {
@@ -297,7 +315,7 @@ fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
         prev = Some(o);
     }
 
-    most_common.unwrap()
+    most_common.unwrap().clone()
 }
 
 fn add_circle(

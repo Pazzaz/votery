@@ -1,5 +1,5 @@
 // Normal RGB color
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct Color {
     values: [f64; 3],
 }
