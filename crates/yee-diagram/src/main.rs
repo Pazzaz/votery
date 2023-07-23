@@ -44,6 +44,7 @@ const MAX: f64 = 1.0;
 struct ImageConfig {
     points: usize,
     resolution: usize,
+    frames: usize,
     candidates: usize,
     sample_size: usize,
     max_noise: f64,
@@ -63,6 +64,7 @@ impl Default for ImageConfig {
         ImageConfig {
             points: 1000,
             resolution: 50,
+            frames: 100,
             candidates: 4,
             sample_size: 5,
             max_noise: 0.2,
@@ -118,7 +120,6 @@ fn main() {
     for [x, y] in &candidates {
         directions.push([y / 100.0, x / 100.0]);
     }
-    let frames = 100;
     let colors: Vec<Color> = vec![
         Color::new(255.0, 0.0, 0.0),
         Color::new(0.0, 255.0, 0.0),
@@ -126,17 +127,16 @@ fn main() {
         Color::new(0.0, 0.0, 0.0),
     ];
     let config = ImageConfig::default();
-    render_animation(candidates, directions, frames, &colors, &config);
+    render_animation(candidates, directions, &colors, &config);
 }
 
 fn render_animation(
     mut candidates: Vec<[f64; 2]>,
     mut directions: Vec<[f64; 2]>,
-    frames: usize,
     colors: &[Color],
     config: &ImageConfig,
 ) {
-    for i in 0..frames {
+    for i in 0..config.frames {
         for j in 0..config.candidates {
             let [x, y] = candidates[j];
             let [dx, dy] = directions[j];
