@@ -31,25 +31,46 @@ enum Adaptive {
     Display,
 }
 
+// We only support 2 dimensional images right now
 const DIMENSIONS: usize = 2;
-const POINTS: usize = 1000;
-const RESOLUTION: usize = 150;
+
+// Each image is contained in a box [0.0, 1.0] x [0.0, 1.0]
 const MIN: f64 = 0.0;
 const MAX: f64 = 1.0;
-const CANDIDATES: usize = 4;
-const MIN_SAMPLES: usize = 5;
-const NOISE_THRESHOLD: f64 = 0.2;
-const VARIANCE: f64 = 0.2;
-const ADAPT_MODE: Adaptive = Adaptive::Display;
-const AROUND_SIZE: usize = 3;
 
-const USE_MAX: bool = true;
+struct ImageConfig {
+    points: usize,
+    resolution: usize,
+    candidates: usize,
+    sample_size: usize,
+    max_noise: f64,
+    variance: f64,
+    adapt_mode: Adaptive,
+    around_size: usize,
+    use_max: bool,
+}
 
-fn create_png_writer(filename: &str) -> Writer<BufWriter<File>> {
+impl Default for ImageConfig {
+    fn default() -> Self {
+        ImageConfig {
+            points: 1000,
+            resolution: 50,
+            candidates: 4,
+            sample_size: 5,
+            max_noise: 0.2,
+            variance: 0.2,
+            adapt_mode: Adaptive::Enable,
+            around_size: 2,
+            use_max: false,
+        }
+    }
+}
+
+fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File>> {
     let path = Path::new(filename);
     let file = File::create(path).unwrap();
     let w = BufWriter::new(file);
-    let mut encoder = png::Encoder::new(w, RESOLUTION as u32, RESOLUTION as u32);
+    let mut encoder = png::Encoder::new(w, resolution as u32, resolution as u32);
     encoder.set_color(png::ColorType::Rgb);
     encoder.set_depth(png::BitDepth::Eight);
     encoder.write_header().unwrap()
@@ -61,9 +82,10 @@ fn sample_pixel<R: Rng>(
     yi: usize,
     rng: &mut R,
     colors: &[[f64; 3]],
+    resolution: usize,
 ) -> [f64; 3] {
-    let x: f64 = (xi as f64) / (RESOLUTION as f64) * (MAX - MIN) + MIN;
-    let y: f64 = (yi as f64) / (RESOLUTION as f64) * (MAX - MIN) + MIN;
+    let x: f64 = (xi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
+    let y: f64 = (yi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]);
     let vote_fixed: TiedOrdersIncomplete = votes.into_iter().map(|x| x.owned()).collect();
     let mut mixes: Vec<[f64; 3]> = Vec::new();
@@ -72,7 +94,7 @@ fn sample_pixel<R: Rng>(
     for (gi, group) in vote.slice().iter_groups().enumerate() {
         let mut hmm = Vec::new();
         for &i in group {
-            debug_assert!(i < CANDIDATES);
+            debug_assert!(i < colors.len());
             hmm.push(colors[i]);
         }
         let new_c = mix_colors(&hmm);
@@ -89,12 +111,15 @@ fn main() {
         directions.push([y / 100.0, x / 100.0]);
     }
     let frames = 100;
-    render_animation(candidates, directions, frames);
+    let colors: Vec<[f64; 3]> =
+        vec![[255.0, 0.0, 0.0], [0.0, 255.0, 0.0], [0.0, 0.0, 255.0], [0.0, 0.0, 0.0]];
+    let config = ImageConfig::default();
+    render_animation(candidates, directions, frames, &colors, &config);
 }
 
-fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize) {
+fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize, colors: &[[f64; 3]], config: &ImageConfig) {
     for i in 0..frames {
-        for j in 0..CANDIDATES {
+        for j in 0..config.candidates {
             let [x, y] = candidates[j];
             let [dx, dy] = directions[j];
             let new_x = x + dx;
@@ -120,39 +145,37 @@ fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>
             }
         }
         println!("{:?}", candidates[0]);
-        render_image(&format!("animation/slow_borda_{}", i), &candidates);
+        render_image(&format!("animation/slow_borda_{}", i), &candidates, colors, config);
     }
 }
 
-fn render_image(name: &str, candidates: &[[f64; 2]]) {
-    debug_assert!(candidates.len() == CANDIDATES);
+fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config: &ImageConfig) {
+    debug_assert!(candidates.len() == config.candidates);
     // Output file
-    let mut writer = create_png_writer(&format!("{}.png", name));
-    let writer_adaptive: Option<_> = if ADAPT_MODE == Adaptive::Display {
-        Some(create_png_writer(&format!("{}_bw.png", name)))
+    let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
+    let writer_adaptive: Option<_> = if config.adapt_mode == Adaptive::Display {
+        Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
     } else {
         None
     };
 
-    let colors: Vec<[f64; 3]> =
-        vec![[255.0, 0.0, 0.0], [0.0, 255.0, 0.0], [0.0, 0.0, 255.0], [0.0, 0.0, 0.0]];
-    debug_assert!(colors.len() == CANDIDATES);
-    let mut g = Gaussian::new(DIMENSIONS, VARIANCE, POINTS);
+    debug_assert!(colors.len() == config.candidates);
+    let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points);
     for c in candidates {
         assert!(vector(c));
         g.add_candidate(c);
     }
     let mut iterations = 0;
-    let mut all_samples: Vec<Vec<Vec<[f64; 3]>>> = vec![vec![Vec::new(); RESOLUTION]; RESOLUTION];
-    let mut needs_samples = vec![vec![true; RESOLUTION]; RESOLUTION];
-    let mut queue = Vec::with_capacity(RESOLUTION * RESOLUTION);
-    let mut sample_count: Vec<Vec<usize>> = vec![vec![0; RESOLUTION]; RESOLUTION];
+    let mut all_samples: Vec<Vec<Vec<[f64; 3]>>> = vec![vec![Vec::new(); config.resolution]; config.resolution];
+    let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
+    let mut queue = Vec::with_capacity(config.resolution * config.resolution);
+    let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
     let mut final_image: Vec<Vec<[u8; 3]>> = loop {
         iterations += 1;
         // First we'll add every pixel that needs samples to the queue
         queue.clear();
-        for yi in 0..RESOLUTION {
-            for xi in 0..RESOLUTION {
+        for yi in 0..config.resolution {
+            for xi in 0..config.resolution {
                 if needs_samples[yi][xi] {
                     queue.push((xi, yi));
                     needs_samples[yi][xi] = false;
@@ -165,9 +188,9 @@ fn render_image(name: &str, candidates: &[[f64; 2]]) {
             .par_drain(..)
             .map(|(xi, yi)| {
                 let mut rng = thread_rng();
-                let mut new_samples = Vec::with_capacity(MIN_SAMPLES);
-                for _ in 0..MIN_SAMPLES {
-                    let pixel = sample_pixel(&g, xi, yi, &mut rng, &colors);
+                let mut new_samples = Vec::with_capacity(config.sample_size);
+                for _ in 0..config.sample_size {
+                    let pixel = sample_pixel(&g, xi, yi, &mut rng, &colors, config.resolution);
                     new_samples.push(pixel);
                 }
                 (xi, yi, new_samples)
@@ -190,12 +213,12 @@ fn render_image(name: &str, candidates: &[[f64; 2]]) {
             old.extend(new);
             let new_color = mix_colors(old);
             let d = color_distance(old_color, new_color);
-            if d > NOISE_THRESHOLD {
+            if d > config.max_noise {
                 done = false;
-                let max_xi = xi.saturating_add(AROUND_SIZE).min(RESOLUTION - 1);
-                let min_xi = xi.saturating_sub(AROUND_SIZE);
-                let max_yi = yi.saturating_add(AROUND_SIZE).min(RESOLUTION - 1);
-                let min_yi = yi.saturating_sub(AROUND_SIZE);
+                let max_xi = xi.saturating_add(config.around_size).min(config.resolution - 1);
+                let min_xi = xi.saturating_sub(config.around_size);
+                let max_yi = yi.saturating_add(config.around_size).min(config.resolution - 1);
+                let min_yi = yi.saturating_sub(config.around_size);
                 for y in min_yi..=max_yi {
                     for x in min_xi..=max_xi {
                         needs_samples[y][x] = true;
@@ -205,16 +228,16 @@ fn render_image(name: &str, candidates: &[[f64; 2]]) {
         }
 
         if done {
-            let mut final_image = vec![vec![[0, 0, 0]; RESOLUTION]; RESOLUTION];
-            for yi in 0..RESOLUTION {
-                for xi in 0..RESOLUTION {
+            let mut final_image = vec![vec![[0, 0, 0]; config.resolution]; config.resolution];
+            for yi in 0..config.resolution {
+                for xi in 0..config.resolution {
                     final_image[yi][xi] = quantize(mix_colors(&all_samples[yi][xi]));
                 }
             }
             break final_image;
         }
     };
-    if ADAPT_MODE == Adaptive::Display {
+    if config.adapt_mode == Adaptive::Display {
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
             .iter()
@@ -223,8 +246,8 @@ fn render_image(name: &str, candidates: &[[f64; 2]]) {
         let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
-    for c in 0..CANDIDATES {
-        add_circle(&mut final_image, quantize(colors[c]), &candidates[c]);
+    for c in 0..config.candidates {
+        add_circle(&mut final_image, quantize(colors[c]), &candidates[c], config.resolution);
     }
     let image_bytes: Vec<u8> = final_image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
@@ -281,7 +304,7 @@ fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
     most_common.unwrap()
 }
 
-fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSIONS]) {
+fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSIONS], resolution: usize) {
     let r = 0.02;
     let pi = std::f64::consts::PI;
     let mut angle: f64 = 0.0;
@@ -292,7 +315,7 @@ fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSI
             let y1 = r_in * f64::sin(angle * pi / 180.0);
             let x = pos[0] + x1;
             let y = pos[1] + y1;
-            put_pixel(image, x, y, color);
+            put_pixel(image, x, y, color, resolution);
             r_in += 0.001
         }
         angle += 0.1;
@@ -304,24 +327,24 @@ fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSI
         let y1 = r * f64::sin(angle * pi / 180.0);
         let x = pos[0] + x1;
         let y = pos[1] + y1;
-        put_pixel(image, x, y, [0, 0, 0]);
+        put_pixel(image, x, y, [0, 0, 0], resolution);
         angle += 0.1;
     }
 }
 
 // maps [MIN, MAX) -> [0, RESOLUTION)
-fn f64_to_coord(u: f64) -> usize {
-    let s = ((u - MIN) / (MAX - MIN) * RESOLUTION as f64) as usize;
-    if s >= RESOLUTION {
-        RESOLUTION - 1
+fn f64_to_coord(u: f64, resolution: usize) -> usize {
+    let s = ((u - MIN) / (MAX - MIN) * resolution as f64) as usize;
+    if s >= resolution {
+        resolution - 1
     } else {
         s
     }
 }
 
-fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: [u8; 3]) {
-    let xx = f64_to_coord(x);
-    let yy = f64_to_coord(y);
+fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: [u8; 3], resolution: usize) {
+    let xx = f64_to_coord(x, resolution);
+    let yy = f64_to_coord(y, resolution);
     image[yy][xx] = color;
 }
 
