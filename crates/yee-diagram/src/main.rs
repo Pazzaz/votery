@@ -52,11 +52,18 @@ struct ImageConfig {
     adapt_mode: Adaptive,
     around_size: usize,
     blending: Blending,
+    vote_color: VoteColor,
 }
 
 enum Blending {
     Max,
     Average,
+}
+
+#[derive(Clone, Copy)]
+enum VoteColor {
+    Winners,
+    Harmonic,
 }
 
 impl Default for ImageConfig {
@@ -72,6 +79,7 @@ impl Default for ImageConfig {
             adapt_mode: Adaptive::Enable,
             around_size: 2,
             blending: Blending::Max,
+            vote_color: VoteColor::Winners,
         }
     }
 }
@@ -92,26 +100,34 @@ fn sample_pixel<R: Rng>(
     yi: usize,
     rng: &mut R,
     colors: &[Color],
-    resolution: usize,
+    config: &ImageConfig,
 ) -> Color {
-    let x: f64 = (xi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
-    let y: f64 = (yi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
+    let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
+    let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]);
     let vote_fixed: TiedOrdersIncomplete = votes.into_iter().map(|x| x.owned()).collect();
     let mut mixes: Vec<Color> = Vec::new();
     let mut weights: Vec<f64> = Vec::new();
     let vote: TiedVote = Borda::count(&vote_fixed).unwrap().as_vote();
-    for (gi, group) in vote.slice().iter_groups().enumerate() {
-        let mut hmm = Vec::new();
-        for &i in group {
-            debug_assert!(i < colors.len());
-            hmm.push(colors[i]);
+    match config.vote_color {
+        VoteColor::Harmonic => {
+            for (gi, group) in vote.slice().iter_groups().enumerate() {
+                let mut hmm = Vec::new();
+                for &i in group {
+                    debug_assert!(i < colors.len());
+                    hmm.push(colors[i]);
+                }
+                let new_c = blend_colors(&hmm);
+                mixes.push(new_c);
+                weights.push(1.0 / (gi + 1) as f64)
+            }
+            blend_colors_weighted(&mixes, Some(&weights))
         }
-        let new_c = blend_colors(&hmm);
-        mixes.push(new_c);
-        weights.push(1.0 / (gi + 1) as f64)
+        VoteColor::Winners => {
+            let i_colors: Vec<Color> = vote.slice().winners().iter().map(|&i| colors[i]).collect();
+            blend_colors(&i_colors)
+        }
     }
-    blend_colors_weighted(&mixes, Some(&weights))
 }
 
 fn main() {
@@ -209,7 +225,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
                 let mut rng = thread_rng();
                 let mut new_samples = Vec::with_capacity(config.sample_size);
                 for _ in 0..config.sample_size {
-                    let pixel = sample_pixel(&g, xi, yi, &mut rng, &colors, config.resolution);
+                    let pixel = sample_pixel(&g, xi, yi, &mut rng, &colors, &config);
                     new_samples.push(pixel);
                 }
                 (xi, yi, new_samples)
@@ -234,7 +250,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
                     old.extend(new);
                     let new_color = most_common(old);
                     old_color != new_color
-                },
+                }
                 Blending::Average => {
                     let old_color = blend_colors(old);
                     old.extend(new);
@@ -284,7 +300,8 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
 }
 
 fn most_common<T>(v: &mut Vec<T>) -> T
-where T: Default + PartialOrd + Clone
+where
+    T: Default + PartialOrd + Clone,
 {
     if v.len() == 0 {
         return T::default();
