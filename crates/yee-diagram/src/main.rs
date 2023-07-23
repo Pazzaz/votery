@@ -83,12 +83,16 @@ fn sample_pixel<R: Rng>(
 }
 
 fn main() {
-    let mut candidates = vec![[0.3, 0.7], [0.5, 0.84], [0.8, 0.2], [0.8, 0.7]];
+    let candidates = vec![[0.3, 0.7], [0.5, 0.84], [0.8, 0.2], [0.8, 0.7]];
     let mut directions = Vec::new();
     for [x, y] in &candidates {
         directions.push([y / 100.0, x / 100.0]);
     }
     let frames = 100;
+    render_animation(candidates, directions, frames);
+}
+
+fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize) {
     for i in 0..frames {
         for j in 0..CANDIDATES {
             let [x, y] = candidates[j];
