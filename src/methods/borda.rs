@@ -1,8 +1,12 @@
 // There are several different types of borda count. We have tried to handle
 // every variation. See also the Dowdall system, a similar method.
 
+use super::fptp::order_to_vote;
 use crate::{
-    formats::{toi::TiedOrdersIncomplete, VoteFormat},
+    formats::{
+        toi::{TiedOrdersIncomplete, TiedVote},
+        VoteFormat,
+    },
     methods::VotingMethod,
 };
 
@@ -17,11 +21,13 @@ impl<'a> VotingMethod<'a> for Borda {
         let n = data.candidates();
         let mut score: Vec<usize> = vec![0; n];
         for vote in data {
+            // println!("{:?}", &vote);
             let mut seen = 0;
             for group in vote.iter_groups() {
                 let ties = group.len();
-                debug_assert!(n >= (1 + seen + ties));
-                let ranked_below = n - (1 + seen + ties);
+                // TODO: Is this correct?
+                debug_assert!(n >= (seen + ties));
+                let ranked_below = n - (seen + ties);
                 for &c in group {
                     // Add one point for every candidate `c` is preferred to, and a half point for
                     // every other one `c` is tied with. We don't want to store 0.5 so everything is
@@ -36,5 +42,12 @@ impl<'a> VotingMethod<'a> for Borda {
 
     fn get_score(&self) -> &Vec<usize> {
         &self.score
+    }
+}
+
+impl Borda {
+    pub fn as_vote(&self) -> TiedVote {
+        let order = self.get_order();
+        order_to_vote(&order)
     }
 }

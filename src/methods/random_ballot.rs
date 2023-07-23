@@ -8,7 +8,7 @@ use crate::formats::{
 };
 
 /// Draw random votes until they create a ranking
-/// 
+///
 /// It will try to have a unique winner for the top `positions`. It will
 /// continue drawing random votes to rank the remaining unranked candidates,
 /// until it has a total order of the top `positions`.
@@ -83,5 +83,11 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
 
     fn get_order(&self) -> Vec<usize> {
         get_order(self.get_score(), true)
+    }
+}
+
+impl RandomBallotSingle {
+    pub fn as_vote(&self) -> TiedVote {
+        self.ranking.clone()
     }
 }
