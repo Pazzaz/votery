@@ -117,15 +117,15 @@ fn sample_pixel<R: Rng>(
                     debug_assert!(i < colors.len());
                     hmm.push(colors[i]);
                 }
-                let new_c = blend_colors(&hmm);
+                let new_c = blend_colors(hmm.iter());
                 mixes.push(new_c);
                 weights.push(1.0 / (gi + 1) as f64)
             }
-            blend_colors_weighted(&mixes, Some(&weights))
+            blend_colors_weighted(mixes.iter(), Some(&weights))
         }
         VoteColor::Winners => {
-            let i_colors: Vec<Color> = vote.slice().winners().iter().map(|&i| colors[i]).collect();
-            blend_colors(&i_colors)
+            let i_colors = vote.slice().winners().iter().map(|&i| &colors[i]);
+            blend_colors(i_colors)
         }
     }
 }
@@ -252,9 +252,9 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
                     old_color != new_color
                 }
                 Blending::Average => {
-                    let old_color = blend_colors(old);
+                    let old_color = blend_colors(old.iter());
                     old.extend(new);
-                    let new_color = blend_colors(old);
+                    let new_color = blend_colors(old.iter());
                     let d = old_color.dist(&new_color);
                     d > config.max_noise
                 }
@@ -277,7 +277,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
             let mut final_image = vec![vec![[0, 0, 0]; config.resolution]; config.resolution];
             for yi in 0..config.resolution {
                 for xi in 0..config.resolution {
-                    final_image[yi][xi] = blend_colors(&all_samples[yi][xi]).quantize();
+                    final_image[yi][xi] = blend_colors(all_samples[yi][xi].iter()).quantize();
                 }
             }
             break final_image;

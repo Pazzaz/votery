@@ -68,19 +68,22 @@ impl Color {
     }
 }
 
-pub fn blend_colors(cs: &[Color]) -> Color {
+pub fn blend_colors<'a, I>(cs: I) -> Color
+where
+    I: Iterator<Item = &'a Color>,
+{
     blend_colors_weighted(cs, None)
 }
 
-pub fn blend_colors_weighted(cs: &[Color], ws: Option<&[f64]>) -> Color {
-    if cs.len() == 0 {
-        return Color::default();
-    }
+pub fn blend_colors_weighted<'a, I>(cs: I, ws: Option<&[f64]>) -> Color
+where
+    I: Iterator<Item = &'a Color>,
+{
     let mut rr = 0.0;
     let mut gg = 0.0;
     let mut bb = 0.0;
     let mut total = 0.0;
-    for (i, rgb) in cs.iter().enumerate() {
+    for (i, rgb) in cs.enumerate() {
         let weight = match ws {
             Some(v) => v[i],
             None => 1.0,
@@ -91,6 +94,7 @@ pub fn blend_colors_weighted(cs: &[Color], ws: Option<&[f64]>) -> Color {
         bb += sb * weight;
         total += weight;
     }
+    debug_assert!(total != 0.0);
     let res = [rr / total, gg / total, bb / total];
     Color::from_srgb(res)
 }
