@@ -4,19 +4,22 @@ pub struct Color {
     values: [f64; 3],
 }
 
-pub const BLACK: Color = Color { values: [0.0, 0.0, 0.0 ]};
+pub const BLACK: Color = Color { values: [0.0, 0.0, 0.0] };
 
 impl Color {
     pub fn new(r: f64, g: f64, b: f64) -> Self {
-        let c = Color {values: [r, g, b] };
+        let c = Color { values: [r, g, b] };
         debug_assert!(c.is_valid());
         c
     }
 
     fn is_valid(&self) -> bool {
-        0.0 <= self.r() && self.r() <= 255.0
-        && 0.0 <= self.g() && self.g() <= 255.0
-        && 0.0 <= self.b() && self.b() <= 255.0
+        0.0 <= self.r()
+            && self.r() <= 255.0
+            && 0.0 <= self.g()
+            && self.g() <= 255.0
+            && 0.0 <= self.b()
+            && self.b() <= 255.0
     }
 
     pub fn bw(x: usize, max: usize) -> Self {

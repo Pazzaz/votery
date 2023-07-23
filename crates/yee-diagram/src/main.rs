@@ -5,7 +5,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
-use color::{Color, blend_colors, blend_colors_weighted};
+use color::{blend_colors, blend_colors_weighted, Color};
 use png::Writer;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use rayon::{
@@ -114,13 +114,23 @@ fn main() {
         directions.push([y / 100.0, x / 100.0]);
     }
     let frames = 100;
-    let colors: Vec<Color> =
-        vec![Color::new(255.0, 0.0, 0.0), Color::new(0.0, 255.0, 0.0), Color::new(0.0, 0.0, 255.0), Color::new(0.0, 0.0, 0.0)];
+    let colors: Vec<Color> = vec![
+        Color::new(255.0, 0.0, 0.0),
+        Color::new(0.0, 255.0, 0.0),
+        Color::new(0.0, 0.0, 255.0),
+        Color::new(0.0, 0.0, 0.0),
+    ];
     let config = ImageConfig::default();
     render_animation(candidates, directions, frames, &colors, &config);
 }
 
-fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize, colors: &[Color], config: &ImageConfig) {
+fn render_animation(
+    mut candidates: Vec<[f64; 2]>,
+    mut directions: Vec<[f64; 2]>,
+    frames: usize,
+    colors: &[Color],
+    config: &ImageConfig,
+) {
     for i in 0..frames {
         for j in 0..config.candidates {
             let [x, y] = candidates[j];
@@ -169,7 +179,8 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
         g.add_candidate(c);
     }
     let mut iterations = 0;
-    let mut all_samples: Vec<Vec<Vec<Color>>> = vec![vec![Vec::new(); config.resolution]; config.resolution];
+    let mut all_samples: Vec<Vec<Vec<Color>>> =
+        vec![vec![Vec::new(); config.resolution]; config.resolution];
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
@@ -200,8 +211,8 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
             })
             .collect();
         // Then we need to decide which pixels need more samples. We say that a pixel
-        // needs more samples if it hasn't converged, or if any of its neighbours haven't
-        // converged yet
+        // needs more samples if it hasn't converged, or if any of its neighbours
+        // haven't converged yet
         let mut done = true;
         for (xi, yi, new) in new_samples {
             sample_count[yi][xi] += 1;
@@ -289,7 +300,12 @@ fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
     most_common.unwrap()
 }
 
-fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: Color, pos: &[f64; DIMENSIONS], resolution: usize) {
+fn add_circle(
+    image: &mut Vec<Vec<[u8; 3]>>,
+    color: Color,
+    pos: &[f64; DIMENSIONS],
+    resolution: usize,
+) {
     let r = 0.02;
     let pi = std::f64::consts::PI;
     let mut angle: f64 = 0.0;
@@ -332,7 +348,6 @@ fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolu
     let yy = f64_to_coord(y, resolution);
     image[yy][xx] = color.quantize();
 }
-
 
 // void DrawCircle(int x, int y, int r, int color)
 // {
