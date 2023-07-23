@@ -5,6 +5,7 @@ use std::{
     sync::atomic::{AtomicUsize, Ordering},
 };
 
+use color::{Color, blend_colors, blend_colors_weighted};
 use png::Writer;
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use rayon::{
@@ -23,6 +24,8 @@ use votery::{
     },
     prelude::VotingMethod,
 };
+
+mod color;
 
 #[derive(PartialEq, Eq)]
 enum Adaptive {
@@ -81,14 +84,14 @@ fn sample_pixel<R: Rng>(
     xi: usize,
     yi: usize,
     rng: &mut R,
-    colors: &[[f64; 3]],
+    colors: &[Color],
     resolution: usize,
-) -> [f64; 3] {
+) -> Color {
     let x: f64 = (xi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]);
     let vote_fixed: TiedOrdersIncomplete = votes.into_iter().map(|x| x.owned()).collect();
-    let mut mixes: Vec<[f64; 3]> = Vec::new();
+    let mut mixes: Vec<Color> = Vec::new();
     let mut weights: Vec<f64> = Vec::new();
     let vote: TiedVote = Borda::count(&vote_fixed).unwrap().as_vote();
     for (gi, group) in vote.slice().iter_groups().enumerate() {
@@ -97,11 +100,11 @@ fn sample_pixel<R: Rng>(
             debug_assert!(i < colors.len());
             hmm.push(colors[i]);
         }
-        let new_c = mix_colors(&hmm);
+        let new_c = blend_colors(&hmm);
         mixes.push(new_c);
         weights.push(1.0 / (gi + 1) as f64)
     }
-    mix_colors_weighted(&mixes, Some(&weights))
+    blend_colors_weighted(&mixes, Some(&weights))
 }
 
 fn main() {
@@ -111,13 +114,13 @@ fn main() {
         directions.push([y / 100.0, x / 100.0]);
     }
     let frames = 100;
-    let colors: Vec<[f64; 3]> =
-        vec![[255.0, 0.0, 0.0], [0.0, 255.0, 0.0], [0.0, 0.0, 255.0], [0.0, 0.0, 0.0]];
+    let colors: Vec<Color> =
+        vec![Color::new(255.0, 0.0, 0.0), Color::new(0.0, 255.0, 0.0), Color::new(0.0, 0.0, 255.0), Color::new(0.0, 0.0, 0.0)];
     let config = ImageConfig::default();
     render_animation(candidates, directions, frames, &colors, &config);
 }
 
-fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize, colors: &[[f64; 3]], config: &ImageConfig) {
+fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>, frames: usize, colors: &[Color], config: &ImageConfig) {
     for i in 0..frames {
         for j in 0..config.candidates {
             let [x, y] = candidates[j];
@@ -149,7 +152,7 @@ fn render_animation(mut candidates: Vec<[f64; 2]>, mut directions: Vec<[f64; 2]>
     }
 }
 
-fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config: &ImageConfig) {
+fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) {
     debug_assert!(candidates.len() == config.candidates);
     // Output file
     let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
@@ -166,7 +169,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config
         g.add_candidate(c);
     }
     let mut iterations = 0;
-    let mut all_samples: Vec<Vec<Vec<[f64; 3]>>> = vec![vec![Vec::new(); config.resolution]; config.resolution];
+    let mut all_samples: Vec<Vec<Vec<Color>>> = vec![vec![Vec::new(); config.resolution]; config.resolution];
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
@@ -184,7 +187,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config
         }
         println!("{}: pixels to sample: {}", iterations, queue.len());
         // Then we actually get some samples
-        let new_samples: Vec<(usize, usize, Vec<[f64; 3]>)> = queue
+        let new_samples: Vec<(usize, usize, Vec<Color>)> = queue
             .par_drain(..)
             .map(|(xi, yi)| {
                 let mut rng = thread_rng();
@@ -209,10 +212,10 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config
                 done = false;
                 continue;
             }
-            let old_color = mix_colors(old);
+            let old_color = blend_colors(old);
             old.extend(new);
-            let new_color = mix_colors(old);
-            let d = color_distance(old_color, new_color);
+            let new_color = blend_colors(old);
+            let d = old_color.dist(&new_color);
             if d > config.max_noise {
                 done = false;
                 let max_xi = xi.saturating_add(config.around_size).min(config.resolution - 1);
@@ -231,7 +234,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config
             let mut final_image = vec![vec![[0, 0, 0]; config.resolution]; config.resolution];
             for yi in 0..config.resolution {
                 for xi in 0..config.resolution {
-                    final_image[yi][xi] = quantize(mix_colors(&all_samples[yi][xi]));
+                    final_image[yi][xi] = blend_colors(&all_samples[yi][xi]).quantize();
                 }
             }
             break final_image;
@@ -241,34 +244,16 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[[f64; 3]], config
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
             .iter()
-            .map(|c| c.iter().map(|x| bw_color(*x, *max_samples)).collect())
+            .map(|c| c.iter().map(|x| Color::bw(*x, *max_samples).quantize()).collect())
             .collect();
         let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
     for c in 0..config.candidates {
-        add_circle(&mut final_image, quantize(colors[c]), &candidates[c], config.resolution);
+        add_circle(&mut final_image, colors[c], &candidates[c], config.resolution);
     }
     let image_bytes: Vec<u8> = final_image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
-}
-
-fn bw_color(x: usize, max: usize) -> [u8; 3] {
-    let v = (255.0 * x as f64 / max as f64) as u8;
-    [v, v, v]
-}
-
-// TODO: Is there some other way to do
-// perceptual color distance? Should I really be using euclidean distance?
-fn color_distance(i: [f64; 3], j: [f64; 3]) -> f64 {
-    let [ai, bi, ci] = i;
-    let [aj, bj, cj] = j;
-    let d = ((ai - aj).powi(2) + (bi - bj).powi(2) + (ci - cj).powi(2)).sqrt();
-    d
-}
-
-fn quantize(a: [f64; 3]) -> [u8; 3] {
-    [a[0] as u8, a[1] as u8, a[2] as u8]
 }
 
 fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
@@ -304,7 +289,7 @@ fn most_common(v: &mut Vec<[f64; 3]>) -> [f64; 3] {
     most_common.unwrap()
 }
 
-fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSIONS], resolution: usize) {
+fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: Color, pos: &[f64; DIMENSIONS], resolution: usize) {
     let r = 0.02;
     let pi = std::f64::consts::PI;
     let mut angle: f64 = 0.0;
@@ -327,7 +312,7 @@ fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3], pos: &[f64; DIMENSI
         let y1 = r * f64::sin(angle * pi / 180.0);
         let x = pos[0] + x1;
         let y = pos[1] + y1;
-        put_pixel(image, x, y, [0, 0, 0], resolution);
+        put_pixel(image, x, y, color::BLACK, resolution);
         angle += 0.1;
     }
 }
@@ -342,53 +327,12 @@ fn f64_to_coord(u: f64, resolution: usize) -> usize {
     }
 }
 
-fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: [u8; 3], resolution: usize) {
+fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolution: usize) {
     let xx = f64_to_coord(x, resolution);
     let yy = f64_to_coord(y, resolution);
-    image[yy][xx] = color;
+    image[yy][xx] = color.quantize();
 }
 
-fn mix_colors(colors: &[[f64; 3]]) -> [f64; 3] {
-    mix_colors_weighted(colors, None)
-}
-
-fn mix_colors_weighted(colors: &[[f64; 3]], weights: Option<&Vec<f64>>) -> [f64; 3] {
-    if colors.len() == 0 {
-        return [0.0, 0.0, 0.0];
-    }
-    let mut rr = 0.0;
-    let mut gg = 0.0;
-    let mut bb = 0.0;
-    let mut total = 0.0;
-    for (i, &rgb) in colors.iter().enumerate() {
-        let weight = match weights {
-            Some(v) => v[i],
-            None => 1.0,
-        };
-        let [sr, sg, sb] = rgb_to_srgb(rgb);
-        rr += sr * weight;
-        gg += sg * weight;
-        bb += sb * weight;
-        total += weight;
-    }
-    let res = [rr / total, gg / total, bb / total];
-    srgb_to_rgb(res)
-}
-
-fn conv(u: f64) -> f64 {
-    ((u + 0.055) / 1.055).powf(2.4)
-}
-fn conv_inv(u: f64) -> f64 {
-    (1.055 * (u.powf(1.0 / 2.4))) - 0.055
-}
-
-fn rgb_to_srgb([r, g, b]: [f64; 3]) -> [f64; 3] {
-    [conv(r), conv(g), conv(b)]
-}
-
-fn srgb_to_rgb([r, g, b]: [f64; 3]) -> [f64; 3] {
-    [conv_inv(r), conv_inv(g), conv_inv(b)]
-}
 
 // void DrawCircle(int x, int y, int r, int color)
 // {
