@@ -25,6 +25,7 @@ pub struct TiedOrdersIncomplete {
 }
 
 /// A vote with possible ties.
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TiedVote {
     order: Vec<usize>,
     tied: Vec<bool>,
@@ -48,6 +49,7 @@ where
 }
 
 // A vote without any ties
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Vote {
     order: Vec<usize>,
 }
@@ -132,8 +134,9 @@ impl TiedVote {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TiedVoteRef<'a> {
-    order: &'a [usize],
+    pub order: &'a [usize],
     tied: &'a [bool],
 }
 
@@ -151,8 +154,18 @@ impl<'a> TiedVoteRef<'a> {
         TiedVote::new(self.order.to_vec(), self.tied.to_vec())
     }
 
-    pub fn iter_groups(self) -> GroupIterator<'a> {
-        GroupIterator { vote: self, start: 0 }
+    pub fn iter_groups(&'a self) -> GroupIterator<'a> {
+        GroupIterator { vote: &self, start: 0 }
+    }
+
+    /// Returns group of candidate `c`. 0 is highest rank. Takes `O(n)` time
+    pub fn group_of(&self, c: usize) -> Option<usize> {
+        self.iter_groups().into_iter().position(|group| group.contains(&c))
+    }
+
+    pub fn winners(&self) -> &'a [usize] {
+        let i = self.tied.iter().take_while(|x| **x).count();
+        &self.order[0..=i]
     }
 }
 
@@ -167,7 +180,8 @@ impl TiedOrdersIncomplete {
     }
 
     pub fn vote_i(&self, i: usize) -> TiedVoteRef {
-        unimplemented!()
+        // TODO: Make more efficient
+        self.into_iter().nth(i).unwrap()
     }
 
     pub fn voters(&self) -> usize {
@@ -268,6 +282,34 @@ impl TiedOrdersIncomplete {
             .filter(|(_, score)| *score > self.voters() / 2)
             .map(|(i, _)| i)
             .collect()
+    }
+
+    /// TODO: NOT SAME AS MAJORITY
+    /// Same as `majority`, but contains a list of candidates to ignore. Useful
+    /// for methods like "Instant-runoff voting". Assumes `ignore is sorted`,
+    /// and then does binary searches to find if a candidate should be ignored.
+    pub fn majority_ignore(&self, ignore: &[usize]) -> Vec<usize> {
+        if self.candidates == 1 {
+            return vec![0];
+        }
+        let mut firsts = vec![0; self.candidates];
+        for vote in self {
+            for group in vote.iter_groups() {
+                let mut found = false;
+                for c in group {
+                    if ignore.binary_search(c).is_err() {
+                        // We found a candidate which isn't ignored. We'll iterate through all its
+                        // ties, and then break.
+                        firsts[*c] += 1;
+                        found = true;
+                    }
+                }
+                if found {
+                    break;
+                }
+            }
+        }
+        firsts
     }
 
     /// Check if a set of candidates is a set of clones such that there does not
@@ -404,7 +446,7 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
 
 // Splits a vote up into its rankings
 pub struct GroupIterator<'a> {
-    vote: TiedVoteRef<'a>,
+    vote: &'a TiedVoteRef<'a>,
     start: usize,
 }
 
@@ -421,6 +463,7 @@ impl<'a> Iterator for GroupIterator<'a> {
             } else {
                 if !self.vote.tied[i] {
                     end = i;
+                    break;
                 }
             }
         }

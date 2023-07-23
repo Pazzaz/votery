@@ -1,6 +1,6 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use super::soc::StrictOrdersComplete;
+use super::{soc::StrictOrdersComplete, toi::TiedVoteRef, Specific};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -91,7 +91,7 @@ impl TiedOrdersComplete {
         let mut seen = vec![false; self.candidates];
         for vote in self {
             seen.fill(false);
-            for &i in vote.0 {
+            for &i in vote.order {
                 if i >= self.candidates || seen[i] {
                     return false;
                 }
@@ -122,10 +122,19 @@ impl TiedOrdersComplete {
         }
         debug_assert!(self.valid());
     }
+
+    pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> Specific {
+        let candidates = self.candidates;
+        let mut votes: Specific =
+            self.into_iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
+
+        votes.set_candidates(candidates);
+        votes
+    }
 }
 
 impl<'a> IntoIterator for &'a TiedOrdersComplete {
-    type Item = (&'a [usize], &'a [bool]);
+    type Item = TiedVoteRef<'a>;
     type IntoIter = TiedOrdersCompleteIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -139,8 +148,11 @@ pub struct TiedOrdersCompleteIterator<'a> {
 }
 
 impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
-    type Item = (&'a [usize], &'a [bool]);
+    type Item = TiedVoteRef<'a>;
     fn next(&mut self) -> Option<Self::Item> {
+        if self.i == self.orig.voters() {
+            return None;
+        }
         let len1 = self.orig.candidates;
         let len2 = self.orig.candidates - 1;
         let start1 = self.i * len1;
@@ -149,7 +161,8 @@ impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
         let tie = &self.orig.ties[start2..(start2 + len2)];
         self.i += 1;
         debug_assert!(tie.len() + 1 == vote.len());
-        Some((vote, tie))
+
+        Some(TiedVoteRef::new(vote, tie))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

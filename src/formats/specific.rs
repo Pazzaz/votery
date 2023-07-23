@@ -72,6 +72,12 @@ impl Specific {
         debug_assert!(self.valid());
         Ok(())
     }
+
+    /// Set the number of candidates to a larger amount
+    pub fn set_candidates(&mut self, candidates: usize) {
+        debug_assert!(self.candidates <= candidates);
+        self.candidates = candidates;
+    }
 }
 
 impl Display for Specific {
@@ -139,6 +145,22 @@ impl<'a> VoteFormat<'a> for Specific {
             self.votes.push(i);
         }
         debug_assert!(self.valid());
+    }
+}
+
+impl<'a> FromIterator<usize> for Specific {
+    fn from_iter<I: IntoIterator<Item = usize>>(iter: I) -> Self {
+        let ii = iter.into_iter();
+        let (min_len, _) = ii.size_hint();
+        let mut votes = Vec::with_capacity(min_len);
+        let mut max = 0;
+        for v in ii {
+            votes.push(v);
+            if v > max {
+                max = v;
+            }
+        }
+        Specific { votes, candidates: max + 1 }
     }
 }
 
