@@ -67,7 +67,7 @@ impl<'a> VoteFormat<'a> for StrictOrdersIncomplete {
     type Vote = &'a [usize];
 
     fn candidates(&self) -> usize {
-        self.candidates()
+        self.candidates
     }
 
     fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
