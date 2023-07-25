@@ -1,5 +1,5 @@
 use crate::{
-    formats::{toi::TiedVote, Specific},
+    formats::{orders::TiedVote, Specific},
     methods::VotingMethod,
 };
 

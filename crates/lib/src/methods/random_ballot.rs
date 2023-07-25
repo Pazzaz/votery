@@ -4,7 +4,8 @@ use rand_distr::Uniform;
 use super::{get_order, RandomVotingMethod};
 use crate::formats::{
     soi::StrictOrdersIncomplete,
-    toi::{TiedOrdersIncomplete, TiedVote, Vote},
+    orders::{TiedVote, Vote},
+    toi::TiedOrdersIncomplete,
 };
 
 /// Draw random votes until they create a ranking

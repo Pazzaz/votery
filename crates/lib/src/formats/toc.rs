@@ -1,6 +1,6 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use super::{soc::StrictOrdersComplete, toi::TiedVoteRef, Specific};
+use super::{soc::StrictOrdersComplete, orders::TiedVoteRef, Specific};
 
 /// TOC - Orders with Ties - Complete List
 ///

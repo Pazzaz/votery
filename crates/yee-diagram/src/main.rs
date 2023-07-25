@@ -14,7 +14,8 @@ use rayon::{
 };
 use votery::{
     formats::{
-        toi::{TiedOrdersIncomplete, TiedVote},
+        toi::TiedOrdersIncomplete,
+        orders::TiedVote,
         Specific,
     },
     generators::gaussian::Gaussian,

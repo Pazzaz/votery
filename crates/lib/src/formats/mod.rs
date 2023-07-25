@@ -32,6 +32,7 @@ pub mod soc;
 pub mod soi;
 pub mod toc;
 pub mod toi;
+pub mod orders;
 
 mod binary;
 pub use binary::Binary;

@@ -4,7 +4,8 @@
 use super::fptp::order_to_vote;
 use crate::{
     formats::{
-        toi::{TiedOrdersIncomplete, TiedVote},
+        toi::TiedOrdersIncomplete,
+        orders::TiedVote,
         VoteFormat,
     },
     methods::VotingMethod,
