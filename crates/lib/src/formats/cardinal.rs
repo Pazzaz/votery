@@ -201,11 +201,14 @@ impl<'a> VoteFormat<'a> for Cardinal {
         }
 
         self.votes.reserve(new_voters);
-        let dist = Uniform::from(self.min..self.max);
+        let dist = Uniform::from(self.min..=self.max);
         for _ in 0..new_voters {
-            let i = dist.sample(rng);
-            self.votes.push(i);
+            for _ in 0..self.candidates {
+                let i = dist.sample(rng);
+                self.votes.push(i);
+            }
         }
+        self.voters += new_voters;
         debug_assert!(self.valid());
     }
 }
@@ -229,6 +232,10 @@ mod tests {
             candidates = candidates % g.size();
             min = min % g.size();
             max = max % g.size();
+
+            if min > max {
+                std::mem::swap(&mut min, &mut max);
+            }
 
             let mut votes = Cardinal::new(candidates, min, max);
             votes.generate_uniform(&mut std_rng(g), voters);
