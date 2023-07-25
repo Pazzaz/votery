@@ -5,7 +5,7 @@ use std::{
 
 use rand::distributions::{Distribution, Uniform};
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat, Binary};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -129,6 +129,38 @@ impl Cardinal {
         debug_assert!(self.valid());
         Ok(())
     }
+
+    /// Number of valid values
+    pub fn values(&self) -> usize {
+        self.max - self.min + 1
+    }
+
+    /// The Kotze-Pereira transformation
+    pub fn kp_tranform(&self) -> Result<Binary, &'static str> {
+        let mut binary_votes: Vec<bool> = Vec::new();
+        let vote_size = self.candidates
+            .checked_mul(self.voters)
+            .ok_or("Number of votes would be too large")?
+            .checked_mul(self.values() - 1)
+            .ok_or("Number of votes would be too large")?;
+        binary_votes.try_reserve_exact(vote_size).or(Err("Could not allocate"))?;
+        for i in 0..self.voters {
+            let vote = &self.votes[i*self.candidates..(i+1)*self.candidates];
+            for lower in self.min..self.max {
+                for &j in vote {
+                    binary_votes.push(j > lower);
+                }
+            }
+        }
+        let votes = Binary {
+            votes: binary_votes,
+            candidates: self.candidates,
+            voters: self.voters * (self.values() - 1),
+        };
+        debug_assert!(votes.valid());
+        Ok(votes)
+    }
+
 }
 
 impl Display for Cardinal {
@@ -240,6 +272,14 @@ mod tests {
             let mut votes = Cardinal::new(candidates, min, max);
             votes.generate_uniform(&mut std_rng(g), voters);
             votes
+        }
+    }
+
+    #[quickcheck]
+    fn kp_tranform_voters(cv: Cardinal) -> bool {
+        match cv.kp_tranform() {
+            Ok(bv) => bv.voters == cv.voters * (cv.values() - 1),
+            Err(_) => true,
         }
     }
 }

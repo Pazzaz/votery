@@ -23,7 +23,7 @@ impl Binary {
         Binary { votes: Vec::new(), candidates, voters: 0 }
     }
 
-    fn valid(&self) -> bool {
+    pub(crate) fn valid(&self) -> bool {
         !(self.candidates == 0 && (self.voters != 0 || !self.votes.is_empty())
             || self.votes.len() != self.voters * self.candidates)
     }
