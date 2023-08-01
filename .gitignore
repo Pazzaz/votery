@@ -1,1 +1,5 @@
 /target
+*.swp
+
+# We ignore the Cargo.lock for now, we may want to include it in the future.
+Cargo.lock
