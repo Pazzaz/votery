@@ -2,6 +2,28 @@
 //!
 //! Each vote format consists of a struct which stores all the votes and
 //! implements [`VoteFormat`].
+//!
+//! # Variations
+//! When it comes to which specific format to use, there are some parts to
+//! consider. One consideration is whcih type of vote the use case would need.
+//! Some voting methods require that each vote creates a strict order of the
+//! candidates while other ones limit each vote to a single candidate. There are
+//! also multiple voting formats with the same restrictions on votes, but with
+//! different internal representations. There are two main considerations:
+//! - Sparse vs Dense
+//!     - Each vote can either have a list containing every vote, or a number
+//!       specifying how many there are of every vote.
+//! - Possible inverse
+//!     - Many votes can be seen as a function f: Candidate -> Ranking. This can
+//!       be represented as an array of length |dom(f)| filed with numbers
+//!       representing each candidates ranking. One could also use the "inverse"
+//!       representation where we have a list of length |dom(f)| where each
+//!       index is a rank and each element is a candidate which achieved that
+//!       rank. The problem with this representation is that it's harder to
+//!       represent ties, but it can be done by having auxiliary flags
+//!       specifying which ranks contain multiple candidates.
+//!
+//! # Conversions
 
 use rand::Rng;
 
