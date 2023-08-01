@@ -1,6 +1,6 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use super::{soc::StrictOrdersComplete, orders::TiedVoteRef, Specific};
+use super::{orders::TiedVoteRef, soc::StrictOrdersComplete, Cardinal, Specific};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -91,6 +91,9 @@ impl TiedOrdersComplete {
         let mut seen = vec![false; self.candidates];
         for vote in self {
             seen.fill(false);
+            if vote.order.len() != self.candidates || vote.tied.len() != self.candidates - 1 {
+                return false;
+            }
             for &i in vote.order {
                 if i >= self.candidates || seen[i] {
                     return false;
@@ -130,6 +133,31 @@ impl TiedOrdersComplete {
 
         votes.set_candidates(candidates);
         votes
+    }
+
+    /// Convert each vote to a cardinal vote, with the highest rank candidates
+    /// receiving a score of `self.candidates`.
+    ///
+    /// Returns `Err` if it failed to allocate
+    pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
+        let mut votes: Vec<usize> = Vec::new();
+        votes.try_reserve_exact(self.candidates * self.voters()).or(Err("Could not allocate"))?;
+        let max = self.candidates - 1;
+        let mut new_vote = vec![0; self.candidates];
+        for vote in self {
+            for (i, group) in vote.iter_groups().enumerate() {
+                for &c in group {
+                    debug_assert!(max >= i);
+                    new_vote[c] = max - i;
+                }
+            }
+            // `vote` is a ranking of all candidates, so `new_vote` will be different
+            // between iterations.
+            votes.extend(&new_vote);
+        }
+        let v = Cardinal { votes, candidates: self.candidates, voters: self.voters(), min: 0, max };
+        debug_assert!(v.valid());
+        Ok(v)
     }
 }
 

@@ -8,7 +8,7 @@ use rand::{
     Rng,
 };
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
+use super::{remove_newline, toi::TiedOrdersIncomplete, Cardinal, VoteFormat};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -43,6 +43,7 @@ impl Binary {
                 data.votes.push(b);
             }
         }
+        data.voters += new_voters;
         debug_assert!(data.valid());
     }
 
@@ -83,6 +84,20 @@ impl Binary {
         }
         debug_assert!(self.valid());
         Ok(())
+    }
+
+    /// Convert each vote to a cardinal vote, with an approval being 1 and
+    /// disapproval 0.
+    ///
+    /// Returns `Err` if it failed to allocate
+    pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
+        let mut votes: Vec<usize> = Vec::new();
+        votes.try_reserve_exact(self.candidates * self.voters).or(Err("Could not allocate"))?;
+        votes.extend(self.votes.iter().map(|x| if *x { 1 } else { 0 }));
+        let v =
+            Cardinal { votes, candidates: self.candidates, voters: self.voters, min: 0, max: 1 };
+        debug_assert!(v.valid());
+        Ok(v)
     }
 }
 
@@ -179,5 +194,11 @@ mod tests {
             debug_assert!(votes.valid());
             votes
         }
+    }
+
+    #[quickcheck]
+    fn to_cardinal(votes: Binary) -> bool {
+        let around: Binary = votes.to_cardinal().unwrap().to_binary_cutoff(1).unwrap();
+        around == votes
     }
 }

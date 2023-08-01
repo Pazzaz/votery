@@ -161,6 +161,23 @@ impl Cardinal {
         Ok(votes)
     }
 
+    /// Turn every vote into a binary vote, where every value larger or equal to
+    /// `n` becomes an approval.
+    ///
+    /// # Panics
+    /// Will panic if n is not contained in `self.min..=self.max`.
+    pub fn to_binary_cutoff(&self, n: usize) -> Result<Binary, &'static str> {
+        debug_assert!(self.min <= n && n <= self.max);
+        let mut binary_votes: Vec<bool> = Vec::new();
+        binary_votes
+            .try_reserve_exact(self.candidates * self.voters)
+            .or(Err("Could not allocate"))?;
+        binary_votes.extend(self.votes.iter().map(|x| *x >= n));
+        let votes =
+            Binary { votes: binary_votes, candidates: self.candidates, voters: self.voters };
+        debug_assert!(votes.valid());
+        Ok(votes)
+    }
 }
 
 impl Display for Cardinal {
