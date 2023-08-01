@@ -7,7 +7,7 @@ use std::{
 
 use color::{blend_colors, blend_colors_weighted, Color};
 use png::Writer;
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom, thread_rng, Rng};
 use rayon::{
     iter::ParallelIterator,
     prelude::{IntoParallelIterator, ParallelDrainRange},
@@ -143,40 +143,82 @@ fn main() {
     render_animation(candidates, directions, &colors, &config);
 }
 
-fn render_animation(
-    mut candidates: Vec<[f64; 2]>,
-    mut directions: Vec<[f64; 2]>,
-    colors: &[Color],
-    config: &ImageConfig,
-) {
-    for i in 0..config.frames {
-        for j in 0..config.candidates {
-            let [x, y] = candidates[j];
-            let [dx, dy] = directions[j];
+// A struct to represent a set of candidates which "bounce around" in the yee
+// diagram.
+struct BouncingCandidates {
+    candidates: Vec<[f64; 2]>,
+    directions: Vec<[f64; 2]>,
+}
+
+impl BouncingCandidates {
+    fn new(candidates: Vec<[f64; 2]>, directions: Vec<[f64; 2]>) -> Self {
+        debug_assert!(candidates.len() == directions.len());
+        BouncingCandidates { candidates, directions }
+    }
+
+    // Create a new `BouncingCandidates` where each direction has been chosen
+    // randomly. All candidates will move at the same `speed`.
+    fn new_random_direction<R: Rng>(rng: &mut R, speed: f64, candidates: Vec<[f64; 2]>) -> Self {
+        let circle_uniform = Uniform::new(0f64, std::f64::consts::TAU);
+        let directions: Vec<[f64; 2]> = candidates
+            .iter()
+            .map(|_| {
+                let v = circle_uniform.sample(rng);
+                let (x, y) = v.sin_cos();
+                [x * speed, y * speed]
+            })
+            .collect();
+        BouncingCandidates::new(directions, candidates)
+    }
+
+    fn len(&self) -> usize {
+        self.candidates.len()
+    }
+
+    fn step(&mut self) {
+        for j in 0..self.len() {
+            let [x, y] = self.candidates[j];
+            let [dx, dy] = self.directions[j];
             let new_x = x + dx;
             let new_y = y + dy;
             if new_x < 0.0 {
-                candidates[j][0] = 0.0;
-                directions[j][0] = -directions[j][0];
+                self.candidates[j][0] = 0.0;
+                self.directions[j][0] = -self.directions[j][0];
             } else if new_x > 1.0 {
-                candidates[j][0] = 1.0;
-                directions[j][0] = -directions[j][0];
+                self.candidates[j][0] = 1.0;
+                self.directions[j][0] = -self.directions[j][0];
             } else {
-                candidates[j][0] = new_x;
+                self.candidates[j][0] = new_x;
             }
 
             if new_y < 0.0 {
-                candidates[j][1] = 0.0;
-                directions[j][1] = -directions[j][1];
+                self.candidates[j][1] = 0.0;
+                self.directions[j][1] = -self.directions[j][1];
             } else if new_y > 1.0 {
-                candidates[j][1] = 1.0;
-                directions[j][1] = -directions[j][1];
+                self.candidates[j][1] = 1.0;
+                self.directions[j][1] = -self.directions[j][1];
             } else {
-                candidates[j][1] = new_y;
+                self.candidates[j][1] = new_y;
             }
         }
-        println!("{:?}", candidates[0]);
-        render_image(&format!("animation/slow_borda_{}", i), &candidates, colors, config);
+    }
+}
+
+fn render_animation(
+    candidates: Vec<[f64; 2]>,
+    directions: Vec<[f64; 2]>,
+    colors: &[Color],
+    config: &ImageConfig,
+) {
+    let mut moving_candidates = BouncingCandidates::new(candidates, directions);
+    for i in 0..config.frames {
+        moving_candidates.step();
+        render_image(
+            &format!("animation/slow_borda_{}", i),
+            &moving_candidates.candidates,
+            colors,
+            config,
+        );
     }
 }
 
