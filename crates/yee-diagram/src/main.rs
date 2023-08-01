@@ -13,7 +13,11 @@ use rayon::{
     prelude::{IntoParallelIterator, ParallelDrainRange},
 };
 use votery::{
-    formats::{orders::TiedVote, toi::TiedOrdersIncomplete, Specific},
+    formats::{
+        orders::{TiedVote, TiedVoteRef},
+        toi::TiedOrdersIncomplete,
+        Specific,
+    },
     generators::gaussian::Gaussian,
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
@@ -201,6 +205,129 @@ impl BouncingCandidates {
                 self.candidates[j][1] = new_y;
             }
         }
+    }
+}
+
+struct OptimizingCandidates {
+    candidates: Vec<[f64; 2]>,
+    speed: f64,
+}
+
+impl OptimizingCandidates {
+    fn new(candidates: Vec<[f64; 2]>, speed: f64) -> Self {
+        debug_assert!(0.0 < speed && speed <= 1.0);
+        OptimizingCandidates { candidates, speed }
+    }
+
+    fn len(&self) -> usize {
+        self.candidates.len()
+    }
+
+    fn step(&mut self, ranking: TiedVoteRef) {
+        let old = &self.candidates;
+        let mut new_candidates = Vec::with_capacity(self.len());
+        for c1 in 0..self.candidates.len() {
+            let v1 = Vector::from_array(old[c1]);
+            let mut dv = Vector { x: 0.0, y: 0.0 };
+            let mut before = true;
+            for group in ranking.iter_groups() {
+                if group.contains(&c1) {
+                    // We don't move towards candidates with the same ranking
+                    before = false;
+                    continue;
+                }
+                for c2 in group {
+                    let v2 = Vector::from_array(old[*c2]);
+
+                    // This is the vector from c2 to c1.
+                    let v3: Vector = v1.sub(&v2);
+                    // Max distance: sqrt(MAX + MAX), min distance: 0. When the distance
+                    // between them is MAX, then we don't want to push them away
+                    // from each other at all. When they are right next to each
+                    // other, we want to push them a lot but not an insane
+                    // amount.
+                    let dv_c2 = if before {
+                        // Move towards c2.
+                        v1.sub(&v3.scaled(self.speed))
+                    } else {
+                        // Move away from v2
+                        // One interesting way to do this would be to say that "max" would be
+                        // calculated using v3, so it's in some direction
+                        // The question is: find sx1 such that v1.x + v3.x * sx1 == 0.0 and sx2 such
+                        // that v1.x + v3.x * sx2 == 1.0 and then the same for sy1 and sy2.
+                        // We then take the min of them all to find the maximum multiple we could
+                        // move. Then we multiply it with speed to find how long to move :)
+                        let sx1 = (MIN - v1.x) / v3.x;
+                        let sx2 = (MAX - v1.x) / v3.x;
+                        let sy1 = (MIN - v1.y) / v3.y;
+                        let sy2 = (MAX - v1.y) / v3.y;
+                        let max_mul = [sx1, sx2, sy1, sy2]
+                            .into_iter()
+                            .filter(|x| *x >= 0.0)
+                            .fold(f64::NAN, |a, b| a.min(b));
+                        if max_mul.is_nan() {
+                            continue;
+                        }
+                        v1.add(&v3.scaled(max_mul*self.speed))
+                    };
+                    dv.add_assign(&dv_c2);
+                }
+            }
+            dv.div_assign_s(self.len() as f64);
+            let new_c1 = v1.add(&dv).clamp(MIN, MAX);
+            new_candidates.push(new_c1.as_array());
+
+        }
+        self.candidates = new_candidates;
+    }
+}
+
+struct Vector {
+    x: f64,
+    y: f64,
+}
+
+impl Vector {
+    fn from_array(xy: [f64; 2]) -> Self {
+        Vector { x: xy[0], y: xy[1] }
+    }
+
+    fn as_array(&self) -> [f64; 2] {
+        [self.x, self.y]
+    }
+
+    fn sub(&self, b: &Vector) -> Vector {
+        Vector { x: self.x - b.x, y: self.y - b.y }
+    }
+
+    fn add_assign(&mut self, b: &Vector) {
+        self.x += b.x;
+        self.y += b.y;
+    }
+
+    fn add(&self, b: &Vector) -> Vector {
+        Vector {x: self.x + b.x, y: self.y + b.y }
+    }
+
+    fn div_assign_s(&mut self, s: f64) {
+        self.x /= s;
+        self.y /= s;
+    }
+
+    fn scaled(&self, s: f64) -> Vector {
+        Vector { x: self.x * s, y: self.y * s }
+    }
+
+    fn len(&self) -> f64 {
+        (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+
+    fn dist(&self, b: &Vector) -> f64 {
+        ((self.x - b.x).powi(2) + (self.y - b.y).powi(2)).sqrt()
+    }
+
+    fn clamp(&self, min: f64, max: f64) -> Vector {
+        Vector { x: self.x.clamp(min, max), y: self.y.clamp(min, max) }
     }
 }
 
