@@ -194,8 +194,8 @@ mod tests {
         //     Box::new(self.votes.shrink().zip(candidates.shrink()).map(
         //         move |(shrink_votes, shrink_candidates)| {
         //             let mut new_votes = Specific { votes: shrink_votes, candidates: c
-        // };             
-        // new_votes.remove_candidates(&shrink_candidates).unwrap();            
+        // };
+        // new_votes.remove_candidates(&shrink_candidates).unwrap();
         // debug_assert!(new_votes.valid());             new_votes
         //         },
         //     ))

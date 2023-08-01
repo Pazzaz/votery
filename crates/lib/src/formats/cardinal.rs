@@ -5,7 +5,9 @@ use std::{
 
 use rand::distributions::{Distribution, Uniform};
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat, Binary};
+use super::{
+    remove_newline, toc::TiedOrdersComplete, toi::TiedOrdersIncomplete, Binary, VoteFormat,
+};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -138,14 +140,15 @@ impl Cardinal {
     /// The Kotze-Pereira transformation
     pub fn kp_tranform(&self) -> Result<Binary, &'static str> {
         let mut binary_votes: Vec<bool> = Vec::new();
-        let vote_size = self.candidates
+        let vote_size = self
+            .candidates
             .checked_mul(self.voters)
             .ok_or("Number of votes would be too large")?
             .checked_mul(self.values() - 1)
             .ok_or("Number of votes would be too large")?;
         binary_votes.try_reserve_exact(vote_size).or(Err("Could not allocate"))?;
         for i in 0..self.voters {
-            let vote = &self.votes[i*self.candidates..(i+1)*self.candidates];
+            let vote = &self.votes[i * self.candidates..(i + 1) * self.candidates];
             for lower in self.min..self.max {
                 for &j in vote {
                     binary_votes.push(j > lower);

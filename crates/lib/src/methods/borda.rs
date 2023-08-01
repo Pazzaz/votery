@@ -3,11 +3,7 @@
 
 use super::fptp::order_to_vote;
 use crate::{
-    formats::{
-        toi::TiedOrdersIncomplete,
-        orders::TiedVote,
-        VoteFormat,
-    },
+    formats::{orders::TiedVote, toi::TiedOrdersIncomplete, VoteFormat},
     methods::VotingMethod,
 };
 

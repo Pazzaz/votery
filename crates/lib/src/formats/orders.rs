@@ -164,8 +164,6 @@ impl<'a> Iterator for GroupIterator<'a> {
     }
 }
 
-
-
 fn unique<T>(l: &[T]) -> bool
 where
     T: std::cmp::PartialEq,

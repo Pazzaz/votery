@@ -50,11 +50,11 @@ pub trait VoteFormat<'a> {
     fn to_partial_ranking(self) -> TiedOrdersIncomplete;
 }
 
+pub mod orders;
 pub mod soc;
 pub mod soi;
 pub mod toc;
 pub mod toi;
-pub mod orders;
 
 mod binary;
 pub use binary::Binary;

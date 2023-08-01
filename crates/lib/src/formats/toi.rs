@@ -4,7 +4,12 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::{soi::StrictOrdersIncomplete, toc::TiedOrdersComplete, VoteFormat, orders::{TiedVote, TiedVoteRef}};
+use super::{
+    orders::{TiedVote, TiedVoteRef},
+    soi::StrictOrdersIncomplete,
+    toc::TiedOrdersComplete,
+    VoteFormat,
+};
 
 /// TOI - Orders with Ties - Incomplete List
 ///

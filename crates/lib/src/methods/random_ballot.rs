@@ -3,8 +3,8 @@ use rand_distr::Uniform;
 
 use super::{get_order, RandomVotingMethod};
 use crate::formats::{
-    soi::StrictOrdersIncomplete,
     orders::{TiedVote, Vote},
+    soi::StrictOrdersIncomplete,
     toi::TiedOrdersIncomplete,
 };
 

@@ -13,11 +13,7 @@ use rayon::{
     prelude::{IntoParallelIterator, ParallelDrainRange},
 };
 use votery::{
-    formats::{
-        toi::TiedOrdersIncomplete,
-        orders::TiedVote,
-        Specific,
-    },
+    formats::{orders::TiedVote, toi::TiedOrdersIncomplete, Specific},
     generators::gaussian::Gaussian,
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
