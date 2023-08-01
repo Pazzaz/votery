@@ -222,17 +222,12 @@ fn render_animation(
     }
 }
 
-fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) {
-    debug_assert!(candidates.len() == config.candidates);
-    // Output file
-    let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
-    let writer_adaptive: Option<_> = if config.adapt_mode == Adaptive::Display {
-        Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
-    } else {
-        None
-    };
+struct SampleResult {
+    image: Vec<Vec<[u8; 3]>>,
+    sample_count: Vec<Vec<usize>>,
+}
 
-    debug_assert!(colors.len() == config.candidates);
+fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
     let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points);
     for c in candidates {
         assert!(vector(c));
@@ -244,7 +239,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
-    let mut final_image: Vec<Vec<[u8; 3]>> = loop {
+    loop {
         iterations += 1;
         // First we'll add every pixel that needs samples to the queue
         queue.clear();
@@ -311,17 +306,35 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
                 }
             }
         }
-
         if done {
-            let mut final_image = vec![vec![[0, 0, 0]; config.resolution]; config.resolution];
-            for yi in 0..config.resolution {
-                for xi in 0..config.resolution {
-                    final_image[yi][xi] = blend_colors(all_samples[yi][xi].iter()).quantize();
-                }
-            }
-            break final_image;
+            break;
         }
+    }
+    let mut image = vec![vec![[0, 0, 0]; config.resolution]; config.resolution];
+    for yi in 0..config.resolution {
+        for xi in 0..config.resolution {
+            image[yi][xi] = blend_colors(all_samples[yi][xi].iter()).quantize();
+        }
+    }
+    SampleResult {
+        image,
+        sample_count,
+    }
+}
+
+// TODO: This should return the image and all calculated votes (if they are needed for other parts later)
+fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) {
+    debug_assert!(candidates.len() == config.candidates);
+    // Output file
+    let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
+    let writer_adaptive: Option<_> = if config.adapt_mode == Adaptive::Display {
+        Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
+    } else {
+        None
     };
+
+    debug_assert!(colors.len() == config.candidates);
+    let SampleResult { mut image, sample_count } = get_image(candidates, colors, config);
     if config.adapt_mode == Adaptive::Display {
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
@@ -332,9 +345,9 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
     for c in 0..config.candidates {
-        add_circle(&mut final_image, colors[c], &candidates[c], config.resolution);
+        add_circle(&mut image, colors[c], &candidates[c], config.resolution);
     }
-    let image_bytes: Vec<u8> = final_image.iter().flatten().flatten().copied().collect();
+    let image_bytes: Vec<u8> = image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
 }
 
