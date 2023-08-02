@@ -79,8 +79,8 @@ impl Default for ImageConfig {
             variance: 0.2,
             adapt_mode: Adaptive::Enable,
             around_size: 2,
-            blending: Blending::Max,
-            vote_color: VoteColor::Winners,
+            blending: Blending::Average,
+            vote_color: VoteColor::Harmonic,
         }
     }
 }
@@ -95,24 +95,13 @@ fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File
     encoder.write_header().unwrap()
 }
 
-fn sample_pixel<R: Rng>(
-    g: &Gaussian,
-    xi: usize,
-    yi: usize,
-    rng: &mut R,
-    colors: &[Color],
-    config: &ImageConfig,
-) -> Color {
-    let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
-    let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
-    let votes = g.sample(rng, &[x, y]);
-    let vote_fixed: TiedOrdersIncomplete = votes.into_iter().map(|x| x.owned()).collect();
-    let mut mixes: Vec<Color> = Vec::new();
-    let mut weights: Vec<f64> = Vec::new();
-    let vote: TiedVote = Borda::count(&vote_fixed).unwrap().as_vote();
-    match config.vote_color {
+// Turn a vote into a color.
+fn vote_to_color(vote_color: VoteColor, vote: TiedVoteRef, colors: &[Color]) -> Color {
+    match vote_color {
         VoteColor::Harmonic => {
-            for (gi, group) in vote.slice().iter_groups().enumerate() {
+            let mut mixes: Vec<Color> = Vec::new();
+            let mut weights: Vec<f64> = Vec::new();
+            for (gi, group) in vote.iter_groups().enumerate() {
                 let mut hmm = Vec::new();
                 for &i in group {
                     debug_assert!(i < colors.len());
@@ -125,10 +114,26 @@ fn sample_pixel<R: Rng>(
             blend_colors_weighted(mixes.iter(), Some(&weights))
         }
         VoteColor::Winners => {
-            let i_colors = vote.slice().winners().iter().map(|&i| &colors[i]);
+            let i_colors = vote.winners().iter().map(|&i| &colors[i]);
             blend_colors(i_colors)
         }
     }
+}
+
+fn sample_pixel<R: Rng>(
+    g: &Gaussian,
+    xi: usize,
+    yi: usize,
+    rng: &mut R,
+    colors: &[Color],
+    config: &ImageConfig,
+) -> (Color, TiedVote) {
+    let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
+    let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
+    let votes = g.sample(rng, &[x, y]).to_toi().unwrap();
+    let vote: TiedVote = Borda::count(&votes).unwrap().as_vote();
+    let color = vote_to_color(config.vote_color, vote.slice(), colors);
+    (color, vote)
 }
 
 fn main() {
@@ -337,21 +342,28 @@ fn render_animation(
     colors: &[Color],
     config: &ImageConfig,
 ) {
-    let mut moving_candidates = BouncingCandidates::new(candidates, directions);
+    let mut moving_candidates = OptimizingCandidates::new(candidates, 0.1);
     for i in 0..config.frames {
-        moving_candidates.step();
-        render_image(
+        let SampleResult { mut all_rankings, .. } = render_image(
             &format!("animation/slow_borda_{}", i),
             &moving_candidates.candidates,
             colors,
             config,
         );
+        let x = config.resolution / 4;
+        let y = config.resolution / 2;
+        let v = most_common(&mut all_rankings[y][x]);
+        println!("{:?}, {:?}", moving_candidates.candidates, v);
+        moving_candidates.step(v.slice());
+        println!("{:?}", moving_candidates.candidates);
     }
 }
 
+// We have this big struct to store results from sampling an image, but we should use `Option`.
 struct SampleResult {
     image: Vec<Vec<[u8; 3]>>,
     sample_count: Vec<Vec<usize>>,
+    all_rankings: Vec<Vec<Vec<TiedVote>>>,
 }
 
 fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
@@ -366,6 +378,8 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
+    let mut all_rankings: Vec<Vec<Vec<TiedVote>>> = 
+        vec![vec![Vec::new(); config.resolution]; config.resolution];
     loop {
         iterations += 1;
         // First we'll add every pixel that needs samples to the queue
@@ -380,41 +394,44 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
         }
         println!("{}: pixels to sample: {}", iterations, queue.len());
         // Then we actually get some samples
-        let new_samples: Vec<(usize, usize, Vec<Color>)> = queue
+        let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedVote>)> = queue
             .par_drain(..)
             .map(|(xi, yi)| {
                 let mut rng = thread_rng();
-                let mut new_samples = Vec::with_capacity(config.sample_size);
+                let mut new_samples1 = Vec::with_capacity(config.sample_size);
+                let mut new_samples2 = Vec::with_capacity(config.sample_size);
                 for _ in 0..config.sample_size {
-                    let pixel = sample_pixel(&g, xi, yi, &mut rng, &colors, &config);
-                    new_samples.push(pixel);
+                    let (color, vote) = sample_pixel(&g, xi, yi, &mut rng, &colors, &config);
+                    new_samples1.push(color);
+                    new_samples2.push(vote);
                 }
-                (xi, yi, new_samples)
+                (xi, yi, new_samples1, new_samples2)
             })
             .collect();
         // Then we need to decide which pixels need more samples. We say that a pixel
         // needs more samples if it hasn't converged, or if any of its neighbours
         // haven't converged yet
         let mut done = true;
-        for (xi, yi, new) in new_samples {
+        for (xi, yi, new_colors, new_votes) in new_samples {
+            all_rankings[yi][xi].extend(new_votes);
             sample_count[yi][xi] += 1;
             let old = &mut all_samples[yi][xi];
             if old.len() == 0 || needs_samples[yi][xi] {
                 needs_samples[yi][xi] = true;
-                old.extend(new);
+                old.extend(new_colors);
                 done = false;
                 continue;
             }
             let more_samples = match config.blending {
                 Blending::Max => {
                     let old_color = most_common(old);
-                    old.extend(new);
+                    old.extend(new_colors);
                     let new_color = most_common(old);
                     old_color != new_color
                 }
                 Blending::Average => {
                     let old_color = blend_colors(old.iter());
-                    old.extend(new);
+                    old.extend(new_colors);
                     let new_color = blend_colors(old.iter());
                     let d = old_color.dist(&new_color);
                     d > config.max_noise
@@ -446,11 +463,12 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
     SampleResult {
         image,
         sample_count,
+        all_rankings,
     }
 }
 
 // TODO: This should return the image and all calculated votes (if they are needed for other parts later)
-fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) {
+fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
     debug_assert!(candidates.len() == config.candidates);
     // Output file
     let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
@@ -461,7 +479,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
     };
 
     debug_assert!(colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count } = get_image(candidates, colors, config);
+    let SampleResult { mut image, sample_count, all_rankings } = get_image(candidates, colors, config);
     if config.adapt_mode == Adaptive::Display {
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
@@ -476,6 +494,7 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
     }
     let image_bytes: Vec<u8> = image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
+    SampleResult { image, sample_count, all_rankings }
 }
 
 fn most_common<T>(v: &mut Vec<T>) -> T

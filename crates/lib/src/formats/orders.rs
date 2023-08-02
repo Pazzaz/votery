@@ -32,7 +32,7 @@ impl Vote {
 }
 
 /// A vote with possible ties.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
 pub struct TiedVote {
     pub order: Vec<usize>,
     pub tied: Vec<bool>,
@@ -91,7 +91,7 @@ impl TiedVote {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct TiedVoteRef<'a> {
     pub order: &'a [usize],
     pub tied: &'a [bool],
