@@ -248,7 +248,7 @@ impl OptimizingCandidates {
                     // amount.
                     let dv_c2 = if before {
                         // Move towards c2.
-                        v1.sub(&v3.scaled(self.speed))
+                        v3.scaled(-self.speed)
                     } else {
                         // Move away from v2
                         // One interesting way to do this would be to say that "max" would be
@@ -268,7 +268,7 @@ impl OptimizingCandidates {
                         if max_mul.is_nan() {
                             continue;
                         }
-                        v1.add(&v3.scaled(max_mul*self.speed))
+                        v3.scaled(max_mul*self.speed)
                     };
                     dv.add_assign(&dv_c2);
                 }
