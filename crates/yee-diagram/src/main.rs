@@ -54,6 +54,7 @@ struct ImageConfig {
     around_size: usize,
     blending: Blending,
     vote_color: VoteColor,
+    fuzzy: f64,
 }
 
 enum Blending {
@@ -81,6 +82,7 @@ impl Default for ImageConfig {
             around_size: 2,
             blending: Blending::Average,
             vote_color: VoteColor::Harmonic,
+            fuzzy: 0.1,
         }
     }
 }
@@ -367,7 +369,7 @@ struct SampleResult {
 }
 
 fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
-    let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points);
+    let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points, config.fuzzy);
     for c in candidates {
         assert!(vector(c));
         g.add_candidate(c);

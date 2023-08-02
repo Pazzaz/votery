@@ -11,11 +11,13 @@ pub struct Gaussian {
     candidates: Vec<f64>,
     variance: f64,
     points: usize,
+    fuzzy: f64,
 }
 
 impl Gaussian {
-    pub fn new(dimensions: usize, variance: f64, points: usize) -> Self {
-        Gaussian { dimensions, candidates: Vec::new(), variance: variance, points }
+    pub fn new(dimensions: usize, variance: f64, points: usize, fuzzy: f64) -> Self {
+        debug_assert!(fuzzy.is_sign_positive());
+        Gaussian { dimensions, candidates: Vec::new(), variance: variance, points, fuzzy }
     }
 
     pub fn candidates(&self) -> usize {
@@ -43,7 +45,7 @@ impl Gaussian {
             let candidate_score: Vec<f64> =
                 self.iter_candidates().map(|c| euclidean_dist(&point, c)).collect();
 
-            let (order, ties) = sort_indices(&candidate_score);
+            let (order, ties) = sort_indices(&candidate_score, self.fuzzy);
             votes.add(&order, &ties);
         }
 
@@ -51,11 +53,11 @@ impl Gaussian {
     }
 }
 
-fn sort_indices(scores: &[f64]) -> (Vec<usize>, Vec<bool>) {
+fn sort_indices(scores: &[f64], fuzzy: f64) -> (Vec<usize>, Vec<bool>) {
     debug_assert!(scores.len() != 0);
     let mut list: Vec<(usize, f64)> = scores.iter().cloned().enumerate().collect();
     list.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
-    let ties: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
+    let ties: Vec<bool> = list.windows(2).map(|w| (w[0].1 - w[1].1).abs() <= fuzzy).collect();
     let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
     debug_assert!(ties.len() + 1 == order.len());
     (order, ties)
