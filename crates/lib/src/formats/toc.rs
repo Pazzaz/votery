@@ -1,6 +1,6 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use super::{orders::TiedVoteRef, soc::StrictOrdersComplete, Cardinal, Specific};
+use super::{orders::TiedVoteRef, soc::StrictOrdersComplete, Cardinal, Specific, toi::TiedOrdersIncomplete};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -158,6 +158,21 @@ impl TiedOrdersComplete {
         let v = Cardinal { votes, candidates: self.candidates, voters: self.voters(), min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
+    }
+
+    pub fn to_toi(self) -> Result<TiedOrdersIncomplete, &'static str> {
+        let mut vote_len = Vec::new();
+        vote_len.try_reserve_exact(self.voters()).or(Err("Could not allocate"))?;
+        vote_len.resize(self.voters(), self.candidates);
+        let v = TiedOrdersIncomplete {
+            votes: self.votes,
+            ties: self.ties,
+            vote_len,
+            candidates: self.candidates,
+        };
+        debug_assert!(v.valid());
+        Ok(v)
+
     }
 }
 
