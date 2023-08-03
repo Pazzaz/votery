@@ -7,7 +7,7 @@ use std::{
 
 use rand_distr::{num_traits::Pow, Distribution, Normal};
 
-use crate::formats::{toc::TiedOrdersComplete, orders::TiedVote};
+use crate::formats::{orders::TiedVote, toc::TiedOrdersComplete};
 
 pub struct Gaussian {
     dimensions: usize,

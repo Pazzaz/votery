@@ -1,7 +1,5 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use crate::formats::orders::TiedVote;
-
 use super::{
     orders::TiedVoteRef, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete, Cardinal, Specific,
 };

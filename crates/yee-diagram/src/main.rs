@@ -275,7 +275,7 @@ impl OptimizingCandidates {
                         if max_mul.is_nan() {
                             continue;
                         }
-                        v3.scaled(max_mul*self.speed)
+                        v3.scaled(max_mul * self.speed)
                     };
                     dv.add_assign(&dv_c2);
                 }
@@ -283,7 +283,6 @@ impl OptimizingCandidates {
             dv.div_assign_s(self.len() as f64);
             let new_c1 = v1.add(&dv).clamp(MIN, MAX);
             new_candidates.push(new_c1.as_array());
-
         }
         self.candidates = new_candidates;
     }
@@ -313,7 +312,7 @@ impl Vector {
     }
 
     fn add(&self, b: &Vector) -> Vector {
-        Vector {x: self.x + b.x, y: self.y + b.y }
+        Vector { x: self.x + b.x, y: self.y + b.y }
     }
 
     fn div_assign_s(&mut self, s: f64) {
@@ -361,7 +360,8 @@ fn render_animation(
     }
 }
 
-// We have this big struct to store results from sampling an image, but we should use `Option`.
+// We have this big struct to store results from sampling an image, but we
+// should use `Option`.
 struct SampleResult {
     image: Vec<Vec<[u8; 3]>>,
     sample_count: Vec<Vec<usize>>,
@@ -380,7 +380,7 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
-    let mut all_rankings: Vec<Vec<Vec<TiedVote>>> = 
+    let mut all_rankings: Vec<Vec<Vec<TiedVote>>> =
         vec![vec![Vec::new(); config.resolution]; config.resolution];
     loop {
         iterations += 1;
@@ -462,15 +462,17 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
             image[yi][xi] = blend_colors(all_samples[yi][xi].iter()).quantize();
         }
     }
-    SampleResult {
-        image,
-        sample_count,
-        all_rankings,
-    }
+    SampleResult { image, sample_count, all_rankings }
 }
 
-// TODO: This should return the image and all calculated votes (if they are needed for other parts later)
-fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
+// TODO: This should return the image and all calculated votes (if they are
+// needed for other parts later)
+fn render_image(
+    name: &str,
+    candidates: &[[f64; 2]],
+    colors: &[Color],
+    config: &ImageConfig,
+) -> SampleResult {
     debug_assert!(candidates.len() == config.candidates);
     // Output file
     let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
@@ -481,7 +483,8 @@ fn render_image(name: &str, candidates: &[[f64; 2]], colors: &[Color], config: &
     };
 
     debug_assert!(colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count, all_rankings } = get_image(candidates, colors, config);
+    let SampleResult { mut image, sample_count, all_rankings } =
+        get_image(candidates, colors, config);
     if config.adapt_mode == Adaptive::Display {
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
