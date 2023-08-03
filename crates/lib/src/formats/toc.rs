@@ -1,6 +1,10 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
-use super::{orders::TiedVoteRef, soc::StrictOrdersComplete, Cardinal, Specific, toi::TiedOrdersIncomplete};
+use crate::formats::orders::TiedVote;
+
+use super::{
+    orders::TiedVoteRef, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete, Cardinal, Specific,
+};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -21,7 +25,9 @@ impl TiedOrdersComplete {
         TiedOrdersComplete { votes: Vec::new(), ties: Vec::new(), candidates }
     }
 
-    pub fn add(&mut self, vote: &[usize], tie: &[bool]) {
+    pub fn add(&mut self, v: TiedVoteRef) {
+        let vote = v.order;
+        let tie = v.tied;
         debug_assert!(vote.len() == self.candidates);
         debug_assert!(0 < vote.len());
         debug_assert!(tie.len() + 1 == vote.len());
@@ -76,7 +82,7 @@ impl TiedOrdersComplete {
         if grouped || vote.len() != self.candidates {
             return false;
         }
-        self.add(&vote, &tie);
+        self.add(TiedVoteRef::new(&vote, &tie));
         debug_assert!(self.valid());
         true
     }
@@ -172,7 +178,6 @@ impl TiedOrdersComplete {
         };
         debug_assert!(v.valid());
         Ok(v)
-
     }
 }
 

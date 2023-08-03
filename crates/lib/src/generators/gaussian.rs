@@ -7,7 +7,7 @@ use std::{
 
 use rand_distr::{num_traits::Pow, Distribution, Normal};
 
-use crate::formats::toc::TiedOrdersComplete;
+use crate::formats::{toc::TiedOrdersComplete, orders::TiedVote};
 
 pub struct Gaussian {
     dimensions: usize,
@@ -59,8 +59,8 @@ impl Gaussian {
             let candidate_score: Vec<f64> =
                 self.iter_candidates().map(|c| euclidean_dist(&point, c)).collect();
 
-            let (order, ties) = score_to_vote(&candidate_score, self.fuzzy);
-            votes.add(&order, &ties);
+            let vote = score_to_vote(&candidate_score, self.fuzzy);
+            votes.add(vote.slice());
         }
 
         votes
@@ -78,15 +78,13 @@ fn are_fuzzy(w0: f64, w1: f64, fuzzy: FuzzyType) -> bool {
     }
 }
 
-fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> (Vec<usize>, Vec<bool>) {
-    debug_assert!(scores.len() != 0);
+fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> TiedVote {
     let mut list: Vec<(usize, f64)> = scores.iter().cloned().enumerate().collect();
     list.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
     // TODO: We assume self.dimension = 2 here
-    let ties: Vec<bool> = list.windows(2).map(|w| are_fuzzy(w[0].1, w[1].1, fuzzy)).collect();
+    let tied: Vec<bool> = list.windows(2).map(|w| are_fuzzy(w[0].1, w[1].1, fuzzy)).collect();
     let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
-    debug_assert!(ties.len() + 1 == order.len());
-    (order, ties)
+    TiedVote::new(order, tied)
 }
 
 fn generate_point<R: rand::Rng>(len: usize, mean: &[f64], variance: f64, rng: &mut R) -> Vec<f64> {
