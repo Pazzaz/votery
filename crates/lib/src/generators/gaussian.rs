@@ -1,8 +1,11 @@
 //! A spatial model of voting behaviour, where every candidate is a point in
 //! some space, and voters vote for nearby candidates.
-use std::slice::{ChunksExact, ChunksExactMut};
+use std::{
+    mem,
+    slice::{ChunksExact, ChunksExactMut},
+};
 
-use rand_distr::{Distribution, Normal};
+use rand_distr::{num_traits::Pow, Distribution, Normal};
 
 use crate::formats::toc::TiedOrdersComplete;
 
@@ -11,12 +14,23 @@ pub struct Gaussian {
     candidates: Vec<f64>,
     variance: f64,
     points: usize,
-    fuzzy: f64,
+    fuzzy: FuzzyType,
+}
+
+/// Decides when two candidates should be tied
+#[derive(Clone, Copy)]
+pub enum FuzzyType {
+    /// There are ties if the distance to two candidates are less than `fuzzy`
+    Absolute(f64),
+    /// Candidates further away are harder to differentiate, so larger distances
+    /// are treated as tied
+    Scaling(f64),
+    /// There are only ties if two candidates are exactly the same distance away
+    Equal,
 }
 
 impl Gaussian {
-    pub fn new(dimensions: usize, variance: f64, points: usize, fuzzy: f64) -> Self {
-        debug_assert!(fuzzy.is_sign_positive());
+    pub fn new(dimensions: usize, variance: f64, points: usize, fuzzy: FuzzyType) -> Self {
         Gaussian { dimensions, candidates: Vec::new(), variance: variance, points, fuzzy }
     }
 
@@ -45,7 +59,7 @@ impl Gaussian {
             let candidate_score: Vec<f64> =
                 self.iter_candidates().map(|c| euclidean_dist(&point, c)).collect();
 
-            let (order, ties) = sort_indices(&candidate_score, self.fuzzy);
+            let (order, ties) = score_to_vote(&candidate_score, self.fuzzy);
             votes.add(&order, &ties);
         }
 
@@ -53,11 +67,23 @@ impl Gaussian {
     }
 }
 
-fn sort_indices(scores: &[f64], fuzzy: f64) -> (Vec<usize>, Vec<bool>) {
+fn are_fuzzy(w0: f64, w1: f64, fuzzy: FuzzyType) -> bool {
+    match fuzzy {
+        FuzzyType::Absolute(f) => (w0 - w1).abs() <= f,
+        FuzzyType::Equal => w0 == w1,
+        FuzzyType::Scaling(f) => {
+            let (x, y) = if w0 < w1 { (w1, w0) } else { (w0, w1) };
+            y >= x - (x / ((1.0 - f.powf(0.1)) * 10.0)).powi(2)
+        }
+    }
+}
+
+fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> (Vec<usize>, Vec<bool>) {
     debug_assert!(scores.len() != 0);
     let mut list: Vec<(usize, f64)> = scores.iter().cloned().enumerate().collect();
     list.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
-    let ties: Vec<bool> = list.windows(2).map(|w| (w[0].1 - w[1].1).abs() <= fuzzy).collect();
+    // TODO: We assume self.dimension = 2 here
+    let ties: Vec<bool> = list.windows(2).map(|w| are_fuzzy(w[0].1, w[1].1, fuzzy)).collect();
     let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
     debug_assert!(ties.len() + 1 == order.len());
     (order, ties)

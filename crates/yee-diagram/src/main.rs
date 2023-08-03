@@ -18,7 +18,7 @@ use votery::{
         toi::TiedOrdersIncomplete,
         Specific,
     },
-    generators::gaussian::Gaussian,
+    generators::gaussian::{FuzzyType, Gaussian},
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
         Borda, Fptp, RandomVotingMethod,
@@ -54,7 +54,7 @@ struct ImageConfig {
     around_size: usize,
     blending: Blending,
     vote_color: VoteColor,
-    fuzzy: f64,
+    fuzzy: FuzzyType,
 }
 
 enum Blending {
@@ -73,16 +73,16 @@ impl Default for ImageConfig {
         ImageConfig {
             points: 1000,
             resolution: 50,
-            frames: 100,
+            frames: 1000,
             candidates: 4,
             sample_size: 5,
             max_noise: 0.2,
             variance: 0.2,
             adapt_mode: Adaptive::Enable,
-            around_size: 2,
+            around_size: 3,
             blending: Blending::Average,
             vote_color: VoteColor::Harmonic,
-            fuzzy: 0.1,
+            fuzzy: FuzzyType::Scaling(0.4),
         }
     }
 }
