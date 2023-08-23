@@ -3,7 +3,7 @@ use rand_distr::Uniform;
 
 use super::{get_order, RandomVotingMethod};
 use crate::formats::{
-    orders::{TiedVote, Vote},
+    orders::{Rank, TiedRank},
     soi::StrictOrdersIncomplete,
     toi::TiedOrdersIncomplete,
 };
@@ -14,7 +14,7 @@ use crate::formats::{
 /// continue drawing random votes to rank the remaining unranked candidates,
 /// until it has a total order of the top `positions`.
 pub struct RandomBallot {
-    ranking: Vote,
+    ranking: Rank,
 }
 
 impl<'a> RandomVotingMethod<'a> for RandomBallot {
@@ -47,7 +47,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
                 }
             }
         }
-        Ok(RandomBallot { ranking: Vote::new(order) })
+        Ok(RandomBallot { ranking: Rank::new(data.candidates, order) })
     }
 
     fn get_score(&self) -> &Vec<usize> {
@@ -61,7 +61,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
 
 /// Draw a single random vote
 pub struct RandomBallotSingle {
-    ranking: TiedVote,
+    ranking: TiedRank,
 }
 
 impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
@@ -88,7 +88,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
 }
 
 impl RandomBallotSingle {
-    pub fn as_vote(&self) -> TiedVote {
+    pub fn as_vote(&self) -> TiedRank {
         self.ranking.clone()
     }
 }

@@ -78,5 +78,4 @@ fn pairwise_lt(v: &[usize]) -> bool {
 //     true
 // }
 
-pub mod orders;
 pub mod tarjan;

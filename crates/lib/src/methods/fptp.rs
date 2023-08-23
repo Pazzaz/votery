@@ -1,5 +1,5 @@
 use crate::{
-    formats::{orders::TiedVote, Specific},
+    formats::{orders::TiedRank, Specific},
     methods::VotingMethod,
 };
 
@@ -27,13 +27,13 @@ impl<'a> VotingMethod<'a> for Fptp {
 }
 
 impl Fptp {
-    pub fn as_vote(&self) -> TiedVote {
+    pub fn as_vote(&self) -> TiedRank {
         let order = self.get_order();
         order_to_vote(&order)
     }
 }
 
-pub fn order_to_vote(v: &[usize]) -> TiedVote {
+pub fn order_to_vote(v: &[usize]) -> TiedRank {
     let mut order = Vec::new();
     let mut tied = Vec::new();
     for i in 0..v.len() {
@@ -53,5 +53,5 @@ pub fn order_to_vote(v: &[usize]) -> TiedVote {
     }
     tied.pop();
     debug_assert!(order.len() == v.len());
-    TiedVote::new(order, tied)
+    TiedRank::new(v.len(), order, tied)
 }

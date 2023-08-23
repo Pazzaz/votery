@@ -3,7 +3,7 @@
 
 use super::fptp::order_to_vote;
 use crate::{
-    formats::{orders::TiedVote, toi::TiedOrdersIncomplete, VoteFormat},
+    formats::{orders::TiedRank, toi::TiedOrdersIncomplete, VoteFormat},
     methods::VotingMethod,
 };
 
@@ -43,7 +43,7 @@ impl<'a> VotingMethod<'a> for Borda {
 }
 
 impl Borda {
-    pub fn as_vote(&self) -> TiedVote {
+    pub fn as_vote(&self) -> TiedRank {
         let order = self.get_order();
         order_to_vote(&order)
     }

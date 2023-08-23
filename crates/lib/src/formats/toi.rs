@@ -5,7 +5,7 @@ use rand::{
 };
 
 use super::{
-    orders::{TiedVote, TiedVoteRef},
+    orders::{TiedRank, TiedRankRef},
     soi::StrictOrdersIncomplete,
     toc::TiedOrdersComplete,
     VoteFormat,
@@ -14,7 +14,7 @@ use super::{
 /// TOI - Orders with Ties - Incomplete List
 ///
 /// A packed list of (possibly incomplete) orders with ties, with related
-/// methods. One can see it as a `Vec<TiedVote>`, but more efficient.
+/// methods. One can see it as a `Vec<TiedRank>`, but more efficient.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TiedOrdersIncomplete {
     // Has length voters * candidates
@@ -39,7 +39,7 @@ impl TiedOrdersIncomplete {
         }
     }
 
-    pub fn vote_i(&self, i: usize) -> TiedVoteRef {
+    pub fn vote_i(&self, i: usize) -> TiedRankRef {
         // TODO: Make more efficient
         self.into_iter().nth(i).unwrap()
     }
@@ -56,10 +56,10 @@ impl TiedOrdersIncomplete {
     /// Add a vote from a string, `i` times. Return true if it was a valid vote.
     pub fn add_from_str_i(&mut self, s: &str, i: usize) -> bool {
         debug_assert!(i != 0);
-        match TiedVote::parse_vote(s, self.candidates) {
+        match TiedRank::parse_vote(self.candidates, s) {
             Some(vote) => {
                 for _ in 0..i {
-                    self.add(vote.slice()).unwrap();
+                    self.add(vote.as_ref()).unwrap();
                     debug_assert!(self.valid());
                 }
                 true
@@ -85,7 +85,7 @@ impl TiedOrdersIncomplete {
         let mut seen = vec![false; self.candidates];
         for vote in self {
             seen.fill(false);
-            for &i in vote.order {
+            for &i in vote.order() {
                 if i >= self.candidates || seen[i] {
                     return false;
                 }
@@ -108,13 +108,13 @@ impl TiedOrdersIncomplete {
         let mut res: TiedOrdersIncomplete = self
             .into_iter()
             .map(|vote| {
-                let mut order: Vec<usize> = vote.order.to_vec();
-                let mut tied: Vec<bool> = vote.tied.to_vec();
+                let mut order: Vec<usize> = vote.order().to_vec();
+                let mut tied: Vec<bool> = vote.tied().to_vec();
                 if let Some(i) = order.iter().position(|&x| x == n) {
                     order.insert(i, c);
                     tied.insert(i, true);
                 };
-                TiedVote::new(order, tied)
+                TiedRank::new(self.candidates, order, tied)
             })
             .collect();
         res.candidates = c + 1;
@@ -132,7 +132,7 @@ impl TiedOrdersIncomplete {
         }
         let mut firsts = vec![0; self.candidates];
         for vote in self {
-            for &c in vote.iter_groups().next().unwrap() {
+            for &c in vote.winners() {
                 firsts[c] += 1;
             }
         }
@@ -218,24 +218,24 @@ impl TiedOrdersIncomplete {
 }
 
 impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
-    type Vote = TiedVoteRef<'a>;
+    type Vote = TiedRankRef<'a>;
     /// List the number of candidates
     fn candidates(&self) -> usize {
         self.candidates
     }
 
-    fn add(&mut self, vote: TiedVoteRef) -> Result<(), &'static str> {
+    fn add(&mut self, vote: TiedRankRef) -> Result<(), &'static str> {
         debug_assert!(vote.len() < self.candidates);
         debug_assert!(0 < vote.len());
         self.votes.reserve(vote.len());
         self.ties.reserve(vote.len() - 1);
         let mut seen = vec![false; self.candidates];
-        for &i in vote.order {
+        for &i in vote.order() {
             debug_assert!(i < self.candidates || !seen[i]);
             seen[i] = true;
             self.votes.push(i);
         }
-        self.ties.extend(vote.tied);
+        self.ties.extend(vote.tied());
         debug_assert!(self.valid());
         Ok(())
     }
@@ -243,11 +243,12 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
     /// Remove the candidate with index `n`, and shift indices of candidates
     /// with higher index. May remove votes if they only voted for `n`.
     fn remove_candidate(&mut self, n: usize) -> Result<(), &'static str> {
+        let new_candidates = self.candidates - 1;
         let mut res: TiedOrdersIncomplete = self
             .into_iter()
             .filter_map(|vote| {
-                let mut order: Vec<usize> = Vec::with_capacity(vote.order.len() - 1);
-                let mut tied: Vec<bool> = Vec::with_capacity(vote.tied.len().saturating_sub(1));
+                let mut order: Vec<usize> = Vec::with_capacity(vote.order().len() - 1);
+                let mut tied: Vec<bool> = Vec::with_capacity(vote.tied().len().saturating_sub(1));
                 for i in 0..order.len() {
                     let mut v = order[i];
                     if v == n {
@@ -264,11 +265,10 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
                 if order.is_empty() {
                     None
                 } else {
-                    Some(TiedVote::new(order, tied))
+                    Some(TiedRank::new(new_candidates, order, tied))
                 }
             })
             .collect();
-        res.candidates -= 1;
         debug_assert!(self.valid());
         *self = res;
         Ok(())
@@ -305,34 +305,31 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
 }
 
 /// Will create a new `TiedOrdersIncomplete` from a stream of votes. Will scan
-/// for the candidate with the largest index, and use it to set the number of
-/// candidates. Use `TiedOrdersIncomplete::set_candidate` to manually set the
-/// number of candidates.
-impl<'a> FromIterator<TiedVote> for TiedOrdersIncomplete {
-    fn from_iter<I: IntoIterator<Item = TiedVote>>(iter: I) -> Self {
+/// for the largest number of candidates ranked by a vote, and assume that it's
+/// number of candidates for every vote.
+impl<'a> FromIterator<TiedRank> for TiedOrdersIncomplete {
+    fn from_iter<I: IntoIterator<Item = TiedRank>>(iter: I) -> Self {
         let mut votes: Vec<usize> = Vec::new();
         let mut ties: Vec<bool> = Vec::new();
         let mut vote_len: Vec<usize> = Vec::new();
-        let mut max_candidate = 0;
+        let mut max_candidates = 0;
         for vote in iter {
             if vote.order.len() == 0 {
                 continue;
             }
-            for &i in &vote.order {
-                if i > max_candidate {
-                    max_candidate = i;
-                }
+            if vote.candidates > max_candidates {
+                max_candidates = vote.candidates;
             }
             votes.extend(&vote.order);
             ties.extend(&vote.tied);
             vote_len.push(vote.len());
         }
-        TiedOrdersIncomplete { votes, ties, vote_len, candidates: max_candidate + 1 }
+        TiedOrdersIncomplete { votes, ties, vote_len, candidates: max_candidates }
     }
 }
 
 impl<'a> IntoIterator for &'a TiedOrdersIncomplete {
-    type Item = TiedVoteRef<'a>;
+    type Item = TiedRankRef<'a>;
     type IntoIter = TiedOrdersIncompleteIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -347,7 +344,7 @@ pub struct TiedOrdersIncompleteIterator<'a> {
 }
 
 impl<'a> Iterator for TiedOrdersIncompleteIterator<'a> {
-    type Item = TiedVoteRef<'a>;
+    type Item = TiedRankRef<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.i == self.orig.vote_len.len() {
             return None;
@@ -360,7 +357,7 @@ impl<'a> Iterator for TiedOrdersIncompleteIterator<'a> {
         let tied = &self.orig.ties[start2..(start2 + len2)];
         self.i += 1;
         self.start += len1;
-        Some(TiedVoteRef::new(order, tied))
+        Some(TiedRankRef::new(self.orig.candidates, order, tied))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

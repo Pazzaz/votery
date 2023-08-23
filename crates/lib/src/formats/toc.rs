@@ -1,7 +1,7 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
 use super::{
-    orders::TiedVoteRef, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete, Cardinal, Specific,
+    orders::TiedRankRef, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete, Cardinal, Specific,
 };
 
 /// TOC - Orders with Ties - Complete List
@@ -23,9 +23,9 @@ impl TiedOrdersComplete {
         TiedOrdersComplete { votes: Vec::new(), ties: Vec::new(), candidates }
     }
 
-    pub fn add(&mut self, v: TiedVoteRef) {
-        let vote = v.order;
-        let tie = v.tied;
+    pub fn add(&mut self, v: TiedRankRef) {
+        let vote = v.order();
+        let tie = v.tied();
         debug_assert!(vote.len() == self.candidates);
         debug_assert!(0 < vote.len());
         debug_assert!(tie.len() + 1 == vote.len());
@@ -80,7 +80,7 @@ impl TiedOrdersComplete {
         if grouped || vote.len() != self.candidates {
             return false;
         }
-        self.add(TiedVoteRef::new(&vote, &tie));
+        self.add(TiedRankRef::new(self.candidates, &vote, &tie));
         debug_assert!(self.valid());
         true
     }
@@ -95,10 +95,10 @@ impl TiedOrdersComplete {
         let mut seen = vec![false; self.candidates];
         for vote in self {
             seen.fill(false);
-            if vote.order.len() != self.candidates || vote.tied.len() != self.candidates - 1 {
+            if vote.order().len() != self.candidates || vote.tied().len() != self.candidates - 1 {
                 return false;
             }
-            for &i in vote.order {
+            for &i in vote.order() {
                 if i >= self.candidates || seen[i] {
                     return false;
                 }
@@ -180,7 +180,7 @@ impl TiedOrdersComplete {
 }
 
 impl<'a> IntoIterator for &'a TiedOrdersComplete {
-    type Item = TiedVoteRef<'a>;
+    type Item = TiedRankRef<'a>;
     type IntoIter = TiedOrdersCompleteIterator<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -194,7 +194,7 @@ pub struct TiedOrdersCompleteIterator<'a> {
 }
 
 impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
-    type Item = TiedVoteRef<'a>;
+    type Item = TiedRankRef<'a>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.i == self.orig.voters() {
             return None;
@@ -208,7 +208,7 @@ impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
         self.i += 1;
         debug_assert!(tie.len() + 1 == vote.len());
 
-        Some(TiedVoteRef::new(vote, tie))
+        Some(TiedRankRef::new(self.orig.candidates, vote, tie))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

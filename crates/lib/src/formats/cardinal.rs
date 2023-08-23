@@ -1,12 +1,17 @@
 use std::{
     fmt::{self, Display},
     io::BufRead,
+    slice::Windows,
 };
 
 use rand::distributions::{Distribution, Uniform};
 
 use super::{
-    remove_newline, toc::TiedOrdersComplete, toi::TiedOrdersIncomplete, Binary, VoteFormat,
+    orders::{TiedRank, TiedRankRef},
+    remove_newline,
+    toc::TiedOrdersComplete,
+    toi::TiedOrdersIncomplete,
+    Binary, VoteFormat,
 };
 use crate::pairwise_lt;
 
@@ -180,6 +185,33 @@ impl Cardinal {
             Binary { votes: binary_votes, candidates: self.candidates, voters: self.voters };
         debug_assert!(votes.valid());
         Ok(votes)
+    }
+
+    pub fn iter(&self) -> Windows<usize> {
+        self.votes.windows(self.candidates)
+    }
+
+    /// Fill the given preference matrix for the candidates listed in `keep`.
+    ///
+    /// The middle row in the matrix will always be zero
+    pub fn fill_preference_matrix(&self, keep: &[usize], matrix: &mut [usize]) {
+        let l = keep.len();
+        debug_assert!(l * l == matrix.len());
+        for vote in self.iter() {
+            for i in 0..l {
+                let ci = vote[keep[i]];
+                for j in (i + 1)..l {
+                    let cj = vote[keep[j]];
+
+                    // TODO: What should the orientation of the matrix be?
+                    if ci > cj {
+                        matrix[i * l + j] += 1;
+                    } else if cj > ci {
+                        matrix[j * l + i] += 1;
+                    }
+                }
+            }
+        }
     }
 }
 

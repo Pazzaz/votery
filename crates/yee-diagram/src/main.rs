@@ -14,7 +14,7 @@ use rayon::{
 };
 use votery::{
     formats::{
-        orders::{TiedVote, TiedVoteRef},
+        orders::{TiedRank, TiedRankRef},
         toi::TiedOrdersIncomplete,
         Specific,
     },
@@ -98,7 +98,7 @@ fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File
 }
 
 // Turn a vote into a color.
-fn vote_to_color(vote_color: VoteColor, vote: TiedVoteRef, colors: &[Color]) -> Color {
+fn vote_to_color(vote_color: VoteColor, vote: TiedRankRef, colors: &[Color]) -> Color {
     match vote_color {
         VoteColor::Harmonic => {
             let mut mixes: Vec<Color> = Vec::new();
@@ -129,12 +129,12 @@ fn sample_pixel<R: Rng>(
     rng: &mut R,
     colors: &[Color],
     config: &ImageConfig,
-) -> (Color, TiedVote) {
+) -> (Color, TiedRank) {
     let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]).to_toi().unwrap();
-    let vote: TiedVote = Borda::count(&votes).unwrap().as_vote();
-    let color = vote_to_color(config.vote_color, vote.slice(), colors);
+    let vote: TiedRank = Borda::count(&votes).unwrap().as_vote();
+    let color = vote_to_color(config.vote_color, vote.as_ref(), colors);
     (color, vote)
 }
 
@@ -230,7 +230,7 @@ impl OptimizingCandidates {
         self.candidates.len()
     }
 
-    fn step(&mut self, ranking: TiedVoteRef) {
+    fn step(&mut self, ranking: TiedRankRef) {
         let old = &self.candidates;
         let mut new_candidates = Vec::with_capacity(self.len());
         for c1 in 0..self.candidates.len() {
@@ -355,7 +355,7 @@ fn render_animation(
         let y = config.resolution / 2;
         let v = most_common(&mut all_rankings[y][x]);
         println!("{:?}, {:?}", moving_candidates.candidates, v);
-        moving_candidates.step(v.slice());
+        moving_candidates.step(v.as_ref());
         println!("{:?}", moving_candidates.candidates);
     }
 }
@@ -365,7 +365,7 @@ fn render_animation(
 struct SampleResult {
     image: Vec<Vec<[u8; 3]>>,
     sample_count: Vec<Vec<usize>>,
-    all_rankings: Vec<Vec<Vec<TiedVote>>>,
+    all_rankings: Vec<Vec<Vec<TiedRank>>>,
 }
 
 fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
@@ -380,7 +380,7 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
-    let mut all_rankings: Vec<Vec<Vec<TiedVote>>> =
+    let mut all_rankings: Vec<Vec<Vec<TiedRank>>> =
         vec![vec![Vec::new(); config.resolution]; config.resolution];
     loop {
         iterations += 1;
@@ -396,7 +396,7 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
         }
         println!("{}: pixels to sample: {}", iterations, queue.len());
         // Then we actually get some samples
-        let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedVote>)> = queue
+        let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedRank>)> = queue
             .par_drain(..)
             .map(|(xi, yi)| {
                 let mut rng = thread_rng();
