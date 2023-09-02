@@ -1,4 +1,5 @@
 use std::{
+    cmp::Ordering,
     fmt::{self, Display},
     io::BufRead,
     slice::Windows,
@@ -212,6 +213,37 @@ impl Cardinal {
                 }
             }
         }
+    }
+
+    // Return whether candidate `a` was rated higher more times than `b`
+    pub fn compare(&self, a: usize, b: usize) -> Ordering {
+        debug_assert!(a < self.candidates && b < self.candidates);
+        let mut a_v = 0;
+        let mut b_v = 0;
+        for vote in self.iter() {
+            match vote[a].cmp(&vote[b]) {
+                Ordering::Greater => a_v += 1,
+                Ordering::Less => b_v += 1,
+                Ordering::Equal => {}
+            }
+        }
+        a_v.cmp(&b_v)
+    }
+
+    // Return whether candidate `a` was rated `value` more times than `b`
+    pub fn compare_specific(&self, a: usize, b: usize, value: usize) -> Ordering {
+        debug_assert!(a < self.candidates && b < self.candidates);
+        let mut a_v = 0;
+        let mut b_v = 0;
+        for vote in self.iter() {
+            if vote[a] == value {
+                a_v += 1;
+            }
+            if vote[b] == value {
+                b_v += 1;
+            }
+        }
+        a_v.cmp(&b_v)
     }
 }
 

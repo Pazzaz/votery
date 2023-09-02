@@ -104,6 +104,12 @@ impl<'a> TiedRank {
         TiedRank { candidates, order, tied }
     }
 
+    pub fn new_tied_from_slice(candidates: usize, order: &[usize]) -> Self {
+        let tie_len = order.len().saturating_sub(1);
+        let tied = vec![true; tie_len];
+        TiedRank::new(candidates, order.to_vec(), tied)
+    }
+
     pub fn as_ref(&'a self) -> TiedRankRef<'a> {
         TiedRankRef::new(self.candidates, &self.order[..], &self.tied[..])
     }
@@ -129,6 +135,7 @@ impl<'a> TiedRank {
         self.order.extend_from_slice(rank.order());
         self.tied.clear();
         self.tied.extend_from_slice(rank.tied());
+        // TODO: Do we really want to do this?
         self.candidates = rank.candidates;
     }
 
@@ -381,6 +388,51 @@ impl<'a> TiedRank {
             group.sort();
             start = end;
         }
+    }
+
+    pub fn keep_top(&mut self, n: usize) {
+        if n == 0 {
+            self.order.clear();
+            self.tied.clear();
+            return;
+        }
+        debug_assert!(n <= self.len());
+        let mut i = n;
+        while i < self.order.len() {
+            if self.tied[i - 1] {
+                i += 1;
+            } else {
+                break;
+            }
+        }
+        self.order.truncate(i);
+        self.tied.truncate(i - 1);
+    }
+
+    /// Return the group which is on the threshold of being top `n`.
+    /// If the ties would be broken, then we would have a top `n`.
+    /// Will return empty lists if top `n` is already decided.
+    pub fn top_n_threshold(&mut self, n: usize) -> (&mut [usize], &mut [bool]) {
+        if n == 0 {
+            return (&mut [], &mut []);
+        }
+        let mut i = n;
+        while i < self.order.len() {
+            if self.tied[i - 1] {
+                i += 1;
+            } else {
+                break;
+            }
+        }
+        (&mut self.order[(n - 1)..i], &mut self.tied[(n - 1)..(i - 1)])
+    }
+
+    pub fn random_total<R: Rng>(rng: &mut R, candidates: usize, order: &[usize]) -> TiedRank {
+        let mut v = order.to_vec();
+        v.shuffle(rng);
+        let tied_len = v.len().saturating_sub(1);
+        let tied = vec![false; tied_len];
+        TiedRank::new(candidates, v, tied)
     }
 }
 
@@ -738,6 +790,27 @@ mod tests {
         before.normalize();
 
         after == before
+    }
+
+    #[quickcheck]
+    fn keep_top_n_threshold(mut rank: TiedRank, i: usize) -> bool {
+        let n = if rank.len() == 0 { 0 } else { i % rank.len() };
+        let (order_group, tied_group) = rank.top_n_threshold(n);
+        let o = order_group.to_vec();
+        let t = tied_group.to_vec();
+        rank.keep_top(n);
+        let (new_order_group, new_tied_group) = rank.top_n_threshold(n);
+
+        o == new_order_group && t == new_tied_group
+    }
+
+    #[quickcheck]
+    fn keep_top_n_len(mut rank: TiedRank, i: usize) -> bool {
+        let n = if rank.len() == 0 { 0 } else { i % rank.len() };
+        let l1 = rank.len();
+        rank.keep_top(n);
+        let l2 = rank.len();
+        n <= l2 && l2 <= l1
     }
 
     #[test]

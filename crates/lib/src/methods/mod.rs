@@ -188,3 +188,5 @@ mod fptp;
 pub use fptp::Fptp;
 pub mod random_ballot;
 use rand::Rng;
+mod star;
+pub use star::Star;
