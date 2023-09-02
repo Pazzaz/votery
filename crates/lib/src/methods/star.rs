@@ -132,7 +132,7 @@ fn score_ranking(data: &Cardinal) -> TiedRank {
             sum[i] += vote[i];
         }
     }
-    TiedRank::from_list(data.candidates, &sum)
+    TiedRank::from_scores(data.candidates, &sum)
 }
 
 // Return a comparison between `a` and `b`, a "greater" result means `a` has a
@@ -170,7 +170,7 @@ impl<'a> VotingMethod<'a> for Star {
         // The Runoff Round
         let mut rank = match runoff_round(a, b, data) {
             Ordering::Less => TiedRank::new(data.candidates, vec![b, a], vec![false]),
-            Ordering::Equal => TiedRank::new(data.candidates, vec![a, b], vec![false]),
+            Ordering::Equal => TiedRank::new(data.candidates, vec![a, b], vec![true]),
             Ordering::Greater => TiedRank::new(data.candidates, vec![a, b], vec![false]),
         };
         rank.make_complete(false);
@@ -181,5 +181,33 @@ impl<'a> VotingMethod<'a> for Star {
     fn get_score(&self) -> &Vec<usize> {
         // TODO: fix
         &self.score.order
+    }
+}
+
+impl Star {
+    pub fn as_vote(&self) -> TiedRank {
+        self.score.clone()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple_example() {
+        let mut votes = Cardinal::new(4,0,4);
+        votes.add(&[1, 3, 2, 4]).unwrap();
+        votes.add(&[3, 1, 1, 3]).unwrap();
+        votes.add(&[0, 2, 1, 2]).unwrap();
+        votes.add(&[2, 4, 2, 2]).unwrap();
+        // Scoring round should have 1 and 3 as the candidates.
+        // Then 3 is preferred on two ballots, tied on one and not preferred on one, so it should win.
+        let res = Star::count(&votes).unwrap().as_vote();
+        let correct_winner = match res.as_ref().winners() {
+            &[win] => win == 3,
+            _ => false,
+        };
+        assert!(correct_winner);
     }
 }

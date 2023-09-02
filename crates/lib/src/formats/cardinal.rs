@@ -2,7 +2,7 @@ use std::{
     cmp::Ordering,
     fmt::{self, Display},
     io::BufRead,
-    slice::Windows,
+    slice::{Windows, Chunks},
 };
 
 use rand::distributions::{Distribution, Uniform};
@@ -68,7 +68,7 @@ impl Cardinal {
 
     /// Add to each vote score a constant `a`, changing the `min` and `max`
     /// score.
-    pub fn add(&mut self, a: usize) {
+    pub fn add_constant(&mut self, a: usize) {
         if a == 0 {
             return;
         }
@@ -188,8 +188,8 @@ impl Cardinal {
         Ok(votes)
     }
 
-    pub fn iter(&self) -> Windows<usize> {
-        self.votes.windows(self.candidates)
+    pub fn iter(&self) -> Chunks<usize> {
+        self.votes.chunks(self.candidates)
     }
 
     /// Fill the given preference matrix for the candidates listed in `keep`.

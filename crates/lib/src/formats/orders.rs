@@ -239,8 +239,11 @@ impl<'a> TiedRank {
         TiedRank::new(candidates, order, tied)
     }
 
-    pub fn from_list(candidates: usize, v: &[usize]) -> TiedRank {
-        let list: Vec<(usize, usize)> = v.iter().cloned().enumerate().collect();
+    /// Given a score to every candidate, create a new TiedRank of those candidates. Higher score is better.
+    pub fn from_scores(candidates: usize, v: &[usize]) -> TiedRank {
+        debug_assert!(v.len() == candidates);
+        let mut list: Vec<(usize, usize)> = v.iter().cloned().enumerate().collect();
+        list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
         let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
         let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
         TiedRank::new(candidates, order, tied)
@@ -568,7 +571,7 @@ impl<'a> TiedRankRef<'a> {
         None
     }
 
-    pub fn winners(&self) -> &[usize] {
+    pub fn winners(self: &TiedRankRef<'a>) -> &'a [usize] {
         let i = self.tied().iter().take_while(|x| **x).count();
         &self.order()[0..=i]
     }
