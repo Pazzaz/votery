@@ -67,7 +67,7 @@ impl Color {
         Color::new(f_inv(r), f_inv(g), f_inv(b))
     }
 
-    pub fn from_str(s: &str) -> Result<Color, &'static str> {
+    pub fn from_str_checked(s: &str) -> Result<Color, &'static str> {
         if s.len() != 7 {
             return Err("Wrong length RGB code encountered while parsing");
         }
@@ -81,15 +81,54 @@ impl Color {
         Ok(Color::new(r as f64, g as f64, b as f64))
     }
 
-    pub fn dutch_field(n: usize) -> Color {
-        const DUTCH_FIELD: [&'static str; 9] = [
+    // Panic if `s` is not a valid hexadecimal color code.
+    const fn from_str(s: &str) -> Color {
+        assert!(s.len() == 7);
+        let s_bytes = s.as_bytes();
+        assert!(s_bytes[0] == b'#');
+        let ra = unwrap((s_bytes[1] as char).to_digit(16));
+        let rb = unwrap((s_bytes[2] as char).to_digit(16));
+        let ga = unwrap((s_bytes[3] as char).to_digit(16));
+        let gb = unwrap((s_bytes[4] as char).to_digit(16));
+        let ba = unwrap((s_bytes[5] as char).to_digit(16));
+        let bb = unwrap((s_bytes[6] as char).to_digit(16));
+        let r = ra * 16 + rb;
+        let g = ga * 16 + gb;
+        let b = ba * 16 + bb;
+        Color { values: [r as f64, g as f64, b as f64] }
+    }
+
+    pub const fn dutch_field(n: usize) -> Color {
+        const DUTCH_FIELD_LEN: usize = 9;
+        assert!(n < DUTCH_FIELD_LEN);
+        const DUTCH_FIELD: [&'static str; DUTCH_FIELD_LEN] = [
             "#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff",
             "#00bfa0",
         ];
 
-        debug_assert!(n < DUTCH_FIELD.len());
-        // TODO: It would be better if we could do this at compile time
-        Color::from_str(DUTCH_FIELD[n]).unwrap()
+        // We convert the list of strings to colors at compile time, so this function
+        // should just be an array lookup
+        const DUTCH_FIELD_COLORS: [Color; DUTCH_FIELD_LEN] = {
+            let mut tmp = [BLACK; DUTCH_FIELD_LEN];
+            let mut i = 0;
+            while i < DUTCH_FIELD_LEN {
+                tmp[i] = Color::from_str(DUTCH_FIELD[i]);
+                i += 1;
+            }
+            tmp
+        };
+        DUTCH_FIELD_COLORS[n]
+    }
+}
+
+// Used instead of Option::unwrap in const contexts
+const fn unwrap<X>(o: Option<X>) -> X
+where
+    X: Copy,
+{
+    match o {
+        Some(x) => x,
+        None => unreachable!(),
     }
 }
 
