@@ -484,6 +484,31 @@ impl<'a> TiedRankRef<'a> {
         TiedRankRef { candidates, order, tied }
     }
 
+    // TODO: Which ones of these...
+    pub fn cardinal_uniform(&self, c: &mut [usize], min: usize, max: usize) {
+        debug_assert!(c.len() == self.candidates);
+        debug_assert!(min <= max);
+        let groups = self.iter_groups().count();
+        for (i, group) in self.iter_groups().enumerate() {
+            let mapped = (groups - 1 - i) * (max - min) / self.candidates + min;
+            for e in group {
+                c[*e] = mapped;
+            }
+        }
+    }
+
+    // ...makes sense? Both?
+    pub fn cardinal_high(&self, c: &mut [usize], min: usize, max: usize) {
+        debug_assert!(c.len() == self.candidates);
+        debug_assert!(min <= max);
+        for (i, group) in self.iter_groups().enumerate() {
+            let mapped = (self.candidates - 1 - i) * (max - min) / self.candidates + min;
+            for e in group {
+                c[*e] = mapped;
+            }
+        }
+    }
+
     // We may not want to store whole slice in the future, so use accessor function
     #[inline]
     pub fn order(self: &TiedRankRef<'a>) -> &'a [usize] {

@@ -8,7 +8,7 @@ use super::{
     orders::{TiedRank, TiedRankRef},
     soi::StrictOrdersIncomplete,
     toc::TiedOrdersComplete,
-    VoteFormat,
+    Cardinal, VoteFormat,
 };
 
 /// TOI - Orders with Ties - Incomplete List
@@ -214,6 +214,21 @@ impl TiedOrdersIncomplete {
             }
         }
         true
+    }
+
+    pub fn to_cardinal(self) -> Result<Cardinal, &'static str> {
+        let mut v = TiedRank::new_tied(self.candidates);
+        let mut cardinal_rank = vec![0; self.candidates];
+        let max = self.candidates - 1;
+        let mut cardinal_votes = Cardinal::new(self.candidates, 0, max);
+        for vote in &self {
+            v.copy_from(vote);
+            v.make_complete(false);
+            v.as_ref().cardinal_high(&mut cardinal_rank, 0, max);
+            cardinal_votes.add(&cardinal_rank)?;
+            cardinal_rank.fill(0);
+        }
+        Ok(cardinal_votes)
     }
 }
 
