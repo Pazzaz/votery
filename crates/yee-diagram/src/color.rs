@@ -1,5 +1,5 @@
 // Normal RGB color
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Color {
     values: [f64; 3],
 }
@@ -65,6 +65,20 @@ impl Color {
             res.clamp(0.0, 255.0)
         }
         Color::new(f_inv(r), f_inv(g), f_inv(b))
+    }
+
+    pub fn from_str(s: &str) -> Result<Color, &'static str> {
+        if s.len() != 7 {
+            return Err("Wrong length RGB code encountered while parsing");
+        }
+        let rest = s.strip_prefix('#').ok_or(r##"Did not start with "#""##)?;
+        let rstr = rest.get(0..2).ok_or("Could not parse RGB")?;
+        let r = usize::from_str_radix(rstr, 16).or(Err("Not hexadecimal"))?;
+        let gstr = rest.get(2..4).ok_or("Could not parse RGB")?;
+        let g = usize::from_str_radix(gstr, 16).or(Err("Not hexadecimal"))?;
+        let bstr = rest.get(4..6).ok_or("Could not parse RGB")?;
+        let b = usize::from_str_radix(bstr, 16).or(Err("Not hexadecimal"))?;
+        Ok(Color::new(r as f64, g as f64, b as f64))
     }
 }
 
