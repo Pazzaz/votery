@@ -80,6 +80,17 @@ impl Color {
         let b = usize::from_str_radix(bstr, 16).or(Err("Not hexadecimal"))?;
         Ok(Color::new(r as f64, g as f64, b as f64))
     }
+
+    pub fn dutch_field(n: usize) -> Color {
+        const DUTCH_FIELD: [&'static str; 9] = [
+            "#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff",
+            "#00bfa0",
+        ];
+
+        debug_assert!(n < DUTCH_FIELD.len());
+        // TODO: It would be better if we could do this at compile time
+        Color::from_str(DUTCH_FIELD[n]).unwrap()
+    }
 }
 
 pub fn blend_colors<'a, I>(cs: I) -> Color
