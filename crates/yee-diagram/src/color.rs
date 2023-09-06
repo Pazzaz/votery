@@ -1,7 +1,19 @@
+use votery::formats::orders::TiedRankRef;
+
 // Normal RGB color
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Color {
     values: [f64; 3],
+}
+
+///
+#[derive(Clone, Copy)]
+pub enum VoteColorBlending {
+    /// The average of the winners of a vote
+    Winners,
+    /// The average of all ranked candidates, weighted according to it's group.
+    /// The winners get the weight 1/1, second place gets 1/2, etc.
+    Harmonic,
 }
 
 pub const BLACK: Color = Color { values: [0.0, 0.0, 0.0] };
@@ -118,6 +130,31 @@ impl Color {
             tmp
         };
         DUTCH_FIELD_COLORS[n]
+    }
+
+    /// Turn a vote into a color.
+    pub fn from_vote(vote_color: VoteColorBlending, vote: TiedRankRef, colors: &[Color]) -> Color {
+        match vote_color {
+            VoteColorBlending::Harmonic => {
+                let mut mixes: Vec<Color> = Vec::new();
+                let mut weights: Vec<f64> = Vec::new();
+                for (gi, group) in vote.iter_groups().enumerate() {
+                    let mut hmm = Vec::new();
+                    for &i in group {
+                        debug_assert!(i < colors.len());
+                        hmm.push(colors[i]);
+                    }
+                    let new_c = blend_colors(hmm.iter());
+                    mixes.push(new_c);
+                    weights.push(1.0 / (gi + 1) as f64)
+                }
+                blend_colors_weighted(mixes.iter(), Some(&weights))
+            }
+            VoteColorBlending::Winners => {
+                let i_colors = vote.winners().iter().map(|&i| &colors[i]);
+                blend_colors(i_colors)
+            }
+        }
     }
 }
 
