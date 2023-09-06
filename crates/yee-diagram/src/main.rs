@@ -138,15 +138,26 @@ fn sample_pixel<R: Rng>(
     (color, vote)
 }
 
+fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]> {
+    let dist = Uniform::new_inclusive(0.0, 1.0);
+    (0..n).into_iter().map(|_| {
+        let mut d = [0.0; DIMENSIONS];
+        for i in 0..DIMENSIONS {
+            d[i] = dist.sample(rng);
+        }
+        d
+    }).collect()
+}
+
 fn main() {
-    let candidates = vec![[0.3, 0.7], [0.5, 0.84], [0.8, 0.2], [0.8, 0.7]];
+    let config = ImageConfig::default();
+    let candidates = random_candidates(&mut thread_rng(), config.candidates);
     let mut directions = Vec::new();
     for [x, y] in &candidates {
         directions.push([y / 100.0, x / 100.0]);
     }
     let colors: Vec<Color> =
         (0..candidates.len()).into_iter().map(|i| Color::dutch_field(i)).collect();
-    let config = ImageConfig::default();
     render_animation(candidates, directions, &colors, &config);
 }
 
