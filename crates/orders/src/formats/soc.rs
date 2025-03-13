@@ -7,12 +7,16 @@ use rand::seq::SliceRandom;
 #[derive(Clone, Debug)]
 pub struct StrictOrdersComplete {
     pub(crate) votes: Vec<usize>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
 }
 
 impl StrictOrdersComplete {
     pub fn new(candidates: usize) -> Self {
         StrictOrdersComplete { votes: Vec::new(), candidates }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     pub fn add(&mut self, vote: &[usize]) {

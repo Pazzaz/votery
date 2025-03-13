@@ -1,12 +1,8 @@
+use orders::formats::{orders::{Rank, TiedRank}, soi::StrictOrdersIncomplete, toi::TiedOrdersIncomplete};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
 
 use super::{get_order, RandomVotingMethod};
-use crate::formats::{
-    orders::{Rank, TiedRank},
-    soi::StrictOrdersIncomplete,
-    toi::TiedOrdersIncomplete,
-};
 
 /// Draw random votes until they create a ranking
 ///
@@ -28,7 +24,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         Self: Sized,
     {
         debug_assert!(data.voters() != 0);
-        debug_assert!(positions <= data.candidates);
+        debug_assert!(positions <= data.candidates());
         let mut left = positions;
         let mut order: Vec<usize> = Vec::new();
         let mut values: Vec<usize> = (0..data.voters()).collect();
@@ -47,11 +43,11 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
                 }
             }
         }
-        Ok(RandomBallot { ranking: Rank::new(data.candidates, order) })
+        Ok(RandomBallot { ranking: Rank::new(data.candidates(), order) })
     }
 
     fn get_score(&self) -> &Vec<usize> {
-        unimplemented!();
+        unimplemented!()
     }
 
     fn get_order(&self) -> Vec<usize> {

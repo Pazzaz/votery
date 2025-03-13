@@ -1,5 +1,3 @@
-use crate::formats::VoteFormat;
-
 /// Trait shared by every voting method
 pub trait VotingMethod<'a> {
     /// Every voting method accepts some specific vote format as input.
@@ -187,6 +185,7 @@ pub use borda::Borda;
 mod fptp;
 pub use fptp::Fptp;
 pub mod random_ballot;
+use orders::formats::VoteFormat;
 use rand::Rng;
 mod star;
 pub use star::Star;

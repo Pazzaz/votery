@@ -29,6 +29,10 @@ impl Cardinal {
         Cardinal { votes: Vec::new(), candidates, voters: 0, min, max }
     }
 
+    pub fn candidates(&self) -> usize {
+        self.candidates
+    }
+
     pub(crate) fn valid(&self) -> bool {
         if self.candidates == 0 && (self.voters != 0 || !self.votes.is_empty())
             || self.votes.len() != self.voters * self.candidates

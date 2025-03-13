@@ -1,4 +1,4 @@
-use votery::formats::orders::TiedRankRef;
+use votery::orders::formats::orders::TiedRankRef;
 
 // Normal RGB color
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]

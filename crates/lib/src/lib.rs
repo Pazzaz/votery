@@ -7,7 +7,8 @@
 //! ```
 //! use votery::prelude::*;
 //! use votery::methods::Approval;
-//! use votery::formats::Binary;
+//! use orders::formats::Binary;
+//! use votery::methods::VotingMethod;
 //!
 //! let mut votes = Binary::new(3);
 //! votes.add(&[false, true, true]);
@@ -27,7 +28,6 @@ extern crate quickcheck_macros;
 pub mod generators;
 pub mod methods;
 
-pub mod formats;
 
 pub enum Winner {
     Solo(usize),
@@ -36,8 +36,10 @@ pub enum Winner {
 
 /// Commonly used traits
 pub mod prelude {
-    pub use super::{formats::VoteFormat, methods::VotingMethod};
+    pub use orders::formats::VoteFormat;
 }
+
+pub use orders;
 
 pub fn single_winner(ranking: &Vec<usize>) -> Winner {
     let mut winners = Vec::with_capacity(1);
@@ -51,18 +53,6 @@ pub fn single_winner(ranking: &Vec<usize>) -> Winner {
         1 => Winner::Solo(winners[0]),
         _ => Winner::Ties(winners),
     }
-}
-
-// Test if list is strictly ordered from smallest to largest
-fn pairwise_lt(v: &[usize]) -> bool {
-    if v.len() >= 2 {
-        for i in 0..(v.len() - 1) {
-            if !(v[i] < v[i + 1]) {
-                return false;
-            }
-        }
-    }
-    true
 }
 
 // Test if list is strictly ordered from largest to smallest

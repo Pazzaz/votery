@@ -14,13 +14,17 @@ use crate::pairwise_lt;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Binary {
     pub votes: Vec<bool>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
     pub voters: usize,
 }
 
 impl Binary {
     pub fn new(candidates: usize) -> Binary {
         Binary { votes: Vec::new(), candidates, voters: 0 }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     pub(crate) fn valid(&self) -> bool {

@@ -14,17 +14,11 @@ use rayon::{
     prelude::{IntoParallelIterator, ParallelDrainRange},
 };
 use votery::{
-    formats::{
-        orders::{TiedRank, TiedRankRef},
-        toi::TiedOrdersIncomplete,
-        Specific,
-    },
     generators::gaussian::{FuzzyType, Gaussian},
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
-        Borda, Fptp, RandomVotingMethod,
-    },
-    prelude::VotingMethod,
+        Borda, Fptp, RandomVotingMethod, VotingMethod,
+    }, orders::formats::orders::TiedRank,
 };
 
 mod candidates;
@@ -73,7 +67,7 @@ impl Default for ImageConfig {
             frames: 1000,
             candidates: 4,
             sample_size: 5,
-            max_noise: 0.2,
+            max_noise: 0.5,
             variance: 0.2,
             adapt_mode: Adaptive::Enable,
             around_size: 3,
@@ -85,6 +79,7 @@ impl Default for ImageConfig {
 }
 
 fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File>> {
+    println!("{}", filename);
     let path = Path::new(filename);
     let file = File::create(path).unwrap();
     let w = BufWriter::new(file);

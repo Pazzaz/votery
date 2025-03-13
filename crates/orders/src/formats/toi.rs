@@ -39,6 +39,10 @@ impl TiedOrdersIncomplete {
         }
     }
 
+    pub fn candidates(&self) -> usize {
+        self.candidates
+    }
+
     pub fn vote_i(&self, i: usize) -> TiedRankRef {
         // TODO: Make more efficient
         self.into_iter().nth(i).unwrap()

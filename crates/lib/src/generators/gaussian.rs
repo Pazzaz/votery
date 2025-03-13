@@ -4,7 +4,7 @@ use std::slice::{ChunksExact, ChunksExactMut};
 
 use rand_distr::{Distribution, Normal};
 
-use crate::formats::{orders::TiedRank, toc::TiedOrdersComplete};
+use orders::formats::{orders::TiedRank, toc::TiedOrdersComplete};
 
 pub struct Gaussian {
     dimensions: usize,

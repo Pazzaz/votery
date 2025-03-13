@@ -15,12 +15,16 @@ pub struct TiedOrdersComplete {
     // Says if a value is tied with the next value.
     // Has length voters * (candidates - 1)
     pub(crate) ties: Vec<bool>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
 }
 
 impl TiedOrdersComplete {
     pub fn new(candidates: usize) -> Self {
         TiedOrdersComplete { votes: Vec::new(), ties: Vec::new(), candidates }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     pub fn add(&mut self, v: TiedRankRef) {

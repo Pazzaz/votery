@@ -11,12 +11,16 @@ pub struct StrictOrdersIncomplete {
 
     // Length of each vote
     pub(super) vote_len: Vec<usize>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
 }
 
 impl StrictOrdersIncomplete {
     pub fn new(candidates: usize) -> Self {
         StrictOrdersIncomplete { votes: Vec::new(), vote_len: Vec::new(), candidates }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     pub fn voters(&self) -> usize {

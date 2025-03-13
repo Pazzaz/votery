@@ -8,19 +8,23 @@ use std::{
 use rand::seq::SliceRandom;
 
 use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
-use crate::{methods::get_order, pairwise_lt};
+use crate::{get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalRanking {
     // Has size candidates * voters
     pub votes: Vec<usize>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
     pub voters: usize,
 }
 
 impl TotalRanking {
     pub fn new(candidates: usize) -> Self {
         TotalRanking { votes: Vec::new(), candidates, voters: 0 }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     // Check if a given total ranking is valid, i.e.

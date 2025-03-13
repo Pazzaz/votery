@@ -20,6 +20,14 @@ impl Specific {
         Specific { votes: Vec::new(), candidates }
     }
 
+    pub fn candidates(&self) -> usize {
+        self.candidates
+    }
+
+    pub fn votes(&self) -> &[usize] {
+        &self.votes
+    }
+
     pub fn majority(&self) -> Option<usize> {
         if self.candidates == 1 {
             return Some(0);

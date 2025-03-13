@@ -27,13 +27,17 @@ pub struct Rank {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct RankRef<'a> {
     pub(crate) candidates: usize,
-    pub(crate) order: &'a [usize],
+    pub order: &'a [usize],
 }
 
 impl Rank {
     pub fn new(candidates: usize, order: Vec<usize>) -> Self {
         debug_assert!(unique(&order));
         Rank { candidates, order }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     pub fn parse_vote(candidates: usize, s: &str) -> Option<Self> {
@@ -90,7 +94,7 @@ impl<'a> RankRef<'a> {
 pub struct TiedRank {
     pub order: Vec<usize>,
     pub tied: Vec<bool>,
-    pub candidates: usize,
+    pub(crate) candidates: usize,
 }
 
 impl<'a> TiedRank {
@@ -113,7 +117,7 @@ impl<'a> TiedRank {
     /// Return the number of ranked candidates.
     ///
     /// ```
-    /// use votery::formats::orders::TiedRank;
+    /// use orders::formats::orders::TiedRank;
     ///
     /// let empty = TiedRank::new_zero();
     /// assert!(empty.len() == 0);
@@ -138,7 +142,7 @@ impl<'a> TiedRank {
     /// Create a new ranking of `candidates`, where every candidate is tied.
     ///
     /// ```
-    /// use votery::formats::orders::TiedRank;
+    /// use orders::formats::orders::TiedRank;
     ///
     /// let c = 10;
     /// let rank = TiedRank::new_tied(c);
@@ -165,7 +169,7 @@ impl<'a> TiedRank {
     /// not a valid ranking.
     ///
     /// ```
-    /// use votery::formats::orders::TiedRank;
+    /// use orders::formats::orders::TiedRank;
     ///
     /// let vote_str = "2,{0,1},4";
     /// let vote = TiedRank::parse_vote(5, vote_str).expect("Parse failed");
@@ -176,7 +180,7 @@ impl<'a> TiedRank {
     /// means that `f`, the function from valid string representations of
     /// rankings to actual rankings, is not injective. Example:
     /// ```
-    /// use votery::formats::orders::TiedRank;
+    /// use orders::formats::orders::TiedRank;
     ///
     /// let rank = TiedRank::parse_vote(5, "0,{1}").unwrap();
     /// assert!(rank.as_ref().to_string() == "0,1");
@@ -359,7 +363,7 @@ impl<'a> TiedRank {
     /// groups.
     ///
     /// ```
-    /// use votery::formats::orders::TiedRank;
+    /// use orders::formats::orders::TiedRank;
     ///
     /// let a = TiedRank::parse_vote(3, "{0,1,2}").unwrap();
     /// let mut b = TiedRank::parse_vote(3, "{2,1,0}").unwrap();
@@ -439,7 +443,7 @@ impl<'a> TiedRank {
 pub struct TiedRankRef<'a> {
     /// The total number of candidates this ranking concerns, some of them may
     /// not actually be part of the ranking.
-    pub candidates: usize,
+    pub(crate) candidates: usize,
 
     order: &'a [usize],
     tied: &'a [bool],
@@ -478,6 +482,10 @@ impl<'a> TiedRankRef<'a> {
             debug_assert!(*i < candidates);
         }
         TiedRankRef { candidates, order, tied }
+    }
+
+    pub fn candidates(&self) -> usize {
+        self.candidates
     }
 
     // TODO: Which ones of these...
