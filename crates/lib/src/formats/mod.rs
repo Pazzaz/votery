@@ -40,7 +40,7 @@ pub trait VoteFormat<'a> {
 
     /// Removes candidate from the votes, offsetting the other candidates to
     /// take their place.
-    fn remove_candidate(&mut self, targets: usize) -> Result<(), &'static str>;
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str>;
 
     /// Sample and add `new_voters` uniformly random votes for this format,
     /// using random numbers from `rng`.

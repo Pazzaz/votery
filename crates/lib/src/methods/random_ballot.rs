@@ -35,7 +35,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         values.shuffle(rng);
         'outer: for i in values {
             let vote = data.vote_i(i);
-            for v in vote {
+            for v in vote.order {
                 let l = order.len();
                 // Quadratic, maybe bad
                 if !order[0..l].contains(v) {

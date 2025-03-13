@@ -8,11 +8,7 @@
 //!   are ranked higher and where some candidates can be tied with others. There
 //!   are also reference versions which don't own the data: [`TiedRankRef`].
 
-use std::{
-    fmt::{self, Display, Write},
-    marker::PhantomData,
-    ops::Deref,
-};
+use std::fmt::{self, Write};
 
 use rand::{
     seq::{IteratorRandom, SliceRandom},
@@ -30,18 +26,14 @@ pub struct Rank {
 // A vote without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct RankRef<'a> {
-    candidates: usize,
-    order: &'a [usize],
+    pub(crate) candidates: usize,
+    pub(crate) order: &'a [usize],
 }
 
 impl Rank {
     pub fn new(candidates: usize, order: Vec<usize>) -> Self {
         debug_assert!(unique(&order));
         Rank { candidates, order }
-    }
-
-    pub fn len(&self) -> usize {
-        self.order.len()
     }
 
     pub fn parse_vote(candidates: usize, s: &str) -> Option<Self> {
@@ -71,6 +63,10 @@ impl<'a> RankRef<'a> {
         RankRef { candidates, order }
     }
 
+    pub fn len(&self) -> usize {
+        self.order.len()
+    }
+
     pub fn top(&self, n: usize) -> Self {
         RankRef::new(self.candidates, &self.order[0..n])
     }
@@ -84,7 +80,7 @@ impl<'a> RankRef<'a> {
         self.order[0]
     }
 
-    pub fn to_tied(self, tied: &'a [bool]) -> TiedRankRef {
+    pub fn to_tied(self, tied: &'a [bool]) -> TiedRankRef<'a> {
         TiedRankRef::new(self.candidates, self.order, tied)
     }
 }

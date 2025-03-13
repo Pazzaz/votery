@@ -17,7 +17,6 @@
 //! let count = Approval::count(&votes).unwrap().get_order();
 //! assert_eq!(count, &[0, 0, 1]);
 //! ```
-#![feature(is_sorted)]
 #![feature(option_zip)]
 #[cfg(test)]
 extern crate quickcheck;

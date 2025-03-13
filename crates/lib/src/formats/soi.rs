@@ -1,16 +1,16 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
-use super::{soc::StrictOrdersComplete, VoteFormat};
+use super::{orders::{Rank, RankRef}, soc::StrictOrdersComplete, VoteFormat};
 
 /// SOI - Strict Orders - Incomplete List
 ///
 /// A packed list of (possibly incomplete) strict orders, with related methods.
 #[derive(Clone, Debug)]
 pub struct StrictOrdersIncomplete {
-    pub(crate) votes: Vec<usize>,
+    pub(super) votes: Vec<usize>,
 
     // Length of each vote
-    pub(crate) vote_len: Vec<usize>,
+    pub(super) vote_len: Vec<usize>,
     pub candidates: usize,
 }
 
@@ -25,7 +25,7 @@ impl StrictOrdersIncomplete {
 
     /// Return true if it was a valid vote.
     pub fn add_from_str(&mut self, s: &str) -> bool {
-        let mut vote = Vec::with_capacity(self.candidates);
+        let mut order = Vec::with_capacity(self.candidates);
         let mut seen = vec![false; self.candidates];
         for number in s.split(',') {
             let i: usize = match number.parse() {
@@ -36,9 +36,10 @@ impl StrictOrdersIncomplete {
                 return false;
             }
             seen[i] = true;
-            vote.push(i);
+            order.push(i);
         }
-        self.add(&vote);
+        let vote = Rank::new(self.candidates, order);
+        self.add(vote.as_ref()).unwrap();
         debug_assert!(self.valid());
         true
     }
@@ -58,35 +59,70 @@ impl StrictOrdersIncomplete {
         true
     }
 
-    pub fn vote_i(&self, i: usize) -> &[usize] {
-        todo!();
+    pub fn vote_i(&self, i: usize) -> RankRef {
+        let start: usize = self.vote_len[0..i].iter().sum();
+        let end = start + self.vote_len[i];
+        RankRef::new(self.candidates, &self.votes[start..end])
     }
 }
 
 impl<'a> VoteFormat<'a> for StrictOrdersIncomplete {
-    type Vote = &'a [usize];
+    type Vote = RankRef<'a>;
 
     fn candidates(&self) -> usize {
         self.candidates
     }
 
     fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
-        debug_assert!(v.len() < self.candidates);
-        debug_assert!(0 < v.len());
+        debug_assert!(v.candidates == self.candidates);
         self.votes.reserve(v.len());
         let mut seen = vec![false; self.candidates];
-        for &i in v {
+        for &i in v.order {
             debug_assert!(i < self.candidates || !seen[i]);
             seen[i] = true;
-            self.votes.push(i);
         }
         self.vote_len.push(v.len());
+        self.votes.extend_from_slice(v.order);
         debug_assert!(self.valid());
         Ok(())
     }
 
-    fn remove_candidate(&mut self, targets: usize) -> Result<(), &'static str> {
-        todo!()
+    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+        if self.voters() == 0 { return Ok(()) }
+        // where in `votes` will we write
+        let mut j_1 = 0;
+        // where in `vote_len` are we reading
+        let mut i_2 = 0;
+        // where in `vote_len` will we write
+        let mut j_2 = 0;
+
+        let mut last = 0;
+        let mut i_1 = 0;
+        while i_1 < self.votes.len() {
+            let el = self.votes[i_1];
+            if el == target {
+                self.vote_len[i_2] -= 1;
+            } else if el > target {
+                self.votes[j_1] = el - 1;
+                j_1 += 1;
+            } else {
+                self.votes[j_1] = el;
+                j_1 += 1;
+            }
+            i_1 += 1;
+            if i_1 == last + self.vote_len[i_2] {
+                last += self.vote_len[i_2];
+                if self.vote_len[i_2] != 0 {
+                    self.vote_len[j_2] = self.vote_len[i_2];
+                    j_2 += 1;
+                }
+                i_2 += 1;
+            }
+        }
+        self.votes.drain(j_1..);
+        self.vote_len.drain(i_2..);
+        debug_assert!(self.valid());
+        Ok(())
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {

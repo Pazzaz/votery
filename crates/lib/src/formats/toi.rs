@@ -259,7 +259,7 @@ impl<'a> VoteFormat<'a> for TiedOrdersIncomplete {
     /// with higher index. May remove votes if they only voted for `n`.
     fn remove_candidate(&mut self, n: usize) -> Result<(), &'static str> {
         let new_candidates = self.candidates - 1;
-        let mut res: TiedOrdersIncomplete = self
+        let res: TiedOrdersIncomplete = self
             .into_iter()
             .filter_map(|vote| {
                 let mut order: Vec<usize> = Vec::with_capacity(vote.order().len() - 1);

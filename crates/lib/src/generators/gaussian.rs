@@ -1,11 +1,8 @@
 //! A spatial model of voting behaviour, where every candidate is a point in
 //! some space, and voters vote for nearby candidates.
-use std::{
-    mem,
-    slice::{ChunksExact, ChunksExactMut},
-};
+use std::slice::{ChunksExact, ChunksExactMut};
 
-use rand_distr::{num_traits::Pow, Distribution, Normal};
+use rand_distr::{Distribution, Normal};
 
 use crate::formats::{orders::TiedRank, toc::TiedOrdersComplete};
 

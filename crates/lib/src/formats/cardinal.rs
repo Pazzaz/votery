@@ -2,15 +2,13 @@ use std::{
     cmp::Ordering,
     fmt::{self, Display},
     io::BufRead,
-    slice::{Windows, Chunks},
+    slice::Chunks,
 };
 
 use rand::distributions::{Distribution, Uniform};
 
 use super::{
-    orders::{TiedRank, TiedRankRef},
     remove_newline,
-    toc::TiedOrdersComplete,
     toi::TiedOrdersIncomplete,
     Binary, VoteFormat,
 };
