@@ -4,11 +4,11 @@ use std::{
 };
 
 use rand::{
-    distributions::{Bernoulli, Distribution},
     Rng,
+    distributions::{Bernoulli, Distribution},
 };
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, Cardinal, VoteFormat};
+use super::{Cardinal, VoteFormat, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

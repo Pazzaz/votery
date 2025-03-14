@@ -80,7 +80,7 @@ fn remove_newline(buf: &mut String) {
 #[cfg(test)]
 mod tests {
     use quickcheck::{Arbitrary, Gen};
-    use rand::{rngs::StdRng, SeedableRng};
+    use rand::{SeedableRng, rngs::StdRng};
 
     // `Gen` contains a rng, but it's a private member so this method is used to get
     // a standard rng generated from `Gen`

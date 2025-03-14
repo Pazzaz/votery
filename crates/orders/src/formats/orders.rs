@@ -11,8 +11,8 @@
 use std::fmt::{self, Write};
 
 use rand::{
-    seq::{IteratorRandom, SliceRandom},
     Rng,
+    seq::{IteratorRandom, SliceRandom},
 };
 use rand_distr::{Bernoulli, Uniform};
 
@@ -239,7 +239,8 @@ impl<'a> TiedRank {
         TiedRank::new(candidates, order, tied)
     }
 
-    /// Given a score to every candidate, create a new TiedRank of those candidates. Higher score is better.
+    /// Given a score to every candidate, create a new TiedRank of those
+    /// candidates. Higher score is better.
     pub fn from_scores(candidates: usize, v: &[usize]) -> TiedRank {
         debug_assert!(v.len() == candidates);
         let mut list: Vec<(usize, usize)> = v.iter().cloned().enumerate().collect();

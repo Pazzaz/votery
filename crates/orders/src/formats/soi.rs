@@ -1,6 +1,10 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
-use super::{orders::{Rank, RankRef}, soc::StrictOrdersComplete, VoteFormat};
+use super::{
+    VoteFormat,
+    orders::{Rank, RankRef},
+    soc::StrictOrdersComplete,
+};
 
 /// SOI - Strict Orders - Incomplete List
 ///
@@ -92,7 +96,9 @@ impl<'a> VoteFormat<'a> for StrictOrdersIncomplete {
     }
 
     fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
-        if self.voters() == 0 { return Ok(()) }
+        if self.voters() == 0 {
+            return Ok(());
+        }
         // where in `votes` will we write
         let mut j_1 = 0;
         // where in `vote_len` are we reading

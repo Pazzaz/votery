@@ -7,11 +7,7 @@ use std::{
 
 use rand::distributions::{Distribution, Uniform};
 
-use super::{
-    remove_newline,
-    toi::TiedOrdersIncomplete,
-    Binary, VoteFormat,
-};
+use super::{Binary, VoteFormat, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -5,10 +5,10 @@ use rand::{
 };
 
 use super::{
+    Cardinal, VoteFormat,
     orders::{TiedRank, TiedRankRef},
     soi::StrictOrdersIncomplete,
     toc::TiedOrdersComplete,
-    Cardinal, VoteFormat,
 };
 
 /// TOI - Orders with Ties - Incomplete List

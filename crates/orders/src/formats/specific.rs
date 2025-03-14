@@ -1,11 +1,11 @@
 use std::{fmt, fmt::Display, io::BufRead};
 
 use rand::{
-    distributions::{Distribution, Uniform},
     Rng,
+    distributions::{Distribution, Uniform},
 };
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
+use super::{VoteFormat, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

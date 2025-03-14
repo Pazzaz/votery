@@ -7,7 +7,7 @@ use std::{
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
-use super::{remove_newline, toi::TiedOrdersIncomplete, VoteFormat};
+use super::{VoteFormat, remove_newline, toi::TiedOrdersIncomplete};
 use crate::{get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
