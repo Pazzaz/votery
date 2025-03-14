@@ -4,7 +4,6 @@ mod rank_ref;
 mod tied_rank;
 mod tied_rank_ref;
 
-
 pub use groups::*;
 pub use rank::*;
 pub use rank_ref::*;

@@ -1,6 +1,6 @@
 use std::fmt::{self, Write};
 
-use super::{tied_rank::TiedRank, unique, GroupIterator};
+use super::{GroupIterator, tied_rank::TiedRank, unique};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TiedRankRef<'a> {

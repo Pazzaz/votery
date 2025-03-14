@@ -5,18 +5,22 @@ pub struct PartialOrder {
 }
 
 fn is_partial_order(v: &[bool], len: usize) -> bool {
-    if len*len != v.len() {
+    if len * len != v.len() {
         return false;
     }
     for a in 0..len {
-        if !v[a*len + a] {
+        if !v[a * len + a] {
             return false;
         }
         for c in a..len {
-            if a == c { continue; }
+            if a == c {
+                continue;
+            }
             for b in a..c {
-                if b == a { continue; }
-                if v[a*len + b] && v[b*len + c] && !v[a*len + c] {
+                if b == a {
+                    continue;
+                }
+                if v[a * len + b] && v[b * len + c] && !v[a * len + c] {
                     return false;
                 }
             }
@@ -34,7 +38,7 @@ impl PartialOrder {
     pub fn new_empty(n: usize) -> Self {
         let mut order = vec![false; n];
         for i in 0..n {
-            order[i*n + i] = true;
+            order[i * n + i] = true;
         }
         Self { order, len: n }
     }
@@ -46,7 +50,7 @@ impl PartialOrder {
     // Returns true if a <= b
     pub fn le(&self, a: usize, b: usize) -> bool {
         assert!(a < self.len && b < self.len);
-        self.order[a*self.len + b]
+        self.order[a * self.len + b]
     }
 
     pub fn eq(&self, a: usize, b: usize) -> bool {

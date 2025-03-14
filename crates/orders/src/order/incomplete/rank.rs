@@ -8,7 +8,7 @@
 //!   ranked higher and where some elements can be tied with others. There are
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
-use super::{unique, RankRef};
+use super::{RankRef, unique};
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]

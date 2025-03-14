@@ -4,9 +4,7 @@ use rand::{
 };
 use rand_distr::{Bernoulli, Uniform};
 
-use super::sort_using;
-
-use super::tied_rank_ref::TiedRankRef;
+use super::{sort_using, tied_rank_ref::TiedRankRef};
 
 /// An order with possible ties.
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]

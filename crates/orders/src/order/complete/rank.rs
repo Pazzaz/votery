@@ -1,8 +1,7 @@
 use std::cmp;
 
-use crate::order::incomplete::unique;
-
 use super::TotalRankRef;
+use crate::order::incomplete::unique;
 
 #[derive(Debug, Clone)]
 pub struct TotalRank {
@@ -47,12 +46,12 @@ impl TotalRank {
                 cmp::Ordering::Less => {
                     self.order[j] = self.order[i] - 1;
                     j += 1;
-                },
+                }
                 cmp::Ordering::Greater => {
                     self.order[j] = self.order[i];
                     j += 1;
-                },
-                cmp::Ordering::Equal => {},
+                }
+                cmp::Ordering::Equal => {}
             }
         }
         self.order.drain(j..);
