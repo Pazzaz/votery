@@ -246,7 +246,7 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
 
     fn add(&mut self, order: TiedRankRef) -> Result<(), &'static str> {
         debug_assert!(order.len() < self.elements);
-        debug_assert!(0 < order.len());
+        debug_assert!(!order.is_empty());
         self.orders.reserve(order.len());
         self.ties.reserve(order.len() - 1);
         let mut seen = vec![false; self.elements];
@@ -298,7 +298,7 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
         if self.elements == 0 {
             return;
         }
-        let mut v: Vec<usize> = (0..self.elements).collect();
+        let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(new_orders * self.elements);
         self.ties.reserve(new_orders * (self.elements - 1));
         let dist = Bernoulli::new(0.5).unwrap();
@@ -306,8 +306,8 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
         for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);
-            for i in 0..elements {
-                self.orders.push(v[i]);
+            for &el in &v[..elements] {
+                self.orders.push(el);
             }
 
             for _ in 0..(elements - 1) {
@@ -327,14 +327,14 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
 /// Will create a new `TiedOrdersIncomplete` from a stream of orders. Will scan
 /// for the largest number of elements ranked by a order, and assume that it's
 /// number of elements for every order.
-impl<'a> FromIterator<TiedRank> for TiedOrdersIncomplete {
+impl FromIterator<TiedRank> for TiedOrdersIncomplete {
     fn from_iter<I: IntoIterator<Item = TiedRank>>(iter: I) -> Self {
         let mut orders: Vec<usize> = Vec::new();
         let mut ties: Vec<bool> = Vec::new();
         let mut order_len: Vec<usize> = Vec::new();
         let mut max_elements = 0;
         for order in iter {
-            if order.order.len() == 0 {
+            if order.order.is_empty() {
                 continue;
             }
             if order.elements > max_elements {
@@ -386,7 +386,7 @@ impl<'a> Iterator for TiedOrdersIncompleteIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for TiedOrdersIncompleteIterator<'a> {}
+impl ExactSizeIterator for TiedOrdersIncompleteIterator<'_> {}
 
 impl From<StrictOrdersIncomplete> for TiedOrdersIncomplete {
     fn from(value: StrictOrdersIncomplete) -> Self {

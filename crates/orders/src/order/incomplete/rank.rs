@@ -36,7 +36,7 @@ impl Rank {
                 Ok(n) => n,
                 Err(_) => return None,
             };
-            if !(n < elements) {
+            if n >= elements {
                 return None;
             }
             order.push(n);

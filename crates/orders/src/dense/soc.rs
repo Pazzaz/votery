@@ -77,12 +77,12 @@ impl StrictOrdersComplete {
         if self.elements == 0 {
             return;
         }
-        let mut v: Vec<usize> = (0..self.elements).collect();
+        let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(self.elements * new_orders);
         for _ in 0..new_orders {
             v.shuffle(rng);
-            for i in 0..self.elements {
-                self.orders.push(v[i]);
+            for &el in &*v {
+                self.orders.push(el);
             }
         }
         debug_assert!(self.valid());
@@ -119,4 +119,4 @@ impl<'a> Iterator for StrictOrdersCompleteIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for StrictOrdersCompleteIterator<'a> {}
+impl ExactSizeIterator for StrictOrdersCompleteIterator<'_> {}

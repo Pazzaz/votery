@@ -17,6 +17,10 @@ impl<'a> RankRef<'a> {
         self.order.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     pub fn top(&self, n: usize) -> Self {
         RankRef::new(self.elements, &self.order[0..n])
     }
@@ -26,7 +30,7 @@ impl<'a> RankRef<'a> {
     }
 
     pub fn winner(&self) -> usize {
-        debug_assert!(self.order.len() != 0);
+        debug_assert!(!self.order.is_empty());
         self.order[0]
     }
 

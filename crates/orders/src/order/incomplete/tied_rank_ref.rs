@@ -15,7 +15,7 @@ pub struct TiedRankRef<'a> {
     tied: &'a [bool],
 }
 
-impl<'a> fmt::Display for TiedRankRef<'a> {
+impl fmt::Display for TiedRankRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut left = self.len();
         for group in self.iter_groups() {
@@ -42,7 +42,7 @@ impl<'a> fmt::Display for TiedRankRef<'a> {
 
 impl<'a> TiedRankRef<'a> {
     pub fn new(elements: usize, order: &'a [usize], tied: &'a [bool]) -> Self {
-        debug_assert!(tied.len() + 1 == order.len() || order.len() == 0 && tied.len() == 0);
+        debug_assert!(tied.len() + 1 == order.len() || order.is_empty() && tied.is_empty());
         debug_assert!(unique(order));
         for i in order {
             debug_assert!(*i < elements);
@@ -171,14 +171,14 @@ impl<'a> TiedRankRef<'a> {
         &self.order()[0..=i]
     }
 
-    pub fn empty(&self) -> bool {
-        self.order().len() == 0
+    pub fn is_empty(&self) -> bool {
+        self.order().is_empty()
     }
 
     /// Returns a list of all elements with the top rank, and a ranking of the
     /// rest
     pub fn split_winner_group(self: &TiedRankRef<'a>) -> (&'a [usize], TiedRankRef<'a>) {
-        if self.empty() {
+        if self.is_empty() {
             return (&[], *self);
         }
         let mut values = 1;

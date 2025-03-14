@@ -14,7 +14,7 @@ pub mod order;
 fn pairwise_lt(v: &[usize]) -> bool {
     if v.len() >= 2 {
         for i in 0..(v.len() - 1) {
-            if !(v[i] < v[i + 1]) {
+            if v[i] >= v[i + 1] {
                 return false;
             }
         }
@@ -30,8 +30,8 @@ fn get_order<T: Ord>(v: &[T], reverse: bool) -> Vec<usize> {
     }
 
     let mut tmp: Vec<(usize, &T)> = Vec::with_capacity(v.len());
-    for i in 0..v.len() {
-        tmp.push((i, &v[i]));
+    for (i, el) in v.iter().enumerate() {
+        tmp.push((i, el));
     }
     tmp.sort_by(|a, b| (*a.1).cmp(b.1));
     if reverse {

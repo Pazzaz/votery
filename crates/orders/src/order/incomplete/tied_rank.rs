@@ -16,7 +16,7 @@ pub struct TiedRank {
 
 impl<'a> TiedRank {
     pub fn new(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
-        debug_assert!(tied.len() + 1 == order.len() || tied.len() == 0 && order.len() == 0);
+        debug_assert!(tied.len() + 1 == order.len() || tied.is_empty() && order.is_empty());
         TiedRank { elements, order, tied }
     }
 
@@ -43,6 +43,10 @@ impl<'a> TiedRank {
     /// ```
     pub fn len(&self) -> usize {
         self.order.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     /// Become a copy of `rank`, useful to reuse allocations.
@@ -102,7 +106,7 @@ impl<'a> TiedRank {
     /// assert!(rank.as_ref().to_string() == "0,1");
     /// ```
     pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
-        if s == "" {
+        if s.is_empty() {
             let mut rank = TiedRank::new_zero();
             rank.increase_elements(elements);
             return Some(rank);
@@ -132,7 +136,7 @@ impl<'a> TiedRank {
                 Ok(n) => n,
                 Err(_) => return None,
             };
-            if !(n < elements) {
+            if n >= elements {
                 return None;
             }
             order.push(n);
@@ -170,20 +174,20 @@ impl<'a> TiedRank {
     /// `tied_last` to decide if the newly added elements should be tied
     /// with the last ranking element in the order.
     pub fn make_complete(&mut self, tied_last: bool) {
-        let empty_first = self.len() == 0;
+        let empty_first = self.is_empty();
         if self.order.len() == self.elements {
             // It's already complete
             return;
         }
         self.order.reserve_exact(self.elements);
         self.tied.reserve_exact(self.elements - 1);
-        let mut seen = vec![false; self.elements];
+        let seen: &mut [bool] = &mut vec![false; self.elements];
         for &i in &self.order {
             debug_assert!(!seen[i]);
             seen[i] = true;
         }
-        for i in 0..self.elements {
-            if !seen[i] {
+        for (i, el) in seen.iter().enumerate() {
+            if !el {
                 self.order.push(i);
             }
         }
@@ -265,13 +269,13 @@ impl<'a> TiedRank {
             return TiedRank::new_zero();
         }
         let order_len = rng.sample(Uniform::new(0, elements));
-        let mut order = (0..elements).into_iter().choose_multiple(rng, order_len);
+        let mut order = (0..elements).choose_multiple(rng, order_len);
         order.shuffle(rng);
         let tied_len = order_len.saturating_sub(1);
         let mut tied = Vec::with_capacity(tied_len);
         let d = Bernoulli::new(0.5).unwrap();
         for _ in 0..tied_len {
-            tied.push(rng.sample(&d));
+            tied.push(rng.sample(d));
         }
         TiedRank::new(elements, order, tied)
     }

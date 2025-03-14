@@ -97,7 +97,7 @@ impl Display for Specific {
     }
 }
 
-impl<'a> DenseOrders<'a> for Specific {
+impl DenseOrders<'_> for Specific {
     type Order = usize;
     fn elements(&self) -> usize {
         self.elements
@@ -156,7 +156,7 @@ impl<'a> DenseOrders<'a> for Specific {
     }
 }
 
-impl<'a> FromIterator<usize> for Specific {
+impl FromIterator<usize> for Specific {
     fn from_iter<I: IntoIterator<Item = usize>>(iter: I) -> Self {
         let ii = iter.into_iter();
         let (min_len, _) = ii.size_hint();

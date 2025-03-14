@@ -8,17 +8,17 @@ pub struct GroupIterator<'a> {
 impl<'a> Iterator for GroupIterator<'a> {
     type Item = &'a [usize];
     fn next(&mut self) -> Option<Self::Item> {
-        if self.order.empty() {
+        if self.order.is_empty() {
             return None;
         }
         let (group, order) = self.order.split_winner_group();
         self.order = order;
-        debug_assert!(group.len() != 0);
+        debug_assert!(!group.is_empty());
         Some(group)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.order.empty() {
+        if self.order.is_empty() {
             // We're done
             (0, Some(0))
         } else {

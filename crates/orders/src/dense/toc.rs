@@ -33,7 +33,7 @@ impl TiedOrdersComplete {
         let order = v.order();
         let tie = v.tied();
         debug_assert!(order.len() == self.elements);
-        debug_assert!(0 < order.len());
+        debug_assert!(!order.is_empty());
         debug_assert!(tie.len() + 1 == order.len());
         self.orders.reserve(order.len() * self.elements);
         self.ties.reserve(tie.len() * (self.elements - 1));
@@ -73,7 +73,7 @@ impl TiedOrdersComplete {
                 Ok(n) => n,
                 Err(_) => return false,
             };
-            if !(n < self.elements) {
+            if n >= self.elements {
                 return false;
             }
             order.push(n);
@@ -118,14 +118,14 @@ impl TiedOrdersComplete {
         if self.elements == 0 {
             return;
         }
-        let mut v: Vec<usize> = (0..self.elements).collect();
+        let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(new_orders * self.elements);
         self.ties.reserve(new_orders * (self.elements - 1));
         let dist = Bernoulli::new(0.5).unwrap();
         for _ in 0..new_orders {
             v.shuffle(rng);
-            for i in 0..self.elements {
-                self.orders.push(v[i]);
+            for &el in &*v {
+                self.orders.push(el);
             }
 
             for _ in 0..(self.elements - 1) {
@@ -224,7 +224,7 @@ impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for TiedOrdersCompleteIterator<'a> {}
+impl ExactSizeIterator for TiedOrdersCompleteIterator<'_> {}
 
 impl From<StrictOrdersComplete> for TiedOrdersComplete {
     fn from(value: StrictOrdersComplete) -> Self {

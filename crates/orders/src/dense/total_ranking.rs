@@ -37,7 +37,7 @@ impl TotalRanking {
             return false;
         }
 
-        let mut seen = vec![false; self.elements];
+        let seen: &mut [bool] = &mut vec![false; self.elements];
         for i in 0..self.orders_count {
             seen.fill(false);
             for j in 0..self.elements {
@@ -50,8 +50,8 @@ impl TotalRanking {
                 }
                 seen[order] = true;
             }
-            for j in 0..self.elements {
-                if !seen[j] {
+            for &s in &*seen {
+                if !s {
                     return false;
                 }
             }
@@ -66,7 +66,7 @@ impl TotalRanking {
         let mut buf = String::with_capacity(self.elements * 2);
 
         // Used to find gaps in a ranking
-        let mut seen = vec![false; self.elements];
+        let seen: &mut [bool] = &mut vec![false; self.elements];
         loop {
             buf.clear();
             let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
@@ -91,13 +91,13 @@ impl TotalRanking {
                 seen[v] = true;
                 self.orders.push(v);
             }
-            if count > self.elements {
-                return Err("Too many elements listed in order");
-            } else if count < self.elements {
-                return Err("Too few elements listed in order");
+            match count.cmp(&self.elements) {
+                std::cmp::Ordering::Greater => return Err("Too many elements listed in order"),
+                std::cmp::Ordering::Less => return Err("Too few elements listed in order"),
+                std::cmp::Ordering::Equal => {},
             }
-            for i in 0..self.elements {
-                if !seen[i] {
+            for &s in &*seen {
+                if !s {
                     return Err("Invalid order, gap in ranking");
                 }
             }
@@ -184,9 +184,7 @@ impl<'a> DenseOrders<'a> for TotalRanking {
         self.orders.reserve(self.elements * new_orders);
         for _ in 0..new_orders {
             v.shuffle(rng);
-            for i in 0..self.elements {
-                self.orders.push(v[i]);
-            }
+            self.orders.extend_from_slice(&v);
         }
         self.orders_count += new_orders;
         debug_assert!(self.valid());

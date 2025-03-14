@@ -125,10 +125,10 @@ impl Cardinal {
                 }
                 self.orders.push(v);
             }
-            if count > self.elements {
-                return Err("Too many elements listed in order");
-            } else if count < self.elements {
-                return Err("Too few elements listed in order");
+            match count.cmp(&self.elements) {
+                Ordering::Greater => return Err("Too many elements listed in order"),
+                Ordering::Less => return Err("Too few elements listed in order"),
+                Ordering::Equal => {},
             }
             self.orders_count += 1;
         }
@@ -203,10 +203,10 @@ impl Cardinal {
                     let cj = order[keep[j]];
 
                     // TODO: What should the orientation of the matrix be?
-                    if ci > cj {
-                        matrix[i * l + j] += 1;
-                    } else if cj > ci {
-                        matrix[j * l + i] += 1;
+                    match ci.cmp(&cj) {
+                        Ordering::Greater => matrix[i * l + j] += 1,
+                        Ordering::Less => matrix[j * l + i] += 1,
+                        Ordering::Equal => {},
                     }
                 }
             }

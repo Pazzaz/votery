@@ -111,14 +111,18 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
         let mut i_1 = 0;
         while i_1 < self.orders.len() {
             let el = self.orders[i_1];
-            if el == target {
-                self.order_len[i_2] -= 1;
-            } else if el > target {
-                self.orders[j_1] = el - 1;
-                j_1 += 1;
-            } else {
-                self.orders[j_1] = el;
-                j_1 += 1;
+            match el.cmp(&target) {
+                std::cmp::Ordering::Equal => {
+                    self.order_len[i_2] -= 1;
+                },
+                std::cmp::Ordering::Greater => {
+                    self.orders[j_1] = el - 1;
+                    j_1 += 1;
+                },
+                std::cmp::Ordering::Less => {
+                    self.orders[j_1] = el;
+                    j_1 += 1;
+                },
             }
             i_1 += 1;
             if i_1 == last + self.order_len[i_2] {
@@ -140,14 +144,14 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
         if self.elements == 0 {
             return;
         }
-        let mut v: Vec<usize> = (0..self.elements).collect();
+        let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(self.elements * new_orders);
         let range = Uniform::from(0..self.elements);
         for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);
-            for i in 0..elements {
-                self.orders.push(v[i]);
+            for &el in &v[..elements] {
+                self.orders.push(el);
             }
             self.order_len.push(elements);
         }
@@ -190,7 +194,7 @@ impl<'a> Iterator for StrictOrdersIncompleteIterator<'a> {
     }
 }
 
-impl<'a> ExactSizeIterator for StrictOrdersIncompleteIterator<'a> {}
+impl ExactSizeIterator for StrictOrdersIncompleteIterator<'_> {}
 
 impl From<StrictOrdersComplete> for StrictOrdersIncomplete {
     fn from(value: StrictOrdersComplete) -> Self {
