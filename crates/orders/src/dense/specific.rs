@@ -176,8 +176,9 @@ impl<'a> FromIterator<usize> for Specific {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
+    use crate::tests::std_rng;
+
     use super::*;
-    use crate::formats::tests::std_rng;
 
     impl Arbitrary for Specific {
         fn arbitrary(g: &mut Gen) -> Self {

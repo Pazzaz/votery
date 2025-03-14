@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
-use orders::formats::{orders::TiedRank, Cardinal};
+use orders::{dense::Cardinal, order::TiedRank};
+
 use super::VotingMethod;
 
 /// STAR (Score Then Automatic Runoff) voting is a single winner protocol.
@@ -192,7 +193,7 @@ impl Star {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use orders::formats::DenseOrders;
+    use orders::dense::DenseOrders;
 
     #[test]
     fn simple_example() {

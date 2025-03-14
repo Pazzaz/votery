@@ -180,8 +180,9 @@ impl<'a> DenseOrders<'a> for Binary {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
+    use crate::tests::std_rng;
+
     use super::*;
-    use crate::formats::tests::std_rng;
 
     impl Arbitrary for Binary {
         fn arbitrary(g: &mut Gen) -> Self {

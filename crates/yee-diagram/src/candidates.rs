@@ -1,5 +1,5 @@
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
-use votery::orders::formats::orders::TiedRankRef;
+use votery::orders::order::TiedRankRef;
 
 use crate::{MAX, MIN, vector::Vector};
 

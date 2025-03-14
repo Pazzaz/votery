@@ -1,8 +1,9 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
+use crate::order::{Rank, RankRef};
+
 use super::{
     DenseOrders,
-    orders::{Rank, RankRef},
     soc::StrictOrdersComplete,
 };
 

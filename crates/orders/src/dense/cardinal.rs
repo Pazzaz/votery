@@ -331,8 +331,9 @@ impl<'a> DenseOrders<'a> for Cardinal {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
+    use crate::tests::std_rng;
+
     use super::*;
-    use crate::formats::tests::std_rng;
 
     impl Arbitrary for Cardinal {
         fn arbitrary(g: &mut Gen) -> Self {

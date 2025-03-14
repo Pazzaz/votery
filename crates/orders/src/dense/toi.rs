@@ -4,9 +4,10 @@ use rand::{
     seq::SliceRandom,
 };
 
+use crate::order::{TiedRank, TiedRankRef};
+
 use super::{
     Cardinal, DenseOrders,
-    orders::{TiedRank, TiedRankRef},
     soi::StrictOrdersIncomplete,
     toc::TiedOrdersComplete,
 };
@@ -419,8 +420,9 @@ impl From<TiedOrdersComplete> for TiedOrdersIncomplete {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
+    use crate::tests::std_rng;
+
     use super::*;
-    use crate::formats::tests::std_rng;
 
     impl Arbitrary for TiedOrdersIncomplete {
         fn arbitrary(g: &mut Gen) -> Self {

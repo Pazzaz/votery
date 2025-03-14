@@ -18,7 +18,7 @@ use votery::{
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
         Borda, Fptp, RandomVotingMethod, VotingMethod,
-    }, orders::formats::orders::TiedRank,
+    }, orders::order::TiedRank
 };
 
 mod candidates;

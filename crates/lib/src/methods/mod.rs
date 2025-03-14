@@ -185,7 +185,7 @@ pub use borda::Borda;
 mod fptp;
 pub use fptp::Fptp;
 pub mod random_ballot;
-use orders::formats::DenseOrders;
+use orders::dense::DenseOrders;
 use rand::Rng;
 mod star;
 pub use star::Star;

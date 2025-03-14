@@ -8,7 +8,8 @@ extern crate quickcheck;
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
-pub mod formats;
+pub mod dense;
+pub mod order;
 
 fn pairwise_lt(v: &[usize]) -> bool {
     if v.len() >= 2 {
@@ -49,4 +50,20 @@ fn get_order<T: Ord>(v: &[T], reverse: bool) -> Vec<usize> {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::{Arbitrary, Gen};
+    use rand::{SeedableRng, rngs::StdRng};
+
+    // `Gen` contains a rng, but it's a private member so this method is used to get
+    // a standard rng generated from `Gen`
+    pub fn std_rng(g: &mut Gen) -> StdRng {
+        let mut seed = [0u8; 32];
+        for i in 0..32 {
+            seed[i] = Arbitrary::arbitrary(g);
+        }
+        StdRng::from_seed(seed)
+    }
 }

@@ -2,9 +2,8 @@
 //! some space, and voters vote for nearby candidates.
 use std::slice::{ChunksExact, ChunksExactMut};
 
+use orders::{dense::toc::TiedOrdersComplete, order::TiedRank};
 use rand_distr::{Distribution, Normal};
-
-use orders::formats::{orders::TiedRank, toc::TiedOrdersComplete};
 
 pub struct Gaussian {
     dimensions: usize,

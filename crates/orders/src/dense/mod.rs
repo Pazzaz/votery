@@ -47,7 +47,6 @@ pub trait DenseOrders<'a> {
     fn to_partial_ranking(self) -> TiedOrdersIncomplete;
 }
 
-pub mod orders;
 pub mod soc;
 pub mod soi;
 pub mod toc;
@@ -71,21 +70,5 @@ fn remove_newline(buf: &mut String) {
         if buf.ends_with('\r') {
             buf.pop();
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use quickcheck::{Arbitrary, Gen};
-    use rand::{SeedableRng, rngs::StdRng};
-
-    // `Gen` contains a rng, but it's a private member so this method is used to get
-    // a standard rng generated from `Gen`
-    pub fn std_rng(g: &mut Gen) -> StdRng {
-        let mut seed = [0u8; 32];
-        for i in 0..32 {
-            seed[i] = Arbitrary::arbitrary(g);
-        }
-        StdRng::from_seed(seed)
     }
 }
