@@ -9,18 +9,18 @@ use super::{
 /// A packed list of complete orders with ties, with related methods.
 #[derive(Clone, Debug)]
 pub struct TiedOrdersComplete {
-    // Has length voters * elements
-    pub(crate) votes: Vec<usize>,
+    // Has length orders_count * elements
+    pub(crate) orders: Vec<usize>,
 
     // Says if a value is tied with the next value.
-    // Has length voters * (elements - 1)
+    // Has length orders_count * (elements - 1)
     pub(crate) ties: Vec<bool>,
     pub(crate) elements: usize,
 }
 
 impl TiedOrdersComplete {
     pub fn new(elements: usize) -> Self {
-        TiedOrdersComplete { votes: Vec::new(), ties: Vec::new(), elements }
+        TiedOrdersComplete { orders: Vec::new(), ties: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -28,31 +28,31 @@ impl TiedOrdersComplete {
     }
 
     pub fn add(&mut self, v: TiedRankRef) {
-        let vote = v.order();
+        let order = v.order();
         let tie = v.tied();
-        debug_assert!(vote.len() == self.elements);
-        debug_assert!(0 < vote.len());
-        debug_assert!(tie.len() + 1 == vote.len());
-        self.votes.reserve(vote.len() * self.elements);
+        debug_assert!(order.len() == self.elements);
+        debug_assert!(0 < order.len());
+        debug_assert!(tie.len() + 1 == order.len());
+        self.orders.reserve(order.len() * self.elements);
         self.ties.reserve(tie.len() * (self.elements - 1));
         let mut seen = vec![false; self.elements];
-        for &i in vote {
+        for &i in order {
             debug_assert!(i < self.elements || !seen[i]);
             seen[i] = true;
-            self.votes.push(i);
+            self.orders.push(i);
         }
         self.ties.extend(tie);
         debug_assert!(self.valid());
     }
 
-    pub fn voters(&self) -> usize {
-        debug_assert!(self.votes.len() % self.elements == 0);
-        self.votes.len() / self.elements
+    pub fn orders(&self) -> usize {
+        debug_assert!(self.orders.len() % self.elements == 0);
+        self.orders.len() / self.elements
     }
 
-    /// Add a single vote from a string. Return true if it was a valid vote.
+    /// Add a single order from a string. Return true if it was a valid order.
     pub fn add_from_str(&mut self, s: &str) -> bool {
-        let mut vote: Vec<usize> = Vec::with_capacity(self.elements);
+        let mut order: Vec<usize> = Vec::with_capacity(self.elements);
         let mut tie: Vec<bool> = Vec::with_capacity(self.elements);
         let mut grouped = false;
         for part in s.split(',') {
@@ -74,35 +74,35 @@ impl TiedOrdersComplete {
             if !(n < self.elements) {
                 return false;
             }
-            vote.push(n);
+            order.push(n);
             tie.push(grouped);
         }
         // The last one will never be tied, so we'll ignore it.
         tie.pop();
 
         // We didn't end our group or we didn't list all elements
-        if grouped || vote.len() != self.elements {
+        if grouped || order.len() != self.elements {
             return false;
         }
-        self.add(TiedRankRef::new(self.elements, &vote, &tie));
+        self.add(TiedRankRef::new(self.elements, &order, &tie));
         debug_assert!(self.valid());
         true
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
-        if self.votes.len() != self.voters() * self.elements
-            || self.ties.len() != self.voters() * (self.elements - 1)
+        if self.orders.len() != self.orders() * self.elements
+            || self.ties.len() != self.orders() * (self.elements - 1)
         {
             return false;
         }
         let mut seen = vec![false; self.elements];
-        for vote in self {
+        for order in self {
             seen.fill(false);
-            if vote.order().len() != self.elements || vote.tied().len() != self.elements - 1 {
+            if order.order().len() != self.elements || order.tied().len() != self.elements - 1 {
                 return false;
             }
-            for &i in vote.order() {
+            for &i in order.order() {
                 if i >= self.elements || seen[i] {
                     return false;
                 }
@@ -112,18 +112,18 @@ impl TiedOrdersComplete {
         true
     }
 
-    pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
+    pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
         if self.elements == 0 {
             return;
         }
         let mut v: Vec<usize> = (0..self.elements).collect();
-        self.votes.reserve(new_voters * self.elements);
-        self.ties.reserve(new_voters * (self.elements - 1));
+        self.orders.reserve(new_orders * self.elements);
+        self.ties.reserve(new_orders * (self.elements - 1));
         let dist = Bernoulli::new(0.5).unwrap();
-        for _ in 0..new_voters {
+        for _ in 0..new_orders {
             v.shuffle(rng);
             for i in 0..self.elements {
-                self.votes.push(v[i]);
+                self.orders.push(v[i]);
             }
 
             for _ in 0..(self.elements - 1) {
@@ -137,11 +137,11 @@ impl TiedOrdersComplete {
     /// Pick a winning element from each ordering, randomly from their highest ranked (tied) elements.
     pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> Specific {
         let elements = self.elements;
-        let mut votes: Specific =
+        let mut orders: Specific =
             self.into_iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
 
-        votes.set_elements(elements);
-        votes
+        orders.set_elements(elements);
+        orders
     }
 
     /// Convert each ordering to a cardinal order, with the highest rank elements
@@ -149,34 +149,34 @@ impl TiedOrdersComplete {
     ///
     /// Returns `Err` if it failed to allocate
     pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
-        let mut votes: Vec<usize> = Vec::new();
-        votes.try_reserve_exact(self.elements * self.voters()).or(Err("Could not allocate"))?;
+        let mut orders: Vec<usize> = Vec::new();
+        orders.try_reserve_exact(self.elements * self.orders()).or(Err("Could not allocate"))?;
         let max = self.elements - 1;
-        let mut new_vote = vec![0; self.elements];
-        for vote in self {
-            for (i, group) in vote.iter_groups().enumerate() {
+        let mut new_order = vec![0; self.elements];
+        for order in self {
+            for (i, group) in order.iter_groups().enumerate() {
                 for &c in group {
                     debug_assert!(max >= i);
-                    new_vote[c] = max - i;
+                    new_order[c] = max - i;
                 }
             }
-            // `vote` is a ranking of all elements, so `new_vote` will be different
+            // `order` is a ranking of all elements, so `new_order` will be different
             // between iterations.
-            votes.extend(&new_vote);
+            orders.extend(&new_order);
         }
-        let v = Cardinal { votes, elements: self.elements, voters: self.voters(), min: 0, max };
+        let v = Cardinal { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
     }
 
     pub fn to_toi(self) -> Result<TiedOrdersIncomplete, &'static str> {
-        let mut vote_len = Vec::new();
-        vote_len.try_reserve_exact(self.voters()).or(Err("Could not allocate"))?;
-        vote_len.resize(self.voters(), self.elements);
+        let mut order_len = Vec::new();
+        order_len.try_reserve_exact(self.orders()).or(Err("Could not allocate"))?;
+        order_len.resize(self.orders(), self.elements);
         let v = TiedOrdersIncomplete {
-            votes: self.votes,
+            orders: self.orders,
             ties: self.ties,
-            vote_len,
+            order_len,
             elements: self.elements,
         };
         debug_assert!(v.valid());
@@ -201,23 +201,23 @@ pub struct TiedOrdersCompleteIterator<'a> {
 impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
     type Item = TiedRankRef<'a>;
     fn next(&mut self) -> Option<Self::Item> {
-        if self.i == self.orig.voters() {
+        if self.i == self.orig.orders() {
             return None;
         }
         let len1 = self.orig.elements;
         let len2 = self.orig.elements - 1;
         let start1 = self.i * len1;
         let start2 = self.i * len2;
-        let vote = &self.orig.votes[start1..(start1 + len1)];
+        let order = &self.orig.orders[start1..(start1 + len1)];
         let tie = &self.orig.ties[start2..(start2 + len2)];
         self.i += 1;
-        debug_assert!(tie.len() + 1 == vote.len());
+        debug_assert!(tie.len() + 1 == order.len());
 
-        Some(TiedRankRef::new(self.orig.elements, vote, tie))
+        Some(TiedRankRef::new(self.orig.elements, order, tie))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.orig.voters() - self.i;
+        let remaining = self.orig.orders() - self.i;
         (remaining, Some(remaining))
     }
 }
@@ -226,10 +226,10 @@ impl<'a> ExactSizeIterator for TiedOrdersCompleteIterator<'a> {}
 
 impl From<StrictOrdersComplete> for TiedOrdersComplete {
     fn from(value: StrictOrdersComplete) -> Self {
-        let voters: usize = value.voters();
+        let orders: usize = value.orders();
         let s = TiedOrdersComplete {
-            votes: value.votes,
-            ties: vec![false; (value.elements - 1) * voters],
+            orders: value.orders,
+            ties: vec![false; (value.elements - 1) * orders],
             elements: value.elements,
         };
         debug_assert!(s.valid());

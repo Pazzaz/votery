@@ -11,27 +11,27 @@ use super::{
 /// A packed list of (possibly incomplete) strict orders, with related methods.
 #[derive(Clone, Debug)]
 pub struct StrictOrdersIncomplete {
-    pub(super) votes: Vec<usize>,
+    pub(super) orders: Vec<usize>,
 
-    // Length of each vote
-    pub(super) vote_len: Vec<usize>,
+    // Length of each order
+    pub(super) order_len: Vec<usize>,
     pub(crate) elements: usize,
 }
 
 impl StrictOrdersIncomplete {
     pub fn new(elements: usize) -> Self {
-        StrictOrdersIncomplete { votes: Vec::new(), vote_len: Vec::new(), elements }
+        StrictOrdersIncomplete { orders: Vec::new(), order_len: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
-    pub fn voters(&self) -> usize {
-        self.vote_len.len()
+    pub fn orders_count(&self) -> usize {
+        self.order_len.len()
     }
 
-    /// Return true if it was a valid vote.
+    /// Return true if it was a valid order.
     pub fn add_from_str(&mut self, s: &str) -> bool {
         let mut order = Vec::with_capacity(self.elements);
         let mut seen = vec![false; self.elements];
@@ -46,8 +46,8 @@ impl StrictOrdersIncomplete {
             seen[i] = true;
             order.push(i);
         }
-        let vote = Rank::new(self.elements, order);
-        self.add(vote.as_ref()).unwrap();
+        let order = Rank::new(self.elements, order);
+        self.add(order.as_ref()).unwrap();
         debug_assert!(self.valid());
         true
     }
@@ -55,9 +55,9 @@ impl StrictOrdersIncomplete {
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
         let mut seen = vec![false; self.elements];
-        for vote in self {
+        for order in self {
             seen.fill(false);
-            for &i in vote {
+            for &i in order {
                 if i >= self.elements || seen[i] {
                     return false;
                 }
@@ -67,10 +67,10 @@ impl StrictOrdersIncomplete {
         true
     }
 
-    pub fn vote_i(&self, i: usize) -> RankRef {
-        let start: usize = self.vote_len[0..i].iter().sum();
-        let end = start + self.vote_len[i];
-        RankRef::new(self.elements, &self.votes[start..end])
+    pub fn order_i(&self, i: usize) -> RankRef {
+        let start: usize = self.order_len[0..i].iter().sum();
+        let end = start + self.order_len[i];
+        RankRef::new(self.elements, &self.orders[start..end])
     }
 }
 
@@ -83,72 +83,72 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         debug_assert!(v.elements == self.elements);
-        self.votes.reserve(v.len());
+        self.orders.reserve(v.len());
         let mut seen = vec![false; self.elements];
         for &i in v.order {
             debug_assert!(i < self.elements || !seen[i]);
             seen[i] = true;
         }
-        self.vote_len.push(v.len());
-        self.votes.extend_from_slice(v.order);
+        self.order_len.push(v.len());
+        self.orders.extend_from_slice(v.order);
         debug_assert!(self.valid());
         Ok(())
     }
 
     fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
-        if self.voters() == 0 {
+        if self.orders_count() == 0 {
             return Ok(());
         }
-        // where in `votes` will we write
+        // where in `orders` will we write
         let mut j_1 = 0;
-        // where in `vote_len` are we reading
+        // where in `order_len` are we reading
         let mut i_2 = 0;
-        // where in `vote_len` will we write
+        // where in `order_len` will we write
         let mut j_2 = 0;
 
         let mut last = 0;
         let mut i_1 = 0;
-        while i_1 < self.votes.len() {
-            let el = self.votes[i_1];
+        while i_1 < self.orders.len() {
+            let el = self.orders[i_1];
             if el == target {
-                self.vote_len[i_2] -= 1;
+                self.order_len[i_2] -= 1;
             } else if el > target {
-                self.votes[j_1] = el - 1;
+                self.orders[j_1] = el - 1;
                 j_1 += 1;
             } else {
-                self.votes[j_1] = el;
+                self.orders[j_1] = el;
                 j_1 += 1;
             }
             i_1 += 1;
-            if i_1 == last + self.vote_len[i_2] {
-                last += self.vote_len[i_2];
-                if self.vote_len[i_2] != 0 {
-                    self.vote_len[j_2] = self.vote_len[i_2];
+            if i_1 == last + self.order_len[i_2] {
+                last += self.order_len[i_2];
+                if self.order_len[i_2] != 0 {
+                    self.order_len[j_2] = self.order_len[i_2];
                     j_2 += 1;
                 }
                 i_2 += 1;
             }
         }
-        self.votes.drain(j_1..);
-        self.vote_len.drain(i_2..);
+        self.orders.drain(j_1..);
+        self.order_len.drain(i_2..);
         debug_assert!(self.valid());
         Ok(())
     }
 
-    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
         if self.elements == 0 {
             return;
         }
         let mut v: Vec<usize> = (0..self.elements).collect();
-        self.votes.reserve(self.elements * new_voters);
+        self.orders.reserve(self.elements * new_orders);
         let range = Uniform::from(0..self.elements);
-        for _ in 0..new_voters {
+        for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);
             for i in 0..elements {
-                self.votes.push(v[i]);
+                self.orders.push(v[i]);
             }
-            self.vote_len.push(elements);
+            self.order_len.push(elements);
         }
         debug_assert!(self.valid());
     }
@@ -176,15 +176,15 @@ pub struct StrictOrdersIncompleteIterator<'a> {
 impl<'a> Iterator for StrictOrdersIncompleteIterator<'a> {
     type Item = &'a [usize];
     fn next(&mut self) -> Option<Self::Item> {
-        let len = self.orig.vote_len[self.i];
-        let vote = &self.orig.votes[self.start..(self.start + len)];
+        let len = self.orig.order_len[self.i];
+        let order = &self.orig.orders[self.start..(self.start + len)];
         self.i += 1;
         self.start += len;
-        Some(vote)
+        Some(order)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.orig.vote_len.len() - self.i;
+        let remaining = self.orig.order_len.len() - self.i;
         (remaining, Some(remaining))
     }
 }
@@ -193,10 +193,10 @@ impl<'a> ExactSizeIterator for StrictOrdersIncompleteIterator<'a> {}
 
 impl From<StrictOrdersComplete> for StrictOrdersIncomplete {
     fn from(value: StrictOrdersComplete) -> Self {
-        let voters: usize = value.voters();
+        let orders: usize = value.orders();
         let s = StrictOrdersIncomplete {
-            votes: value.votes,
-            vote_len: vec![value.elements; voters],
+            orders: value.orders,
+            order_len: vec![value.elements; orders],
             elements: value.elements,
         };
         debug_assert!(s.valid());

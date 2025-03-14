@@ -12,15 +12,15 @@ use crate::{get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalRanking {
-    // Has size elements * voters
-    pub votes: Vec<usize>,
+    // Has size elements * orders_count
+    pub orders: Vec<usize>,
     pub(crate) elements: usize,
-    pub voters: usize,
+    pub orders_count: usize,
 }
 
 impl TotalRanking {
     pub fn new(elements: usize) -> Self {
-        TotalRanking { votes: Vec::new(), elements, voters: 0 }
+        TotalRanking { orders: Vec::new(), elements, orders_count: 0 }
     }
 
     pub fn elements(&self) -> usize {
@@ -28,27 +28,27 @@ impl TotalRanking {
     }
 
     // Check if a given total ranking is valid, i.e.
-    // 1. len(votes) = elements * voters
+    // 1. len(orders) = elements * orders_count
     // 2. Every ranking is total
     fn valid(&self) -> bool {
-        if self.elements == 0 && (self.voters != 0 || !self.votes.is_empty())
-            || self.votes.len() != self.voters * self.elements
+        if self.elements == 0 && (self.orders_count != 0 || !self.orders.is_empty())
+            || self.orders.len() != self.orders_count * self.elements
         {
             return false;
         }
 
         let mut seen = vec![false; self.elements];
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             seen.fill(false);
             for j in 0..self.elements {
-                let vote = self.votes[i * self.elements + j];
-                if vote >= self.elements {
+                let order = self.orders[i * self.elements + j];
+                if order >= self.elements {
                     return false;
                 }
-                if seen[vote] {
+                if seen[order] {
                     return false;
                 }
-                seen[vote] = true;
+                seen[order] = true;
             }
             for j in 0..self.elements {
                 if !seen[j] {
@@ -69,7 +69,7 @@ impl TotalRanking {
         let mut seen = vec![false; self.elements];
         loop {
             buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of vote"))?;
+            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
             if bytes == 0 {
                 break;
             }
@@ -79,7 +79,7 @@ impl TotalRanking {
             let mut count = 0;
             for s in buf.split(',') {
                 count += 1;
-                let v: usize = s.parse().or(Err("Vote is not a number"))?;
+                let v: usize = s.parse().or(Err("Order is not a number"))?;
                 if v >= self.elements {
                     return Err(
                         "Ranking of element larger than or equal to number of elements",
@@ -89,19 +89,19 @@ impl TotalRanking {
                     return Err("Not a total ranking");
                 }
                 seen[v] = true;
-                self.votes.push(v);
+                self.orders.push(v);
             }
             if count > self.elements {
-                return Err("Too many elements listed in vote");
+                return Err("Too many elements listed in order");
             } else if count < self.elements {
-                return Err("Too few elements listed in vote");
+                return Err("Too few elements listed in order");
             }
             for i in 0..self.elements {
                 if !seen[i] {
-                    return Err("Invalid vote, gap in ranking");
+                    return Err("Invalid order, gap in ranking");
                 }
             }
-            self.voters += 1;
+            self.orders_count += 1;
         }
         debug_assert!(self.valid());
         Ok(())
@@ -110,12 +110,12 @@ impl TotalRanking {
 
 impl Display for TotalRanking {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
-                let v = self.votes[i * self.elements + j];
+                let v = self.orders[i * self.elements + j];
                 write!(f, "{},", v)?;
             }
-            let v_last = self.votes[i * self.elements + (self.elements - 1)];
+            let v_last = self.orders[i * self.elements + (self.elements - 1)];
             writeln!(f, "{}", v_last)?;
         }
         Ok(())
@@ -130,13 +130,13 @@ impl<'a> DenseOrders<'a> for TotalRanking {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         if v.len() != self.elements {
-            return Err("Vote must contains all elements");
+            return Err("Order must contains all elements");
         }
-        self.votes.try_reserve(self.elements).or(Err("Could not add vote"))?;
+        self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
         for c in v {
-            self.votes.push(*c);
+            self.orders.push(*c);
         }
-        self.voters += 1;
+        self.orders_count += 1;
         Ok(())
     }
 
@@ -147,7 +147,7 @@ impl<'a> DenseOrders<'a> for TotalRanking {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -158,15 +158,15 @@ impl<'a> DenseOrders<'a> for TotalRanking {
                     let old_index = i * self.elements + j;
                     let new_index = i * new_elements + (j - offset);
                     debug_assert!(new_index <= old_index);
-                    self.votes[new_index] = self.votes[old_index];
+                    self.orders[new_index] = self.orders[old_index];
                 }
             }
-            let new_vote = &mut self.votes[(i * new_elements)..((i + 1) * new_elements)];
+            let new_order = &mut self.orders[(i * new_elements)..((i + 1) * new_elements)];
 
             // TODO: Can we do this in place?
-            new_vote.clone_from_slice(&get_order(new_vote, false));
+            new_order.clone_from_slice(&get_order(new_order, false));
         }
-        self.votes.truncate(self.voters * new_elements);
+        self.orders.truncate(self.orders_count * new_elements);
         self.elements = new_elements;
         debug_assert!(self.valid());
         Ok(())
@@ -176,19 +176,19 @@ impl<'a> DenseOrders<'a> for TotalRanking {
         unimplemented!();
     }
 
-    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
         if self.elements == 0 {
             return;
         }
         let mut v: Vec<usize> = (0..self.elements).collect();
-        self.votes.reserve(self.elements * new_voters);
-        for _ in 0..new_voters {
+        self.orders.reserve(self.elements * new_orders);
+        for _ in 0..new_orders {
             v.shuffle(rng);
             for i in 0..self.elements {
-                self.votes.push(v[i]);
+                self.orders.push(v[i]);
             }
         }
-        self.voters += new_voters;
+        self.orders_count += new_orders;
         debug_assert!(self.valid());
     }
 }

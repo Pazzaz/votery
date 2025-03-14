@@ -12,9 +12,9 @@ use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Cardinal {
-    pub(crate) votes: Vec<usize>,
+    pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
-    pub(crate) voters: usize,
+    pub(crate) orders_count: usize,
     pub min: usize,
     pub max: usize,
 }
@@ -22,7 +22,7 @@ pub struct Cardinal {
 impl Cardinal {
     pub fn new(elements: usize, min: usize, max: usize) -> Cardinal {
         debug_assert!(min <= max);
-        Cardinal { votes: Vec::new(), elements, voters: 0, min, max }
+        Cardinal { orders: Vec::new(), elements, orders_count: 0, min, max }
     }
 
     pub fn elements(&self) -> usize {
@@ -30,14 +30,14 @@ impl Cardinal {
     }
 
     pub(crate) fn valid(&self) -> bool {
-        if self.elements == 0 && (self.voters != 0 || !self.votes.is_empty())
-            || self.votes.len() != self.voters * self.elements
+        if self.elements == 0 && (self.orders_count != 0 || !self.orders.is_empty())
+            || self.orders.len() != self.orders_count * self.elements
         {
             return false;
         }
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..self.elements {
-                let v = self.votes[self.elements * i + j];
+                let v = self.orders[self.elements * i + j];
                 if v < self.min || v > self.max {
                     return false;
                 }
@@ -46,7 +46,7 @@ impl Cardinal {
         true
     }
 
-    /// Multiply each vote score with constant `a`, changing the `min` and `max`
+    /// Multiply each order score with constant `a`, changing the `min` and `max`
     /// score.
     pub fn mul(&mut self, a: usize) {
         if a == 1 {
@@ -54,9 +54,9 @@ impl Cardinal {
         }
         let new_min = self.min.checked_mul(a).unwrap();
         let new_max = self.max.checked_mul(a).unwrap();
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..self.elements {
-                self.votes[i * self.elements + j] *= a;
+                self.orders[i * self.elements + j] *= a;
             }
         }
         self.min = new_min;
@@ -64,7 +64,7 @@ impl Cardinal {
         debug_assert!(self.valid());
     }
 
-    /// Add to each vote score a constant `a`, changing the `min` and `max`
+    /// Add to each order score a constant `a`, changing the `min` and `max`
     /// score.
     pub fn add_constant(&mut self, a: usize) {
         if a == 0 {
@@ -72,9 +72,9 @@ impl Cardinal {
         }
         let new_min = self.min.checked_add(a).unwrap();
         let new_max = self.max.checked_add(a).unwrap();
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..self.elements {
-                self.votes[i * self.elements + j] += a;
+                self.orders[i * self.elements + j] += a;
             }
         }
         self.min = new_min;
@@ -82,7 +82,7 @@ impl Cardinal {
         debug_assert!(self.valid());
     }
 
-    /// Subtracts from each vote score a constant `a`, changing the `min` and
+    /// Subtracts from each order score a constant `a`, changing the `min` and
     /// `max` score.
     pub fn sub(&mut self, a: usize) {
         if a == 0 {
@@ -90,9 +90,9 @@ impl Cardinal {
         }
         let new_min = self.min.checked_sub(a).unwrap();
         let new_max = self.max.checked_sub(a).unwrap();
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..self.elements {
-                self.votes[i * self.elements + j] -= a;
+                self.orders[i * self.elements + j] -= a;
             }
         }
         self.min = new_min;
@@ -104,11 +104,11 @@ impl Cardinal {
         if self.elements == 0 {
             return Ok(());
         }
-        // The smallest each vote can be is all '0' seperated by ','
+        // The smallest each order can be is all '0' seperated by ','
         let mut buf = String::with_capacity(self.elements * 2);
         loop {
             buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of vote"))?;
+            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
             if bytes == 0 {
                 break;
             }
@@ -117,20 +117,20 @@ impl Cardinal {
             let mut count = 0;
             for s in buf.split(',') {
                 count += 1;
-                let v: usize = s.parse().or(Err("Vote is not a number"))?;
+                let v: usize = s.parse().or(Err("Order is not a number"))?;
                 if v > self.max {
-                    return Err("Cardinal vote is larger than max value");
+                    return Err("Cardinal order is larger than max value");
                 } else if v < self.min {
-                    return Err("Cardinal vote is smaller than min value");
+                    return Err("Cardinal order is smaller than min value");
                 }
-                self.votes.push(v);
+                self.orders.push(v);
             }
             if count > self.elements {
-                return Err("Too many elements listed in vote");
+                return Err("Too many elements listed in order");
             } else if count < self.elements {
-                return Err("Too few elements listed in vote");
+                return Err("Too few elements listed in order");
             }
-            self.voters += 1;
+            self.orders_count += 1;
         }
         debug_assert!(self.valid());
         Ok(())
@@ -143,51 +143,51 @@ impl Cardinal {
 
     /// The Kotze-Pereira transformation
     pub fn kp_tranform(&self) -> Result<Binary, &'static str> {
-        let mut binary_votes: Vec<bool> = Vec::new();
-        let vote_size = self
+        let mut binary_orders: Vec<bool> = Vec::new();
+        let orders_size = self
             .elements
-            .checked_mul(self.voters)
-            .ok_or("Number of votes would be too large")?
+            .checked_mul(self.orders_count)
+            .ok_or("Number of orders would be too large")?
             .checked_mul(self.values() - 1)
-            .ok_or("Number of votes would be too large")?;
-        binary_votes.try_reserve_exact(vote_size).or(Err("Could not allocate"))?;
-        for i in 0..self.voters {
-            let vote = &self.votes[i * self.elements..(i + 1) * self.elements];
+            .ok_or("Number of orders would be too large")?;
+        binary_orders.try_reserve_exact(orders_size).or(Err("Could not allocate"))?;
+        for i in 0..self.orders_count {
+            let order = &self.orders[i * self.elements..(i + 1) * self.elements];
             for lower in self.min..self.max {
-                for &j in vote {
-                    binary_votes.push(j > lower);
+                for &j in order {
+                    binary_orders.push(j > lower);
                 }
             }
         }
-        let votes = Binary {
-            votes: binary_votes,
+        let orders = Binary {
+            orders: binary_orders,
             elements: self.elements,
-            voters: self.voters * (self.values() - 1),
+            orders_count: self.orders_count * (self.values() - 1),
         };
-        debug_assert!(votes.valid());
-        Ok(votes)
+        debug_assert!(orders.valid());
+        Ok(orders)
     }
 
-    /// Turn every vote into a binary vote, where every value larger or equal to
+    /// Turn every order into a binary order, where every value larger or equal to
     /// `n` becomes an approval.
     ///
     /// # Panics
     /// Will panic if n is not contained in `self.min..=self.max`.
     pub fn to_binary_cutoff(&self, n: usize) -> Result<Binary, &'static str> {
         debug_assert!(self.min <= n && n <= self.max);
-        let mut binary_votes: Vec<bool> = Vec::new();
-        binary_votes
-            .try_reserve_exact(self.elements * self.voters)
+        let mut binary_orders: Vec<bool> = Vec::new();
+        binary_orders
+            .try_reserve_exact(self.elements * self.orders_count)
             .or(Err("Could not allocate"))?;
-        binary_votes.extend(self.votes.iter().map(|x| *x >= n));
-        let votes =
-            Binary { votes: binary_votes, elements: self.elements, voters: self.voters };
-        debug_assert!(votes.valid());
-        Ok(votes)
+        binary_orders.extend(self.orders.iter().map(|x| *x >= n));
+        let orders =
+            Binary { orders: binary_orders, elements: self.elements, orders_count: self.orders_count };
+        debug_assert!(orders.valid());
+        Ok(orders)
     }
 
     pub fn iter(&self) -> Chunks<usize> {
-        self.votes.chunks(self.elements)
+        self.orders.chunks(self.elements)
     }
 
     /// Fill the given preference matrix for the elements listed in `keep`.
@@ -196,11 +196,11 @@ impl Cardinal {
     pub fn fill_preference_matrix(&self, keep: &[usize], matrix: &mut [usize]) {
         let l = keep.len();
         debug_assert!(l * l == matrix.len());
-        for vote in self.iter() {
+        for order in self.iter() {
             for i in 0..l {
-                let ci = vote[keep[i]];
+                let ci = order[keep[i]];
                 for j in (i + 1)..l {
-                    let cj = vote[keep[j]];
+                    let cj = order[keep[j]];
 
                     // TODO: What should the orientation of the matrix be?
                     if ci > cj {
@@ -218,8 +218,8 @@ impl Cardinal {
         debug_assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
-        for vote in self.iter() {
-            match vote[a].cmp(&vote[b]) {
+        for order in self.iter() {
+            match order[a].cmp(&order[b]) {
                 Ordering::Greater => a_v += 1,
                 Ordering::Less => b_v += 1,
                 Ordering::Equal => {}
@@ -233,11 +233,11 @@ impl Cardinal {
         debug_assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
-        for vote in self.iter() {
-            if vote[a] == value {
+        for order in self.iter() {
+            if order[a] == value {
                 a_v += 1;
             }
-            if vote[b] == value {
+            if order[b] == value {
                 b_v += 1;
             }
         }
@@ -247,12 +247,12 @@ impl Cardinal {
 
 impl Display for Cardinal {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
-                let v = self.votes[i * self.elements + j];
+                let v = self.orders[i * self.elements + j];
                 write!(f, "{},", v)?;
             }
-            let v_last = self.votes[i * self.elements + (self.elements - 1)];
+            let v_last = self.orders[i * self.elements + (self.elements - 1)];
             writeln!(f, "{}", v_last)?;
         }
         Ok(())
@@ -267,13 +267,13 @@ impl<'a> DenseOrders<'a> for Cardinal {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         if v.len() != self.elements {
-            return Err("Vote must contains all elements");
+            return Err("Order must contains all elements");
         }
-        self.votes.try_reserve(self.elements).or(Err("Could not add vote"))?;
+        self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
         for c in v {
-            self.votes.push(*c);
+            self.orders.push(*c);
         }
-        self.voters += 1;
+        self.orders_count += 1;
         Ok(())
     }
 
@@ -284,7 +284,7 @@ impl<'a> DenseOrders<'a> for Cardinal {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.voters {
+        for i in 0..self.orders_count {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -295,11 +295,11 @@ impl<'a> DenseOrders<'a> for Cardinal {
                     let old_index = i * self.elements + j;
                     let new_index = i * new_elements + (j - offset);
                     debug_assert!(new_index <= old_index);
-                    self.votes[new_index] = self.votes[old_index];
+                    self.orders[new_index] = self.orders[old_index];
                 }
             }
         }
-        self.votes.truncate(self.voters * new_elements);
+        self.orders.truncate(self.orders_count * new_elements);
         self.elements = new_elements;
         debug_assert!(self.valid());
         Ok(())
@@ -309,20 +309,20 @@ impl<'a> DenseOrders<'a> for Cardinal {
         unimplemented!();
     }
 
-    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
-        if self.elements == 0 || new_voters == 0 {
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
+        if self.elements == 0 || new_orders == 0 {
             return;
         }
 
-        self.votes.reserve(new_voters);
+        self.orders.reserve(new_orders);
         let dist = Uniform::from(self.min..=self.max);
-        for _ in 0..new_voters {
+        for _ in 0..new_orders {
             for _ in 0..self.elements {
                 let i = dist.sample(rng);
-                self.votes.push(i);
+                self.orders.push(i);
             }
         }
-        self.voters += new_voters;
+        self.orders_count += new_orders;
         debug_assert!(self.valid());
     }
 }
@@ -336,13 +336,13 @@ mod tests {
 
     impl Arbitrary for Cardinal {
         fn arbitrary(g: &mut Gen) -> Self {
-            let (mut voters, mut elements, mut min, mut max): (usize, usize, usize, usize) =
+            let (mut orders_count, mut elements, mut min, mut max): (usize, usize, usize, usize) =
                 Arbitrary::arbitrary(g);
 
             // `Arbitrary` for numbers will generate "problematic" examples such as
             // `usize::max_value()` and `usize::min_value()` but we'll use them to
             // allocate vectors so we'll limit them.
-            voters = voters % g.size();
+            orders_count = orders_count % g.size();
             elements = elements % g.size();
             min = min % g.size();
             max = max % g.size();
@@ -351,16 +351,16 @@ mod tests {
                 std::mem::swap(&mut min, &mut max);
             }
 
-            let mut votes = Cardinal::new(elements, min, max);
-            votes.generate_uniform(&mut std_rng(g), voters);
-            votes
+            let mut orders = Cardinal::new(elements, min, max);
+            orders.generate_uniform(&mut std_rng(g), orders_count);
+            orders
         }
     }
 
     #[quickcheck]
-    fn kp_tranform_voters(cv: Cardinal) -> bool {
+    fn kp_tranform_orders(cv: Cardinal) -> bool {
         match cv.kp_tranform() {
-            Ok(bv) => bv.voters == cv.voters * (cv.values() - 1),
+            Ok(bv) => bv.orders_count == cv.orders_count * (cv.values() - 1),
             Err(_) => true,
         }
     }

@@ -10,22 +10,22 @@ use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Specific {
-    // number of voters = votes.len()
-    pub(crate) votes: Vec<usize>,
+    // number of orders = orders.len()
+    pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
 }
 
 impl Specific {
     pub fn new(elements: usize) -> Self {
-        Specific { votes: Vec::new(), elements }
+        Specific { orders: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
-    pub fn votes(&self) -> &[usize] {
-        &self.votes
+    pub fn orders_count(&self) -> &[usize] {
+        &self.orders
     }
 
     pub fn majority(&self) -> Option<usize> {
@@ -33,20 +33,20 @@ impl Specific {
             return Some(0);
         }
         let mut score = vec![0; self.elements];
-        for i in &self.votes {
+        for i in &self.orders {
             score[*i] += 1;
         }
-        (0..self.elements).find(|&i| score[i] > (self.votes.len() / 2))
+        (0..self.elements).find(|&i| score[i] > (self.orders.len() / 2))
     }
 
     // Checks if all invariants of the format are valid, used in debug_asserts and
     // tests
     fn valid(&self) -> bool {
-        if self.elements == 0 && !self.votes.is_empty() {
+        if self.elements == 0 && !self.orders.is_empty() {
             return false;
         }
 
-        for v in &self.votes {
+        for v in &self.orders {
             if *v >= self.elements {
                 return false;
             }
@@ -59,23 +59,23 @@ impl Specific {
             return Ok(());
         }
 
-        // Now we start parsing the actual votes, consisting of a
+        // Now we start parsing the actual orders, consisting of a
         // number < elements. We don't use `std::io::Lines`, because we want to
         // reuse `buf` for performance reasons.
         let mut buf = String::with_capacity(20);
         loop {
             buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of vote"))?;
+            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
             if bytes == 0 {
                 break;
             }
             remove_newline(&mut buf);
 
-            let vote: usize = buf.parse().or(Err("Vote is not a number"))?;
-            if vote >= self.elements {
-                return Err("Vote assigned to non-existing candidate");
+            let order: usize = buf.parse().or(Err("Order is not a number"))?;
+            if order >= self.elements {
+                return Err("Order assigned to non-existing candidate");
             }
-            self.votes.push(vote);
+            self.orders.push(order);
         }
         debug_assert!(self.valid());
         Ok(())
@@ -90,7 +90,7 @@ impl Specific {
 
 impl Display for Specific {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for v in &self.votes {
+        for v in &self.orders {
             writeln!(f, "{}", v)?;
         }
         Ok(())
@@ -105,8 +105,8 @@ impl<'a> DenseOrders<'a> for Specific {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         // TODO: check
-        self.votes.try_reserve(1).or(Err("Could not add vote"))?;
-        self.votes.push(v);
+        self.orders.try_reserve(1).or(Err("Could not add order"))?;
+        self.orders.push(v);
         Ok(())
     }
 
@@ -118,39 +118,39 @@ impl<'a> DenseOrders<'a> for Specific {
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
         let mut j = 0;
-        for i in 0..self.votes.len() {
-            let v = self.votes[i];
+        for i in 0..self.orders.len() {
+            let v = self.orders[i];
             if let Err(offset) = targets.binary_search(&v) {
-                self.votes[j] = v - offset;
+                self.orders[j] = v - offset;
                 j += 1;
             }
         }
-        self.votes.truncate(j);
+        self.orders.truncate(j);
         self.elements = new_elements;
         debug_assert!(self.valid());
         Ok(())
     }
 
     fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        let n = self.votes.len();
+        let n = self.orders.len();
         TiedOrdersIncomplete {
-            votes: self.votes,
+            orders: self.orders,
             ties: Vec::new(),
-            vote_len: vec![1; n],
+            order_len: vec![1; n],
             elements: self.elements,
         }
     }
 
-    fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_voters: usize) {
-        if self.elements == 0 || new_voters == 0 {
+    fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize) {
+        if self.elements == 0 || new_orders == 0 {
             return;
         }
 
-        self.votes.reserve(new_voters);
+        self.orders.reserve(new_orders);
         let dist = Uniform::from(0..self.elements);
-        for _ in 0..new_voters {
+        for _ in 0..new_orders {
             let i = dist.sample(rng);
-            self.votes.push(i);
+            self.orders.push(i);
         }
         debug_assert!(self.valid());
     }
@@ -160,15 +160,15 @@ impl<'a> FromIterator<usize> for Specific {
     fn from_iter<I: IntoIterator<Item = usize>>(iter: I) -> Self {
         let ii = iter.into_iter();
         let (min_len, _) = ii.size_hint();
-        let mut votes = Vec::with_capacity(min_len);
+        let mut orders = Vec::with_capacity(min_len);
         let mut max = 0;
         for v in ii {
-            votes.push(v);
+            orders.push(v);
             if v > max {
                 max = v;
             }
         }
-        Specific { votes, elements: max + 1 }
+        Specific { orders, elements: max + 1 }
     }
 }
 
@@ -181,18 +181,18 @@ mod tests {
 
     impl Arbitrary for Specific {
         fn arbitrary(g: &mut Gen) -> Self {
-            let (mut voters, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
+            let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
             // `Arbitrary` for numbers will generate "problematic" examples such as
             // `usize::max_value()` and `usize::min_value()` but we'll use them to
             // allocate vectors so we'll limit them.
-            voters = voters % g.size();
+            orders_count = orders_count % g.size();
             elements = elements % g.size();
 
-            let mut votes = Specific::new(elements);
-            votes.generate_uniform(&mut std_rng(g), voters);
-            debug_assert!(votes.valid());
-            votes
+            let mut orders = Specific::new(elements);
+            orders.generate_uniform(&mut std_rng(g), orders_count);
+            debug_assert!(orders.valid());
+            orders
         }
 
         // We shrink both the number of elements, and the votes.
@@ -211,19 +211,19 @@ mod tests {
     }
 
     #[quickcheck]
-    fn majority_bound(votes: Specific) -> bool {
-        let major = votes.majority();
+    fn majority_bound(orders: Specific) -> bool {
+        let major = orders.majority();
         eprintln!("{:?}", major);
         match major {
-            Some(i) => i < votes.elements,
+            Some(i) => i < orders.elements,
             None => true,
         }
     }
 
     #[quickcheck]
-    fn majority_partial(votes: Specific) -> bool {
-        let normal_majority = votes.majority();
-        let partial_majority = votes.to_partial_ranking().majority();
+    fn majority_partial(orders: Specific) -> bool {
+        let normal_majority = orders.majority();
+        let partial_majority = orders.to_partial_ranking().majority();
         match (normal_majority, &partial_majority[..]) {
             (Some(i), [j]) => i == *j,
             (None, []) => true,
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn to_partial_ranking(votes: Specific) -> bool {
-        votes.to_partial_ranking().valid()
+    fn to_partial_ranking(orders: Specific) -> bool {
+        orders.to_partial_ranking().valid()
     }
 }

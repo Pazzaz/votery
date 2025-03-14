@@ -16,14 +16,14 @@ use rand::{
 };
 use rand_distr::{Bernoulli, Uniform};
 
-// A vote without any ties
+/// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rank {
     elements: usize,
     order: Vec<usize>,
 }
 
-// A vote without any ties
+/// A possibly incomplete order without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct RankRef<'a> {
     pub(crate) elements: usize,
@@ -40,7 +40,7 @@ impl Rank {
         self.elements
     }
 
-    pub fn parse_vote(elements: usize, s: &str) -> Option<Self> {
+    pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
         let mut order: Vec<usize> = Vec::with_capacity(elements);
         for number in s.split(',') {
             let n: usize = match number.parse() {
@@ -89,7 +89,7 @@ impl<'a> RankRef<'a> {
     }
 }
 
-/// A vote with possible ties.
+/// An order with possible ties.
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
 pub struct TiedRank {
     pub order: Vec<usize>,
@@ -98,7 +98,6 @@ pub struct TiedRank {
 }
 
 impl<'a> TiedRank {
-    /// A tiedvote is created using
     pub fn new(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
         debug_assert!(tied.len() + 1 == order.len() || tied.len() == 0 && order.len() == 0);
         TiedRank { elements, order, tied }
@@ -171,9 +170,9 @@ impl<'a> TiedRank {
     /// ```
     /// use orders::formats::orders::TiedRank;
     ///
-    /// let vote_str = "2,{0,1},4";
-    /// let vote = TiedRank::parse_vote(5, vote_str).expect("Parse failed");
-    /// assert_eq!(format!("{}", vote.as_ref()), vote_str);
+    /// let order_str = "2,{0,1},4";
+    /// let order = TiedRank::parse_order(5, order_str).expect("Parse failed");
+    /// assert_eq!(format!("{}", order.as_ref()), order_str);
     /// ```
     ///
     /// There can be multiple string representations for the same ranking, This
@@ -182,10 +181,10 @@ impl<'a> TiedRank {
     /// ```
     /// use orders::formats::orders::TiedRank;
     ///
-    /// let rank = TiedRank::parse_vote(5, "0,{1}").unwrap();
+    /// let rank = TiedRank::parse_order(5, "0,{1}").unwrap();
     /// assert!(rank.as_ref().to_string() == "0,1");
     /// ```
-    pub fn parse_vote(elements: usize, s: &str) -> Option<Self> {
+    pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
         if s == "" {
             let mut rank = TiedRank::new_zero();
             rank.increase_elements(elements);
@@ -250,9 +249,9 @@ impl<'a> TiedRank {
         TiedRank::new(elements, order, tied)
     }
 
-    /// Make the vote into a ranking which ranks all `elements`. Use
+    /// Make the order into a ranking which ranks all `elements`. Use
     /// `tied_last` to decide if the newly added elements should be tied
-    /// with the last ranking element in the vote.
+    /// with the last ranking element in the order.
     pub fn make_complete(&mut self, tied_last: bool) {
         let empty_first = self.len() == 0;
         if self.order.len() == self.elements {
@@ -366,8 +365,8 @@ impl<'a> TiedRank {
     /// ```
     /// use orders::formats::orders::TiedRank;
     ///
-    /// let a = TiedRank::parse_vote(3, "{0,1,2}").unwrap();
-    /// let mut b = TiedRank::parse_vote(3, "{2,1,0}").unwrap();
+    /// let a = TiedRank::parse_order(3, "{0,1,2}").unwrap();
+    /// let mut b = TiedRank::parse_order(3, "{2,1,0}").unwrap();
     /// assert!(a != b);
     /// b.normalize();
     /// assert!(a == b);
@@ -580,7 +579,7 @@ impl<'a> TiedRankRef<'a> {
     }
 
     pub fn iter_groups(&self) -> GroupIterator<'a> {
-        GroupIterator { vote: *self }
+        GroupIterator { order: *self }
     }
 
     pub fn group(&self, n: usize) -> Option<&[usize]> {
@@ -635,31 +634,31 @@ impl<'a> TiedRankRef<'a> {
     }
 }
 
-// Splits a vote up into its rankings
+// Splits an order up into its rankings
 pub struct GroupIterator<'a> {
-    vote: TiedRankRef<'a>,
+    order: TiedRankRef<'a>,
 }
 
 impl<'a> Iterator for GroupIterator<'a> {
     type Item = &'a [usize];
     fn next(&mut self) -> Option<Self::Item> {
-        if self.vote.empty() {
+        if self.order.empty() {
             return None;
         }
-        let (group, vote) = self.vote.split_winner_group();
-        self.vote = vote;
+        let (group, order) = self.order.split_winner_group();
+        self.order = order;
         debug_assert!(group.len() != 0);
         Some(group)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.vote.empty() {
+        if self.order.empty() {
             // We're done
             (0, Some(0))
         } else {
             // We could have one group if all elements are tied, or one group for each
             // element
-            (1, Some(self.vote.len()))
+            (1, Some(self.order.len()))
         }
     }
 }
@@ -770,7 +769,7 @@ mod tests {
     // We have that rank.to_str.to_rank == rank.
     #[quickcheck]
     fn parse_random(rank: TiedRank) -> bool {
-        let new_rank_o = TiedRank::parse_vote(rank.elements, &format!("{}", rank.as_ref()));
+        let new_rank_o = TiedRank::parse_order(rank.elements, &format!("{}", rank.as_ref()));
         match new_rank_o {
             Some(new_rank) => rank == new_rank,
             None => false,
@@ -791,7 +790,7 @@ mod tests {
             "{0,1,2,3},4",
         ];
         for s in examples {
-            let rank = TiedRank::parse_vote(elements, s).expect("Could not parse");
+            let rank = TiedRank::parse_order(elements, s).expect("Could not parse");
             assert!(rank.as_ref().top(x).len() == x);
         }
     }
@@ -871,11 +870,11 @@ mod tests {
             (" 1", false),
         ];
         for (s, some) in examples {
-            let vote_o = TiedRank::parse_vote(elements, s);
-            match (vote_o, some) {
+            let order_o = TiedRank::parse_order(elements, s);
+            match (order_o, some) {
                 (Some(_), true) | (None, false) => {}
                 (None, true) => panic!("`{}` could not be parsed", s),
-                (Some(vote), false) => panic!("`{}` was parsed to `{}`", s, vote.as_ref()),
+                (Some(order), false) => panic!("`{}` was parsed to `{}`", s, order.as_ref()),
             }
         }
     }

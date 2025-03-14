@@ -11,7 +11,7 @@ impl<'a> VotingMethod<'a> for Fptp {
 
     fn count(data: &Specific) -> Result<Self, &'static str> {
         let mut score: Vec<usize> = vec![0; data.elements()];
-        for vote in data.votes() {
+        for vote in data.orders_count() {
             debug_assert!(*vote < data.elements());
             score[*vote] = score[*vote]
                 .checked_add(1)
