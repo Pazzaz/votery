@@ -1,93 +1,10 @@
-//! Different orders of elements
-//!
-//! There are two main types of orders:
-//! - [`Rank`] - An order of elements without ties, where earlier elements are
-//!   ranked higher. There are also reference versions which don't own the data:
-//!   [`RankRef`]
-//! - [`TiedRank`] - An order of elements with ties,  where earlier elements
-//!   are ranked higher and where some elements can be tied with others. There
-//!   are also reference versions which don't own the data: [`TiedRankRef`].
-
-use std::fmt::{self, Write};
-
-use rand::{
-    Rng,
-    seq::{IteratorRandom, SliceRandom},
-};
+use rand::{seq::{IteratorRandom, SliceRandom}, Rng};
 use rand_distr::{Bernoulli, Uniform};
 
-/// A possibly incomplete order without any ties, owned version of [`RankRef`]
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Rank {
-    elements: usize,
-    order: Vec<usize>,
-}
+use crate::order::sort_using;
 
-/// A possibly incomplete order without any ties
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct RankRef<'a> {
-    pub(crate) elements: usize,
-    pub order: &'a [usize],
-}
+use super::tied_rank_ref::TiedRankRef;
 
-impl Rank {
-    pub fn new(elements: usize, order: Vec<usize>) -> Self {
-        debug_assert!(unique(&order));
-        Rank { elements, order }
-    }
-
-    pub fn elements(&self) -> usize {
-        self.elements
-    }
-
-    pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
-        let mut order: Vec<usize> = Vec::with_capacity(elements);
-        for number in s.split(',') {
-            let n: usize = match number.parse() {
-                Ok(n) => n,
-                Err(_) => return None,
-            };
-            if !(n < elements) {
-                return None;
-            }
-            order.push(n);
-        }
-
-        Some(Rank::new(elements, order))
-    }
-
-    pub fn as_ref(&self) -> RankRef {
-        RankRef { elements: self.elements, order: &self.order[..] }
-    }
-}
-
-impl<'a> RankRef<'a> {
-    pub fn new(elements: usize, order: &'a [usize]) -> Self {
-        debug_assert!(unique(order));
-        RankRef { elements, order }
-    }
-
-    pub fn len(&self) -> usize {
-        self.order.len()
-    }
-
-    pub fn top(&self, n: usize) -> Self {
-        RankRef::new(self.elements, &self.order[0..n])
-    }
-
-    pub fn to_owned(&self) -> Rank {
-        Rank::new(self.elements, self.order.to_vec())
-    }
-
-    pub fn winner(&self) -> usize {
-        debug_assert!(self.order.len() != 0);
-        self.order[0]
-    }
-
-    pub fn to_tied(self, tied: &'a [bool]) -> TiedRankRef<'a> {
-        TiedRankRef::new(self.elements, self.order, tied)
-    }
-}
 
 /// An order with possible ties.
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -116,7 +33,7 @@ impl<'a> TiedRank {
     /// Return the number of ranked elements.
     ///
     /// ```
-    /// use orders::formats::orders::TiedRank;
+    /// use orders::order::TiedRank;
     ///
     /// let empty = TiedRank::new_zero();
     /// assert!(empty.len() == 0);
@@ -141,7 +58,7 @@ impl<'a> TiedRank {
     /// Create a new ranking of `elements`, where every element is tied.
     ///
     /// ```
-    /// use orders::formats::orders::TiedRank;
+    /// use orders::order::TiedRank;
     ///
     /// let c = 10;
     /// let rank = TiedRank::new_tied(c);
@@ -168,7 +85,7 @@ impl<'a> TiedRank {
     /// not a valid ranking.
     ///
     /// ```
-    /// use orders::formats::orders::TiedRank;
+    /// use orders::order::TiedRank;
     ///
     /// let order_str = "2,{0,1},4";
     /// let order = TiedRank::parse_order(5, order_str).expect("Parse failed");
@@ -179,7 +96,7 @@ impl<'a> TiedRank {
     /// means that `f`, the function from valid string representations of
     /// rankings to actual rankings, is not injective. Example:
     /// ```
-    /// use orders::formats::orders::TiedRank;
+    /// use orders::order::TiedRank;
     ///
     /// let rank = TiedRank::parse_order(5, "0,{1}").unwrap();
     /// assert!(rank.as_ref().to_string() == "0,1");
@@ -363,7 +280,7 @@ impl<'a> TiedRank {
     /// groups.
     ///
     /// ```
-    /// use orders::formats::orders::TiedRank;
+    /// use orders::order::TiedRank;
     ///
     /// let a = TiedRank::parse_order(3, "{0,1,2}").unwrap();
     /// let mut b = TiedRank::parse_order(3, "{2,1,0}").unwrap();
@@ -439,267 +356,6 @@ impl<'a> TiedRank {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct TiedRankRef<'a> {
-    /// The total number of elements this ranking concerns, some of them may
-    /// not actually be part of the ranking.
-    pub(crate) elements: usize,
-
-    order: &'a [usize],
-    tied: &'a [bool],
-}
-
-impl<'a> fmt::Display for TiedRankRef<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut left = self.len();
-        for group in self.iter_groups() {
-            left -= group.len();
-            let grouped = group.len() > 1;
-            let (last, aa) = group.split_last().unwrap();
-            if grouped {
-                f.write_char('{')?;
-            }
-            for a in aa {
-                write!(f, "{},", a)?;
-            }
-            write!(f, "{}", last)?;
-            if grouped {
-                f.write_char('}')?;
-            }
-            if left != 0 {
-                f.write_char(',')?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<'a> TiedRankRef<'a> {
-    pub fn new(elements: usize, order: &'a [usize], tied: &'a [bool]) -> Self {
-        debug_assert!(tied.len() + 1 == order.len() || order.len() == 0 && tied.len() == 0);
-        debug_assert!(unique(order));
-        for i in order {
-            debug_assert!(*i < elements);
-        }
-        TiedRankRef { elements, order, tied }
-    }
-
-    pub fn elements(&self) -> usize {
-        self.elements
-    }
-
-    // TODO: Which ones of these...
-    pub fn cardinal_uniform(&self, c: &mut [usize], min: usize, max: usize) {
-        debug_assert!(c.len() == self.elements);
-        debug_assert!(min <= max);
-        let groups = self.iter_groups().count();
-        for (i, group) in self.iter_groups().enumerate() {
-            let mapped = (groups - 1 - i) * (max - min) / self.elements + min;
-            for e in group {
-                c[*e] = mapped;
-            }
-        }
-    }
-
-    // ...makes sense? Both?
-    pub fn cardinal_high(&self, c: &mut [usize], min: usize, max: usize) {
-        debug_assert!(c.len() == self.elements);
-        debug_assert!(min <= max);
-        for (i, group) in self.iter_groups().enumerate() {
-            let mapped = (self.elements - 1 - i) * (max - min) / self.elements + min;
-            for e in group {
-                c[*e] = mapped;
-            }
-        }
-    }
-
-    // We may not want to store whole slice in the future, so use accessor function
-    #[inline]
-    pub fn order(self: &TiedRankRef<'a>) -> &'a [usize] {
-        self.order
-    }
-
-    #[inline]
-    pub fn tied(self: &TiedRankRef<'a>) -> &'a [bool] {
-        self.tied
-    }
-
-    pub fn increase_elements(&mut self, elements: usize) {
-        debug_assert!(self.elements <= elements);
-        self.elements = elements;
-    }
-
-    /// Return an empty ranking of zero elements.
-    pub fn new_zero() -> Self {
-        TiedRankRef::new(0, &[], &[])
-    }
-
-    /// Return an empty ranking of `elements`.
-    pub fn new_zero_c(elements: usize) -> Self {
-        let mut rank = TiedRankRef::new_zero();
-        rank.increase_elements(elements);
-        rank
-    }
-
-    /// Return an empty ranking of the same `elements` as `self`.
-    pub fn zeroed(self: &TiedRankRef<'a>) -> TiedRankRef<'a> {
-        TiedRankRef::new(self.elements, &[], &[])
-    }
-
-    /// Return a ranking of the top `n` elements. The ranking will be larger
-    /// than `n` if ties prevent us from saying which ones are ranked
-    /// higher.
-    #[must_use]
-    pub fn top(self: &TiedRankRef<'a>, n: usize) -> TiedRankRef<'a> {
-        if n == 0 {
-            return self.zeroed();
-        }
-        debug_assert!(n <= self.order.len());
-        let mut i = n;
-        while i < self.order.len() {
-            if self.tied[i - 1] {
-                i += 1;
-            } else {
-                break;
-            }
-        }
-        TiedRankRef {
-            elements: self.elements,
-            order: &self.order[0..i],
-            tied: &self.tied[0..(i.saturating_sub(1))],
-        }
-    }
-
-    pub fn len(&self) -> usize {
-        self.order().len()
-    }
-
-    pub fn owned(self) -> TiedRank {
-        TiedRank::new(self.elements, self.order().to_vec(), self.tied().to_vec())
-    }
-
-    pub fn iter_groups(&self) -> GroupIterator<'a> {
-        GroupIterator { order: *self }
-    }
-
-    pub fn group(&self, n: usize) -> Option<&[usize]> {
-        self.iter_groups().nth(n)
-    }
-
-    /// Returns group of element `c`. 0 is highest rank. Takes `O(n)` time
-    pub fn group_of(&self, c: usize) -> Option<usize> {
-        let mut group = 0;
-        for i in 0..self.len() {
-            if self.order()[i] == c {
-                return Some(group);
-            }
-            if i != self.len() && !self.tied()[i] {
-                group += 1;
-            }
-        }
-        None
-    }
-
-    pub fn winners(self: &TiedRankRef<'a>) -> &'a [usize] {
-        let i = self.tied().iter().take_while(|x| **x).count();
-        &self.order()[0..=i]
-    }
-
-    pub fn empty(&self) -> bool {
-        self.order().len() == 0
-    }
-
-    /// Returns a list of all elements with the top rank, and a ranking of the
-    /// rest
-    pub fn split_winner_group(self: &TiedRankRef<'a>) -> (&'a [usize], TiedRankRef<'a>) {
-        if self.empty() {
-            return (&[], *self);
-        }
-        let mut values = 1;
-        for k in self.tied() {
-            if *k {
-                values += 1;
-            } else {
-                break;
-            }
-        }
-        let (out, rest_order, rest_tied): (&[usize], &[usize], &[bool]) = if values == self.len() {
-            (self.order, &[], &[])
-        } else {
-            let (_, rest_tied) = self.tied().split_at(values);
-            let (out, rest_order) = self.order().split_at(values);
-            (out, rest_order, rest_tied)
-        };
-        (out, TiedRankRef::new(self.elements, rest_order, rest_tied))
-    }
-}
-
-// Splits an order up into its rankings
-pub struct GroupIterator<'a> {
-    order: TiedRankRef<'a>,
-}
-
-impl<'a> Iterator for GroupIterator<'a> {
-    type Item = &'a [usize];
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.order.empty() {
-            return None;
-        }
-        let (group, order) = self.order.split_winner_group();
-        self.order = order;
-        debug_assert!(group.len() != 0);
-        Some(group)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.order.empty() {
-            // We're done
-            (0, Some(0))
-        } else {
-            // We could have one group if all elements are tied, or one group for each
-            // element
-            (1, Some(self.order.len()))
-        }
-    }
-}
-
-// Returns true iff all elements in `l` are different
-fn unique<T>(l: &[T]) -> bool
-where
-    T: std::cmp::PartialEq,
-{
-    for i in 0..l.len() {
-        for j in 0..l.len() {
-            if i == j {
-                break;
-            }
-            if l[i] == l[j] {
-                return false;
-            }
-        }
-    }
-    true
-}
-
-// Sort two arrays, sorted according to the values in `b`.
-// Uses insertion sort
-pub(crate) fn sort_using<A, B>(a: &mut [A], b: &mut [B])
-where
-    B: PartialOrd,
-{
-    debug_assert!(a.len() == b.len());
-    let mut i: usize = 1;
-    while i < b.len() {
-        let mut j = i;
-        while j > 0 && b[j - 1] > b[j] {
-            a.swap(j, j - 1);
-            b.swap(j, j - 1);
-            j -= 1;
-        }
-        i += 1;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use quickcheck::{Arbitrary, Gen};
@@ -727,6 +383,7 @@ mod tests {
             Box::new(iter)
         }
     }
+
 
     #[quickcheck]
     fn reverse_involution(before: TiedRank) -> bool {
