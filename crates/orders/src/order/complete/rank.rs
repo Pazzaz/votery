@@ -34,7 +34,36 @@ impl TotalRank {
         TotalRankRef { order: &self.order }
     }
 
-    pub fn sort_with<F: Fn(&usize, &usize) -> cmp::Ordering>(&mut self, f: F) {
+    pub fn get_inner(self) -> Vec<usize> {
+        let Self { order } = self;
+        order
+    }
+
+    /// Remove element `n` from the order
+    pub fn remove(&mut self, n: usize) {
+        let mut j = 0;
+        for i in 0..self.order.len() {
+            match n.cmp(&self.order[i]) {
+                cmp::Ordering::Less => {
+                    self.order[j] = self.order[i] - 1;
+                    j += 1;
+                },
+                cmp::Ordering::Greater => {
+                    self.order[j] = self.order[i];
+                    j += 1;
+                },
+                cmp::Ordering::Equal => {},
+            }
+        }
+        self.order.drain(j..);
+    }
+
+    pub fn sort_by<F: Fn(&usize, &usize) -> cmp::Ordering>(&mut self, f: F) {
         self.order.sort_by(f);
+    }
+
+    pub fn copy_from_ref(&mut self, other: TotalRankRef) {
+        self.order.clear();
+        self.order.extend(other.order);
     }
 }
