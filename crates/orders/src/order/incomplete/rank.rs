@@ -4,13 +4,12 @@
 //! - [`Rank`] - An order of elements without ties, where earlier elements are
 //!   ranked higher. There are also reference versions which don't own the data:
 //!   [`RankRef`]
-//! - [`TiedRank`] - An order of elements with ties,  where earlier elements
-//!   are ranked higher and where some elements can be tied with others. There
-//!   are also reference versions which don't own the data: [`TiedRankRef`].
-
-use crate::order::RankRef;
+//! - [`TiedRank`] - An order of elements with ties,  where earlier elements are
+//!   ranked higher and where some elements can be tied with others. There are
+//!   also reference versions which don't own the data: [`TiedRankRef`].
 
 use super::unique;
+use crate::order::RankRef;
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]

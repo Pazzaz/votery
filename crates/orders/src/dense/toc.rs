@@ -1,10 +1,7 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
+use super::{Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
 use crate::order::TiedRankRef;
-
-use super::{
-    Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete,
-};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -136,7 +133,8 @@ impl TiedOrdersComplete {
         debug_assert!(self.valid());
     }
 
-    /// Pick a winning element from each ordering, randomly from their highest ranked (tied) elements.
+    /// Pick a winning element from each ordering, randomly from their highest
+    /// ranked (tied) elements.
     pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> Specific {
         let elements = self.elements;
         let mut orders: Specific =
@@ -146,8 +144,8 @@ impl TiedOrdersComplete {
         orders
     }
 
-    /// Convert each ordering to a cardinal order, with the highest rank elements
-    /// receiving a score of `self.elements`.
+    /// Convert each ordering to a cardinal order, with the highest rank
+    /// elements receiving a score of `self.elements`.
     ///
     /// Returns `Err` if it failed to allocate
     pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
@@ -166,7 +164,8 @@ impl TiedOrdersComplete {
             // between iterations.
             orders.extend(&new_order);
         }
-        let v = Cardinal { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
+        let v =
+            Cardinal { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
     }

@@ -1,8 +1,8 @@
+pub mod groups;
 pub mod rank;
 pub mod rank_ref;
 pub mod tied_rank;
 pub mod tied_rank_ref;
-pub mod groups;
 
 // Returns true iff all elements in `l` are different
 pub(super) fn unique<T>(l: &[T]) -> bool

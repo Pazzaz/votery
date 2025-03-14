@@ -7,15 +7,15 @@
 //! When it comes to which specific format to use, there are some parts to
 //! consider. One consideration is which type of order the use case would need.
 //! Some voting methods require that each order creates a strict order of the
-//! candidates while other ones limit each order to a single candidate. There are
-//! also multiple voting formats with the same restrictions on orders, but with
-//! different internal representations. There are two main considerations:
+//! candidates while other ones limit each order to a single candidate. There
+//! are also multiple voting formats with the same restrictions on orders, but
+//! with different internal representations. There are two main considerations:
 //! - Sparse vs Dense
 //!     - Each order can either have a list containing every order, or a number
 //!       specifying how many there are of every order.
 //! - Possible inverse
-//!     - Many orders can be seen as a function f: Candidate -> Ranking. This can
-//!       be represented as an array of length |dom(f)| filed with numbers
+//!     - Many orders can be seen as a function f: Candidate -> Ranking. This
+//!       can be represented as an array of length |dom(f)| filed with numbers
 //!       representing each candidates ranking. One could also use the "inverse"
 //!       representation where we have a list of length |dom(f)| where each
 //!       index is a rank and each element is a candidate which achieved that
@@ -27,7 +27,8 @@
 
 use rand::Rng;
 
-// Lifetime needed because `Order` may be a reference which then needs a lifetime
+// Lifetime needed because `Order` may be a reference which then needs a
+// lifetime
 pub trait DenseOrders<'a> {
     type Order;
     /// Number of elements

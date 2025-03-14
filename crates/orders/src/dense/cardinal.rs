@@ -46,8 +46,8 @@ impl Cardinal {
         true
     }
 
-    /// Multiply each order score with constant `a`, changing the `min` and `max`
-    /// score.
+    /// Multiply each order score with constant `a`, changing the `min` and
+    /// `max` score.
     pub fn mul(&mut self, a: usize) {
         if a == 1 {
             return;
@@ -128,7 +128,7 @@ impl Cardinal {
             match count.cmp(&self.elements) {
                 Ordering::Greater => return Err("Too many elements listed in order"),
                 Ordering::Less => return Err("Too few elements listed in order"),
-                Ordering::Equal => {},
+                Ordering::Equal => {}
             }
             self.orders_count += 1;
         }
@@ -168,8 +168,8 @@ impl Cardinal {
         Ok(orders)
     }
 
-    /// Turn every order into a binary order, where every value larger or equal to
-    /// `n` becomes an approval.
+    /// Turn every order into a binary order, where every value larger or equal
+    /// to `n` becomes an approval.
     ///
     /// # Panics
     /// Will panic if n is not contained in `self.min..=self.max`.
@@ -180,8 +180,11 @@ impl Cardinal {
             .try_reserve_exact(self.elements * self.orders_count)
             .or(Err("Could not allocate"))?;
         binary_orders.extend(self.orders.iter().map(|x| *x >= n));
-        let orders =
-            Binary { orders: binary_orders, elements: self.elements, orders_count: self.orders_count };
+        let orders = Binary {
+            orders: binary_orders,
+            elements: self.elements,
+            orders_count: self.orders_count,
+        };
         debug_assert!(orders.valid());
         Ok(orders)
     }
@@ -206,7 +209,7 @@ impl Cardinal {
                     match ci.cmp(&cj) {
                         Ordering::Greater => matrix[i * l + j] += 1,
                         Ordering::Less => matrix[j * l + i] += 1,
-                        Ordering::Equal => {},
+                        Ordering::Equal => {}
                     }
                 }
             }
@@ -331,9 +334,8 @@ impl<'a> DenseOrders<'a> for Cardinal {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
-    use crate::tests::std_rng;
-
     use super::*;
+    use crate::tests::std_rng;
 
     impl Arbitrary for Cardinal {
         fn arbitrary(g: &mut Gen) -> Self {

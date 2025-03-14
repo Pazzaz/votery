@@ -1,11 +1,7 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
+use super::{DenseOrders, soc::StrictOrdersComplete};
 use crate::order::{Rank, RankRef};
-
-use super::{
-    DenseOrders,
-    soc::StrictOrdersComplete,
-};
 
 /// SOI - Strict Orders - Incomplete List
 ///
@@ -114,15 +110,15 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
             match el.cmp(&target) {
                 std::cmp::Ordering::Equal => {
                     self.order_len[i_2] -= 1;
-                },
+                }
                 std::cmp::Ordering::Greater => {
                     self.orders[j_1] = el - 1;
                     j_1 += 1;
-                },
+                }
                 std::cmp::Ordering::Less => {
                     self.orders[j_1] = el;
                     j_1 += 1;
-                },
+                }
             }
             i_1 += 1;
             if i_1 == last + self.order_len[i_2] {

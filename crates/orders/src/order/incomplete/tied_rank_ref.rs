@@ -1,9 +1,7 @@
 use std::fmt::{self, Write};
 
+use super::{tied_rank::TiedRank, unique};
 use crate::order::GroupIterator;
-
-use super::{unique, tied_rank::TiedRank};
-
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TiedRankRef<'a> {

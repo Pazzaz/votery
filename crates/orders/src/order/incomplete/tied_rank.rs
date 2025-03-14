@@ -1,10 +1,11 @@
-use rand::{seq::{IteratorRandom, SliceRandom}, Rng};
+use rand::{
+    Rng,
+    seq::{IteratorRandom, SliceRandom},
+};
 use rand_distr::{Bernoulli, Uniform};
 
-use crate::order::sort_using;
-
 use super::tied_rank_ref::TiedRankRef;
-
+use crate::order::sort_using;
 
 /// An order with possible ties.
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -364,9 +365,8 @@ impl<'a> TiedRank {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
-    use crate::tests::std_rng;
-
     use super::*;
+    use crate::tests::std_rng;
 
     impl Arbitrary for TiedRank {
         fn arbitrary(g: &mut Gen) -> Self {
@@ -387,7 +387,6 @@ mod tests {
             Box::new(iter)
         }
     }
-
 
     #[quickcheck]
     fn reverse_involution(before: TiedRank) -> bool {

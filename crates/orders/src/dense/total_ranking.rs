@@ -81,9 +81,7 @@ impl TotalRanking {
                 count += 1;
                 let v: usize = s.parse().or(Err("Order is not a number"))?;
                 if v >= self.elements {
-                    return Err(
-                        "Ranking of element larger than or equal to number of elements",
-                    );
+                    return Err("Ranking of element larger than or equal to number of elements");
                 }
                 if seen[v] {
                     return Err("Not a total ranking");
@@ -94,7 +92,7 @@ impl TotalRanking {
             match count.cmp(&self.elements) {
                 std::cmp::Ordering::Greater => return Err("Too many elements listed in order"),
                 std::cmp::Ordering::Less => return Err("Too few elements listed in order"),
-                std::cmp::Ordering::Equal => {},
+                std::cmp::Ordering::Equal => {}
             }
             for &s in &*seen {
                 if !s {

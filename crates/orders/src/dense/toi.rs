@@ -4,13 +4,8 @@ use rand::{
     seq::SliceRandom,
 };
 
+use super::{Cardinal, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
 use crate::order::{TiedRank, TiedRankRef};
-
-use super::{
-    Cardinal, DenseOrders,
-    soi::StrictOrdersIncomplete,
-    toc::TiedOrdersComplete,
-};
 
 /// TOI - Orders with Ties - Incomplete List
 ///
@@ -58,7 +53,8 @@ impl TiedOrdersIncomplete {
         self.add_from_str_i(s, 1)
     }
 
-    /// Add a order from a string, `i` times. Return true if it was a valid order.
+    /// Add a order from a string, `i` times. Return true if it was a valid
+    /// order.
     pub fn add_from_str_i(&mut self, s: &str, i: usize) -> bool {
         debug_assert!(i != 0);
         match TiedRank::parse_order(self.elements, s) {
@@ -268,7 +264,8 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
             .into_iter()
             .filter_map(|order| {
                 let mut new_order: Vec<usize> = Vec::with_capacity(order.order().len() - 1);
-                let mut new_tied: Vec<bool> = Vec::with_capacity(order.tied().len().saturating_sub(1));
+                let mut new_tied: Vec<bool> =
+                    Vec::with_capacity(order.tied().len().saturating_sub(1));
                 for i in 0..new_order.len() {
                     let mut v = new_order[i];
                     if v == n {
@@ -420,9 +417,8 @@ impl From<TiedOrdersComplete> for TiedOrdersIncomplete {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
-    use crate::tests::std_rng;
-
     use super::*;
+    use crate::tests::std_rng;
 
     impl Arbitrary for TiedOrdersIncomplete {
         fn arbitrary(g: &mut Gen) -> Self {

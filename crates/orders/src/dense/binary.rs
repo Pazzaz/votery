@@ -96,10 +96,17 @@ impl Binary {
     /// Returns `Err` if it failed to allocate
     pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(self.elements * self.orders_count).or(Err("Could not allocate"))?;
+        orders
+            .try_reserve_exact(self.elements * self.orders_count)
+            .or(Err("Could not allocate"))?;
         orders.extend(self.orders.iter().map(|x| if *x { 1 } else { 0 }));
-        let v =
-            Cardinal { orders, elements: self.elements, orders_count: self.orders_count, min: 0, max: 1 };
+        let v = Cardinal {
+            orders,
+            elements: self.elements,
+            orders_count: self.orders_count,
+            min: 0,
+            max: 1,
+        };
         debug_assert!(v.valid());
         Ok(v)
     }
@@ -180,9 +187,8 @@ impl<'a> DenseOrders<'a> for Binary {
 mod tests {
     use quickcheck::{Arbitrary, Gen};
 
-    use crate::tests::std_rng;
-
     use super::*;
+    use crate::tests::std_rng;
 
     impl Arbitrary for Binary {
         fn arbitrary(g: &mut Gen) -> Self {
