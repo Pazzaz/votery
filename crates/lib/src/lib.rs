@@ -36,7 +36,7 @@ pub enum Winner {
 
 /// Commonly used traits
 pub mod prelude {
-    pub use orders::formats::VoteFormat;
+    pub use orders::formats::DenseOrders;
 }
 
 pub use orders;

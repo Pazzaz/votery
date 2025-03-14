@@ -43,7 +43,7 @@ fn rank_by_matchups(v: &[usize], data: &Cardinal) -> TiedRank {
             }
         }
     }
-    TiedRank::from_score(data.candidates(), v.to_vec(), &mut matchups_won)
+    TiedRank::from_score(data.elements(), v.to_vec(), &mut matchups_won)
 }
 
 /// Rank the candidates according to how many they got of a specific rating
@@ -61,7 +61,7 @@ fn rank_by_specific(v: &[usize], data: &Cardinal, rating: usize) -> TiedRank {
             }
         }
     }
-    TiedRank::from_score(data.candidates(), v.to_vec(), &mut count)
+    TiedRank::from_score(data.elements(), v.to_vec(), &mut count)
 }
 
 enum TieBreaker {
@@ -122,16 +122,16 @@ fn tiebreak_scoring_official(ranking: &mut TiedRank, goal_len: usize, data: &Car
 
 // Get a ranking of the candidates sorted by their total score
 fn score_ranking(data: &Cardinal) -> TiedRank {
-    if data.candidates() < 2 {
-        return TiedRank::new_tied(data.candidates());
+    if data.elements() < 2 {
+        return TiedRank::new_tied(data.elements());
     }
-    let mut sum = vec![0; data.candidates()];
+    let mut sum = vec![0; data.elements()];
     for vote in data.iter() {
-        for i in 0..data.candidates() {
+        for i in 0..data.elements() {
             sum[i] += vote[i];
         }
     }
-    TiedRank::from_scores(data.candidates(), &sum)
+    TiedRank::from_scores(data.elements(), &sum)
 }
 
 // Return a comparison between `a` and `b`, a "greater" result means `a` has a
@@ -150,8 +150,8 @@ impl<'a> VotingMethod<'a> for Star {
     type Format = Cardinal;
 
     fn count(data: &Cardinal) -> Result<Self, &'static str> {
-        if data.candidates() < 2 {
-            return Ok(Star { score: TiedRank::new_tied(data.candidates()) });
+        if data.elements() < 2 {
+            return Ok(Star { score: TiedRank::new_tied(data.elements()) });
         }
 
         // The Scoring Round
@@ -168,9 +168,9 @@ impl<'a> VotingMethod<'a> for Star {
 
         // The Runoff Round
         let mut rank = match runoff_round(a, b, data) {
-            Ordering::Less => TiedRank::new(data.candidates(), vec![b, a], vec![false]),
-            Ordering::Equal => TiedRank::new(data.candidates(), vec![a, b], vec![true]),
-            Ordering::Greater => TiedRank::new(data.candidates(), vec![a, b], vec![false]),
+            Ordering::Less => TiedRank::new(data.elements(), vec![b, a], vec![false]),
+            Ordering::Equal => TiedRank::new(data.elements(), vec![a, b], vec![true]),
+            Ordering::Greater => TiedRank::new(data.elements(), vec![a, b], vec![false]),
         };
         rank.make_complete(false);
 
@@ -192,7 +192,7 @@ impl Star {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use orders::formats::VoteFormat;
+    use orders::formats::DenseOrders;
 
     #[test]
     fn simple_example() {

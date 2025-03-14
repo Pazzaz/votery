@@ -1,7 +1,7 @@
 /// Trait shared by every voting method
 pub trait VotingMethod<'a> {
     /// Every voting method accepts some specific vote format as input.
-    type Format: VoteFormat<'a> + Clone;
+    type Format: DenseOrders<'a> + Clone;
 
     /// Counts all the votes, into a format which makes it fast to compute other
     /// methods such as `get_order`.
@@ -25,7 +25,7 @@ pub trait VotingMethod<'a> {
 /// winner
 pub trait RandomVotingMethod<'a> {
     /// Every voting method accepts some specific vote format as input.
-    type Format: VoteFormat<'a> + Clone;
+    type Format: DenseOrders<'a> + Clone;
 
     /// Counts all the votes, into a format which makes it fast to compute other
     /// methods such as `get_order`. Uses `rng` to perform random decisions.
@@ -185,7 +185,7 @@ pub use borda::Borda;
 mod fptp;
 pub use fptp::Fptp;
 pub mod random_ballot;
-use orders::formats::VoteFormat;
+use orders::formats::DenseOrders;
 use rand::Rng;
 mod star;
 pub use star::Star;

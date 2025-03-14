@@ -3,28 +3,28 @@ use rand::seq::SliceRandom;
 /// SOC - Strict Orders - Complete List
 ///
 /// A packed list of complete strict orders, with related methods. Each vote is
-/// a permutation of the candidates
+/// a permutation of the elements
 #[derive(Clone, Debug)]
 pub struct StrictOrdersComplete {
     pub(crate) votes: Vec<usize>,
-    pub(crate) candidates: usize,
+    pub(crate) elements: usize,
 }
 
 impl StrictOrdersComplete {
-    pub fn new(candidates: usize) -> Self {
-        StrictOrdersComplete { votes: Vec::new(), candidates }
+    pub fn new(elements: usize) -> Self {
+        StrictOrdersComplete { votes: Vec::new(), elements }
     }
 
-    pub fn candidates(&self) -> usize {
-        self.candidates
+    pub fn elements(&self) -> usize {
+        self.elements
     }
 
     pub fn add(&mut self, vote: &[usize]) {
-        debug_assert!(vote.len() == self.candidates);
-        self.votes.reserve(self.candidates);
-        let mut seen = vec![false; self.candidates];
+        debug_assert!(vote.len() == self.elements);
+        self.votes.reserve(self.elements);
+        let mut seen = vec![false; self.elements];
         for &i in vote {
-            debug_assert!(i < self.candidates || !seen[i]);
+            debug_assert!(i < self.elements || !seen[i]);
             seen[i] = true;
             self.votes.push(i);
         }
@@ -32,26 +32,26 @@ impl StrictOrdersComplete {
     }
 
     pub fn voters(&self) -> usize {
-        debug_assert!(self.votes.len() % self.candidates == 0);
-        self.votes.len() / self.candidates
+        debug_assert!(self.votes.len() % self.elements == 0);
+        self.votes.len() / self.elements
     }
 
     /// Return true if it was a valid vote.
     pub fn add_from_str(&mut self, s: &str) -> bool {
-        let mut vote = Vec::with_capacity(self.candidates);
-        let mut seen = vec![false; self.candidates];
+        let mut vote = Vec::with_capacity(self.elements);
+        let mut seen = vec![false; self.elements];
         for number in s.split(',') {
             let i: usize = match number.parse() {
                 Ok(n) => n,
                 Err(_) => return false,
             };
-            if i >= self.candidates || seen[i] {
+            if i >= self.elements || seen[i] {
                 return false;
             }
             seen[i] = true;
             vote.push(i);
         }
-        if vote.len() != self.candidates {
+        if vote.len() != self.elements {
             return false;
         }
         self.add(&vote);
@@ -62,9 +62,9 @@ impl StrictOrdersComplete {
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
         for vote in self {
-            let mut seen = vec![false; self.candidates];
+            let mut seen = vec![false; self.elements];
             for &i in vote {
-                if i >= self.candidates || seen[i] {
+                if i >= self.elements || seen[i] {
                     return false;
                 }
                 seen[i] = true;
@@ -74,14 +74,14 @@ impl StrictOrdersComplete {
     }
 
     pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_voters: usize) {
-        if self.candidates == 0 {
+        if self.elements == 0 {
             return;
         }
-        let mut v: Vec<usize> = (0..self.candidates).collect();
-        self.votes.reserve(self.candidates * new_voters);
+        let mut v: Vec<usize> = (0..self.elements).collect();
+        self.votes.reserve(self.elements * new_voters);
         for _ in 0..new_voters {
             v.shuffle(rng);
-            for i in 0..self.candidates {
+            for i in 0..self.elements {
                 self.votes.push(v[i]);
             }
         }
@@ -106,8 +106,8 @@ pub struct StrictOrdersCompleteIterator<'a> {
 impl<'a> Iterator for StrictOrdersCompleteIterator<'a> {
     type Item = &'a [usize];
     fn next(&mut self) -> Option<Self::Item> {
-        let len = self.orig.candidates;
-        let start = self.i * self.orig.candidates;
+        let len = self.orig.elements;
+        let start = self.i * self.orig.elements;
         let vote = &self.orig.votes[start..(start + len)];
         self.i += 1;
         Some(vote)

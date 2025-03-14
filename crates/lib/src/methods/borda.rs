@@ -13,7 +13,7 @@ impl<'a> VotingMethod<'a> for Borda {
     type Format = TiedOrdersIncomplete;
 
     fn count(data: &TiedOrdersIncomplete) -> Result<Self, &'static str> {
-        let n = data.candidates();
+        let n = data.elements();
         let mut score: Vec<usize> = vec![0; n];
         for vote in data {
             // println!("{:?}", &vote);

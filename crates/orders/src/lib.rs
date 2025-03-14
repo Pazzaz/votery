@@ -1,3 +1,7 @@
+//! This is a library of different representations of orderings.
+//! 
+
+
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]

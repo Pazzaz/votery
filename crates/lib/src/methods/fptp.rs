@@ -10,9 +10,9 @@ impl<'a> VotingMethod<'a> for Fptp {
     type Format = Specific;
 
     fn count(data: &Specific) -> Result<Self, &'static str> {
-        let mut score: Vec<usize> = vec![0; data.candidates()];
+        let mut score: Vec<usize> = vec![0; data.elements()];
         for vote in data.votes() {
-            debug_assert!(*vote < data.candidates());
+            debug_assert!(*vote < data.elements());
             score[*vote] = score[*vote]
                 .checked_add(1)
                 .ok_or("Integer overflow: Too many votes for same candidate")?;

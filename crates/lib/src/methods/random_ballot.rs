@@ -24,7 +24,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         Self: Sized,
     {
         debug_assert!(data.voters() != 0);
-        debug_assert!(positions <= data.candidates());
+        debug_assert!(positions <= data.elements());
         let mut left = positions;
         let mut order: Vec<usize> = Vec::new();
         let mut values: Vec<usize> = (0..data.voters()).collect();
@@ -43,7 +43,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
                 }
             }
         }
-        Ok(RandomBallot { ranking: Rank::new(data.candidates(), order) })
+        Ok(RandomBallot { ranking: Rank::new(data.elements(), order) })
     }
 
     fn get_score(&self) -> &Vec<usize> {

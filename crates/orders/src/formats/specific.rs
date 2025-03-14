@@ -5,23 +5,23 @@ use rand::{
     distributions::{Distribution, Uniform},
 };
 
-use super::{VoteFormat, remove_newline, toi::TiedOrdersIncomplete};
+use super::{DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Specific {
     // number of voters = votes.len()
     pub(crate) votes: Vec<usize>,
-    pub(crate) candidates: usize,
+    pub(crate) elements: usize,
 }
 
 impl Specific {
-    pub fn new(candidates: usize) -> Self {
-        Specific { votes: Vec::new(), candidates }
+    pub fn new(elements: usize) -> Self {
+        Specific { votes: Vec::new(), elements }
     }
 
-    pub fn candidates(&self) -> usize {
-        self.candidates
+    pub fn elements(&self) -> usize {
+        self.elements
     }
 
     pub fn votes(&self) -> &[usize] {
@@ -29,25 +29,25 @@ impl Specific {
     }
 
     pub fn majority(&self) -> Option<usize> {
-        if self.candidates == 1 {
+        if self.elements == 1 {
             return Some(0);
         }
-        let mut score = vec![0; self.candidates];
+        let mut score = vec![0; self.elements];
         for i in &self.votes {
             score[*i] += 1;
         }
-        (0..self.candidates).find(|&i| score[i] > (self.votes.len() / 2))
+        (0..self.elements).find(|&i| score[i] > (self.votes.len() / 2))
     }
 
     // Checks if all invariants of the format are valid, used in debug_asserts and
     // tests
     fn valid(&self) -> bool {
-        if self.candidates == 0 && !self.votes.is_empty() {
+        if self.elements == 0 && !self.votes.is_empty() {
             return false;
         }
 
         for v in &self.votes {
-            if *v >= self.candidates {
+            if *v >= self.elements {
                 return false;
             }
         }
@@ -55,12 +55,12 @@ impl Specific {
     }
 
     pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
-        if self.candidates == 0 {
+        if self.elements == 0 {
             return Ok(());
         }
 
         // Now we start parsing the actual votes, consisting of a
-        // number < candidates. We don't use `std::io::Lines`, because we want to
+        // number < elements. We don't use `std::io::Lines`, because we want to
         // reuse `buf` for performance reasons.
         let mut buf = String::with_capacity(20);
         loop {
@@ -72,7 +72,7 @@ impl Specific {
             remove_newline(&mut buf);
 
             let vote: usize = buf.parse().or(Err("Vote is not a number"))?;
-            if vote >= self.candidates {
+            if vote >= self.elements {
                 return Err("Vote assigned to non-existing candidate");
             }
             self.votes.push(vote);
@@ -81,10 +81,10 @@ impl Specific {
         Ok(())
     }
 
-    /// Set the number of candidates to a larger amount
-    pub fn set_candidates(&mut self, candidates: usize) {
-        debug_assert!(self.candidates <= candidates);
-        self.candidates = candidates;
+    /// Set the number of elements to a larger amount
+    pub fn set_elements(&mut self, elements: usize) {
+        debug_assert!(self.elements <= elements);
+        self.elements = elements;
     }
 }
 
@@ -97,26 +97,26 @@ impl Display for Specific {
     }
 }
 
-impl<'a> VoteFormat<'a> for Specific {
-    type Vote = usize;
-    fn candidates(&self) -> usize {
-        self.candidates
+impl<'a> DenseOrders<'a> for Specific {
+    type Order = usize;
+    fn elements(&self) -> usize {
+        self.elements
     }
 
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str> {
+    fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         // TODO: check
         self.votes.try_reserve(1).or(Err("Could not add vote"))?;
         self.votes.push(v);
         Ok(())
     }
 
-    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str> {
+    fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
         let targets = &[target];
         if targets.is_empty() {
             return Ok(());
         }
         debug_assert!(pairwise_lt(targets));
-        let new_candidates = self.candidates - targets.len();
+        let new_elements = self.elements - targets.len();
         let mut j = 0;
         for i in 0..self.votes.len() {
             let v = self.votes[i];
@@ -126,7 +126,7 @@ impl<'a> VoteFormat<'a> for Specific {
             }
         }
         self.votes.truncate(j);
-        self.candidates = new_candidates;
+        self.elements = new_elements;
         debug_assert!(self.valid());
         Ok(())
     }
@@ -137,17 +137,17 @@ impl<'a> VoteFormat<'a> for Specific {
             votes: self.votes,
             ties: Vec::new(),
             vote_len: vec![1; n],
-            candidates: self.candidates,
+            elements: self.elements,
         }
     }
 
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_voters: usize) {
-        if self.candidates == 0 || new_voters == 0 {
+        if self.elements == 0 || new_voters == 0 {
             return;
         }
 
         self.votes.reserve(new_voters);
-        let dist = Uniform::from(0..self.candidates);
+        let dist = Uniform::from(0..self.elements);
         for _ in 0..new_voters {
             let i = dist.sample(rng);
             self.votes.push(i);
@@ -168,7 +168,7 @@ impl<'a> FromIterator<usize> for Specific {
                 max = v;
             }
         }
-        Specific { votes, candidates: max + 1 }
+        Specific { votes, elements: max + 1 }
     }
 }
 
@@ -181,29 +181,29 @@ mod tests {
 
     impl Arbitrary for Specific {
         fn arbitrary(g: &mut Gen) -> Self {
-            let (mut voters, mut candidates): (usize, usize) = Arbitrary::arbitrary(g);
+            let (mut voters, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
             // `Arbitrary` for numbers will generate "problematic" examples such as
             // `usize::max_value()` and `usize::min_value()` but we'll use them to
             // allocate vectors so we'll limit them.
             voters = voters % g.size();
-            candidates = candidates % g.size();
+            elements = elements % g.size();
 
-            let mut votes = Specific::new(candidates);
+            let mut votes = Specific::new(elements);
             votes.generate_uniform(&mut std_rng(g), voters);
             debug_assert!(votes.valid());
             votes
         }
 
-        // We shrink both the number of candidates, and the votes.
+        // We shrink both the number of elements, and the votes.
         // fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        //     let c = self.candidates;
-        //     let candidates: Vec<usize> = (0..c).collect();
-        //     Box::new(self.votes.shrink().zip(candidates.shrink()).map(
-        //         move |(shrink_votes, shrink_candidates)| {
-        //             let mut new_votes = Specific { votes: shrink_votes, candidates: c
+        //     let c = self.elements;
+        //     let elements: Vec<usize> = (0..c).collect();
+        //     Box::new(self.votes.shrink().zip(elements.shrink()).map(
+        //         move |(shrink_votes, shrink_elements)| {
+        //             let mut new_votes = Specific { votes: shrink_votes, elements: c
         // };
-        // new_votes.remove_candidates(&shrink_candidates).unwrap();
+        // new_votes.remove_elements(&shrink_elements).unwrap();
         // debug_assert!(new_votes.valid());             new_votes
         //         },
         //     ))
@@ -215,7 +215,7 @@ mod tests {
         let major = votes.majority();
         eprintln!("{:?}", major);
         match major {
-            Some(i) => i < votes.candidates,
+            Some(i) => i < votes.elements,
             None => true,
         }
     }

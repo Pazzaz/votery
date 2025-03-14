@@ -28,19 +28,16 @@
 use rand::Rng;
 
 // Lifetime needed because `Vote` may be a reference which then needs a lifetime
-pub trait VoteFormat<'a> {
-    type Vote;
-    /// List the number of candidates
-    fn candidates(&self) -> usize;
+pub trait DenseOrders<'a> {
+    type Order;
+    /// Number of elements
+    fn elements(&self) -> usize;
 
-    /// Add more votes from `f`
-    // fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str>;
+    fn add(&mut self, v: Self::Order) -> Result<(), &'static str>;
 
-    fn add(&mut self, v: Self::Vote) -> Result<(), &'static str>;
-
-    /// Removes candidate from the votes, offsetting the other candidates to
+    /// Removes element from the votes, offsetting the other elements to
     /// take their place.
-    fn remove_candidate(&mut self, target: usize) -> Result<(), &'static str>;
+    fn remove_element(&mut self, target: usize) -> Result<(), &'static str>;
 
     /// Sample and add `new_voters` uniformly random votes for this format,
     /// using random numbers from `rng`.
