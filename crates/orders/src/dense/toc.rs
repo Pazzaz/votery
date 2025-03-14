@@ -1,7 +1,7 @@
 use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
 
 use super::{Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
-use crate::order::TiedRankRef;
+use crate::order::incomplete::TiedRankRef;
 
 /// TOC - Orders with Ties - Complete List
 ///

@@ -5,7 +5,7 @@ use rand::{
 };
 
 use super::{Cardinal, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
-use crate::order::{TiedRank, TiedRankRef};
+use crate::order::incomplete::{TiedRank, TiedRankRef};
 
 /// TOI - Orders with Ties - Incomplete List
 ///

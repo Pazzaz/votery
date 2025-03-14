@@ -1,8 +1,15 @@
-pub mod groups;
-pub mod rank;
-pub mod rank_ref;
-pub mod tied_rank;
-pub mod tied_rank_ref;
+mod groups;
+mod rank;
+mod rank_ref;
+mod tied_rank;
+mod tied_rank_ref;
+
+
+pub use groups::*;
+pub use rank::*;
+pub use rank_ref::*;
+pub use tied_rank::*;
+pub use tied_rank_ref::*;
 
 // Returns true iff all elements in `l` are different
 pub(super) fn unique<T>(l: &[T]) -> bool

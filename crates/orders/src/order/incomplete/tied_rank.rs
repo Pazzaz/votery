@@ -4,8 +4,9 @@ use rand::{
 };
 use rand_distr::{Bernoulli, Uniform};
 
+use super::sort_using;
+
 use super::tied_rank_ref::TiedRankRef;
-use crate::order::sort_using;
 
 /// An order with possible ties.
 #[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -17,7 +18,11 @@ pub struct TiedRank {
 
 impl<'a> TiedRank {
     pub fn new(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
-        debug_assert!(tied.len() + 1 == order.len() || tied.is_empty() && order.is_empty());
+        assert!(tied.len() + 1 == order.len() || tied.is_empty() && order.is_empty());
+        TiedRank { elements, order, tied }
+    }
+
+    pub unsafe fn new_unchecked(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
         TiedRank { elements, order, tied }
     }
 
@@ -34,7 +39,7 @@ impl<'a> TiedRank {
     /// Return the number of ranked elements.
     ///
     /// ```
-    /// use orders::order::TiedRank;
+    /// use orders::order::incomplete::TiedRank;
     ///
     /// let empty = TiedRank::new_zero();
     /// assert!(empty.len() == 0);
@@ -63,7 +68,7 @@ impl<'a> TiedRank {
     /// Create a new ranking of `elements`, where every element is tied.
     ///
     /// ```
-    /// use orders::order::TiedRank;
+    /// use orders::order::incomplete::TiedRank;
     ///
     /// let c = 10;
     /// let rank = TiedRank::new_tied(c);
@@ -90,7 +95,7 @@ impl<'a> TiedRank {
     /// not a valid ranking.
     ///
     /// ```
-    /// use orders::order::TiedRank;
+    /// use orders::order::incomplete::TiedRank;
     ///
     /// let order_str = "2,{0,1},4";
     /// let order = TiedRank::parse_order(5, order_str).expect("Parse failed");
@@ -101,7 +106,7 @@ impl<'a> TiedRank {
     /// means that `f`, the function from valid string representations of
     /// rankings to actual rankings, is not injective. Example:
     /// ```
-    /// use orders::order::TiedRank;
+    /// use orders::order::incomplete::TiedRank;
     ///
     /// let rank = TiedRank::parse_order(5, "0,{1}").unwrap();
     /// assert!(rank.as_ref().to_string() == "0,1");
@@ -285,7 +290,7 @@ impl<'a> TiedRank {
     /// groups.
     ///
     /// ```
-    /// use orders::order::TiedRank;
+    /// use orders::order::incomplete::TiedRank;
     ///
     /// let a = TiedRank::parse_order(3, "{0,1,2}").unwrap();
     /// let mut b = TiedRank::parse_order(3, "{2,1,0}").unwrap();
