@@ -1,7 +1,5 @@
-use crate::order::unique;
-
 use super::{rank_ref::RankRef, total_rank::TotalRank};
-
+use crate::order::unique;
 
 #[derive(Debug, Clone, Copy)]
 pub struct TotalRankRef<'a> {

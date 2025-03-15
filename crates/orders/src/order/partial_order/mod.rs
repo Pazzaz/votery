@@ -50,7 +50,9 @@ impl PartialOrder {
     }
 
     pub fn add(&mut self, x: usize) {
-        if x == 0 { return }
+        if x == 0 {
+            return;
+        }
         let orig_len = self.elements();
         self.matrix = self.matrix.add_rows(x);
         for i in orig_len..(orig_len + x) {
@@ -150,8 +152,8 @@ impl PartialOrder {
         }
     }
 
-
-    // Partition the partial order into (at most) `x` categories, so that "larger" values are in the earler categories
+    // Partition the partial order into (at most) `x` categories, so that "larger"
+    // values are in the earler categories
     #[must_use]
     pub fn categorize(&self, x: usize) -> Vec<Vec<usize>> {
         if self.elements() == 0 || x == 0 {
@@ -226,10 +228,7 @@ impl PartialOrder {
             category_ranges.push((curr_start, objs.len()));
         }
 
-        category_ranges
-            .into_iter()
-            .map(|(start, end)| objs[start..end].to_vec())
-            .collect()
+        category_ranges.into_iter().map(|(start, end)| objs[start..end].to_vec()).collect()
     }
 
     pub(crate) fn to_manual(self) -> PartialOrderManual {
@@ -241,7 +240,8 @@ fn div_round_up(a: usize, b: usize) -> usize {
     (a + (b - 1)) / b
 }
 
-/// Like `PartialOrder` but transitive relations may not be set. Created using [`PartialOrder::to_manual`].
+/// Like `PartialOrder` but transitive relations may not be set. Created using
+/// [`PartialOrder::to_manual`].
 pub(crate) struct PartialOrderManual {
     matrix: MatrixBool,
 }
@@ -259,9 +259,9 @@ impl PartialOrderManual {
     }
 
     /// Convert to `PartialOrder`.
-    /// 
+    ///
     /// # Safety
-    /// 
+    ///
     /// All transitive relations have to be set.
     pub(crate) unsafe fn finish_unchecked(self) -> PartialOrder {
         PartialOrder { matrix: self.matrix }
@@ -294,7 +294,7 @@ mod tests {
             }
             po
         }
-    
+
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let pp = self.clone();
             Box::new((0..self.elements()).map(move |x| {
@@ -305,7 +305,6 @@ mod tests {
             }))
         }
     }
-    
 
     #[test]
     fn empty_equal() {

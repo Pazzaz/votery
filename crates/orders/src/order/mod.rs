@@ -6,7 +6,6 @@ pub mod partial_order;
 pub mod rank;
 pub mod tied_rank;
 
-
 // Returns true iff all elements in `l` are different
 pub(super) fn unique<T>(l: &[T]) -> bool
 where

@@ -4,9 +4,8 @@ use rand::{
     seq::SliceRandom,
 };
 
-use crate::order::tied_rank::{TiedRank, TiedRankRef};
-
 use super::{Cardinal, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
+use crate::order::tied_rank::{TiedRank, TiedRankRef};
 
 /// TOI - Orders with Ties - Incomplete List
 ///

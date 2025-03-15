@@ -8,10 +8,8 @@
 //!   ranked higher and where some elements can be tied with others. There are
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
-use crate::order::unique;
-
 use super::{rank_ref::RankRef, total_rank::TotalRank};
-
+use crate::order::unique;
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]

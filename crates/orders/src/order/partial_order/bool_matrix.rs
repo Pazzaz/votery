@@ -1,6 +1,5 @@
 use std::ops::{Index, IndexMut};
 
-
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub(crate) struct MatrixBool {
     pub(crate) dim: usize,
@@ -10,10 +9,7 @@ pub(crate) struct MatrixBool {
 impl MatrixBool {
     #[must_use]
     pub fn new(dim: usize) -> Self {
-        Self {
-            dim,
-            elements: vec![false; dim * dim],
-        }
+        Self { dim, elements: vec![false; dim * dim] }
     }
 
     pub fn from_vec(elements: Vec<bool>, dim: usize) -> Self {
