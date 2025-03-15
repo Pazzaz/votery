@@ -8,13 +8,15 @@
 //!   ranked higher and where some elements can be tied with others. There are
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
+use crate::order::complete::TotalRank;
+
 use super::{RankRef, unique};
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Rank {
-    elements: usize,
-    order: Vec<usize>,
+    pub(crate) elements: usize,
+    pub(crate) order: Vec<usize>,
 }
 
 impl Rank {
@@ -45,6 +47,13 @@ impl Rank {
 
     pub fn as_ref(&self) -> RankRef {
         RankRef { elements: self.elements, order: &self.order[..] }
+    }
+
+    /// Converts to complete ranking. Panics if not all elements are ranked.
+    pub fn to_complete(self) -> TotalRank {
+        let Rank { elements, order } = self;
+        assert!(elements == order.len());
+        TotalRank { order }
     }
 }
 

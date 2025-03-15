@@ -1,9 +1,9 @@
 use super::rank::TotalRank;
-use crate::order::incomplete::unique;
+use crate::order::incomplete::{unique, RankRef};
 
 #[derive(Debug, Clone, Copy)]
 pub struct TotalRankRef<'a> {
-    pub(super) order: &'a [usize],
+    pub(crate) order: &'a [usize],
 }
 
 impl<'a> TotalRankRef<'a> {
@@ -29,5 +29,11 @@ impl<'a> TotalRankRef<'a> {
 
     pub fn owned(&self) -> TotalRank {
         TotalRank { order: self.order.to_vec() }
+    }
+
+    pub fn to_incomplete(self) -> RankRef<'a> {
+        let Self { order } = self;
+        let elements = order.len();
+        RankRef { elements, order }
     }
 }

@@ -1,3 +1,5 @@
+use crate::order::complete::TotalRankRef;
+
 use super::{rank::Rank, tied_rank_ref::TiedRankRef, unique};
 
 /// A possibly incomplete order without any ties
@@ -36,5 +38,12 @@ impl<'a> RankRef<'a> {
 
     pub fn to_tied(self, tied: &'a [bool]) -> TiedRankRef<'a> {
         TiedRankRef::new(self.elements, self.order, tied)
+    }
+
+    /// Converts to complete ranking. Panics if not all elements are ranked.
+    pub fn to_complete(self) -> TotalRankRef<'a> {
+        let RankRef { elements, order } = self;
+        assert!(elements == order.len());
+        TotalRankRef { order }
     }
 }

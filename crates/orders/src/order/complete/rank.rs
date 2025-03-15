@@ -1,11 +1,11 @@
 use std::cmp;
 
 use super::TotalRankRef;
-use crate::order::incomplete::unique;
+use crate::order::incomplete::{unique, Rank};
 
 #[derive(Debug, Clone)]
 pub struct TotalRank {
-    pub(super) order: Vec<usize>,
+    pub(crate) order: Vec<usize>,
 }
 
 impl TotalRank {
@@ -64,5 +64,11 @@ impl TotalRank {
     pub fn copy_from_ref(&mut self, other: TotalRankRef) {
         self.order.clear();
         self.order.extend(other.order);
+    }
+
+    pub fn to_incomplete(self) -> Rank {
+        let Self { order } = self;
+        let elements = order.len();
+        Rank { elements, order }
     }
 }
