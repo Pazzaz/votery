@@ -1,4 +1,8 @@
-//! This is a library of different representations of orderings.
+//! This is a library of different representations of orders. The most general order type
+//! is [`PartialOrder`](order::complete::PartialOrder), but we can represent orders more
+//! effectively if we use a type for a smaller set of orders.
+//!
+//! 
 
 #[cfg(test)]
 extern crate quickcheck;
