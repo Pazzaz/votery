@@ -1,7 +1,10 @@
 use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
 
 use super::{DenseOrders, soc::StrictOrdersComplete};
-use crate::order::rank::{Rank, RankRef};
+use crate::order::{
+    OrderOwned,
+    rank::{Rank, RankRef},
+};
 
 /// SOI - Strict Orders - Incomplete List
 ///

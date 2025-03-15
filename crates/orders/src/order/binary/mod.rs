@@ -52,7 +52,7 @@ impl Order for Binary {
             }
         }
         // SAFETY: There won't be any transitive relations between elements, and we
-        // iterated         through every pair of elements, so we've set every
+        // iterated through every pair of elements, so we've set every
         // relation.
         let out = unsafe { tmp.finish_unchecked() };
         debug_assert!(out.valid());

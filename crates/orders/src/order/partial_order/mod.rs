@@ -2,6 +2,8 @@ use std::cmp::Ordering;
 
 use bool_matrix::MatrixBool;
 
+use super::Order;
+
 mod bool_matrix;
 
 #[derive(Debug, Clone)]
@@ -31,10 +33,6 @@ impl PartialOrder {
 
     pub unsafe fn new_unchecked(order: Vec<bool>, elements: usize) -> Self {
         Self { matrix: MatrixBool::from_vec(order, elements) }
-    }
-
-    pub fn elements(&self) -> usize {
-        self.matrix.dim
     }
 
     /// Returns true if and only if `a ≤ b`.
@@ -236,6 +234,20 @@ impl PartialOrder {
     }
 }
 
+impl Order for PartialOrder {
+    fn elements(&self) -> usize {
+        self.matrix.dim
+    }
+
+    fn len(&self) -> usize {
+        self.matrix.dim
+    }
+
+    fn as_partial(self) -> PartialOrder {
+        self
+    }
+}
+
 fn div_round_up(a: usize, b: usize) -> usize {
     (a + (b - 1)) / b
 }
@@ -275,6 +287,7 @@ mod tests {
     use quickcheck::Arbitrary;
 
     use super::PartialOrder;
+    use crate::order::Order;
 
     impl Arbitrary for PartialOrder {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {

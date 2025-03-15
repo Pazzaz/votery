@@ -1,4 +1,4 @@
-use super::{rank::Rank, total_rank_ref::TotalRankRef};
+use super::total_rank_ref::TotalRankRef;
 use crate::order::{tied_rank::TiedRankRef, unique};
 
 /// A possibly incomplete order without any ties
@@ -24,10 +24,6 @@ impl<'a> RankRef<'a> {
 
     pub fn top(&self, n: usize) -> Self {
         RankRef::new(self.elements, &self.order[0..n])
-    }
-
-    pub fn to_owned(&self) -> Rank {
-        Rank::new(self.elements, self.order.to_vec())
     }
 
     pub fn winner(&self) -> usize {
