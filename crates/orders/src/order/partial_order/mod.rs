@@ -11,19 +11,14 @@ pub struct PartialOrder {
 }
 
 impl PartialOrder {
-    pub fn new(order: Vec<bool>, elements: usize) -> Self {
-        let matrix = MatrixBool::from_vec(order, elements);
-        assert!(matrix.is_partial_order());
-        Self { matrix }
-    }
-
-    #[cfg(test)]
     pub(crate) fn valid(&self) -> bool {
         self.matrix.is_partial_order()
     }
 
-    pub fn elements(&self) -> usize {
-        self.matrix.dim
+    pub fn new(order: Vec<bool>, elements: usize) -> Self {
+        let matrix = MatrixBool::from_vec(order, elements);
+        assert!(matrix.is_partial_order());
+        Self { matrix }
     }
 
     pub fn new_empty(n: usize) -> Self {
@@ -38,7 +33,11 @@ impl PartialOrder {
         Self { matrix: MatrixBool::from_vec(order, elements) }
     }
 
-    // Returns true if a <= b
+    pub fn elements(&self) -> usize {
+        self.matrix.dim
+    }
+
+    /// Returns true if a <= b
     #[must_use]
     pub fn le(&self, a: usize, b: usize) -> bool {
         assert!(a < self.elements() && b < self.elements());
@@ -68,7 +67,7 @@ impl PartialOrder {
         self.matrix = self.matrix.remove_rows_set(x);
     }
 
-    // Set i <= j
+    /// Set `i <= j` and any transitive relations
     pub fn set(&mut self, i: usize, j: usize) {
         assert!(i < self.elements() && j < self.elements());
         // Already done?
@@ -86,6 +85,11 @@ impl PartialOrder {
                 }
             }
         }
+    }
+
+    /// Set only `i <= j`, without setting transitive relations
+    pub unsafe fn set_only(&mut self, i: usize, j: usize) {
+        self.matrix[(i, j)] = true;
     }
 
     pub fn ord(&self, i: usize, j: usize) -> Option<Ordering> {

@@ -1,3 +1,5 @@
+use partial_order::PartialOrder;
+
 pub mod binary;
 pub mod cardinal;
 pub mod partial_order;
@@ -40,4 +42,20 @@ where
         }
         i += 1;
     }
+}
+
+pub trait Order {
+    fn elements(&self) -> usize;
+    fn len(&self) -> usize;
+    fn as_partial(self) -> PartialOrder;
+}
+
+pub trait OrderOwned<'a> {
+    type Ref;
+    fn as_ref(&'a self) -> Self::Ref;
+}
+
+pub trait OrderRef {
+    type Owned;
+    fn as_owned(self) -> Self::Owned;
 }
