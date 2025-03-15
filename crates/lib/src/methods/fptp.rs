@@ -1,4 +1,4 @@
-use orders::{dense::Specific, order::incomplete::TiedRank};
+use orders::{dense::Specific, order::tied_rank::TiedRank};
 
 use super::VotingMethod;
 

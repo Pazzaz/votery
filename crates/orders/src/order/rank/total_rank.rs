@@ -1,7 +1,8 @@
 use std::cmp;
 
-use super::TotalRankRef;
-use crate::order::incomplete::{unique, Rank};
+use crate::order::unique;
+
+use super::{rank::Rank, total_rank_ref::TotalRankRef};
 
 #[derive(Debug, Clone)]
 pub struct TotalRank {

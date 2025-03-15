@@ -8,9 +8,10 @@
 //!   ranked higher and where some elements can be tied with others. There are
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
-use crate::order::complete::TotalRank;
+use crate::order::unique;
 
-use super::{RankRef, unique};
+use super::{rank_ref::RankRef, total_rank::TotalRank};
+
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -54,24 +55,5 @@ impl Rank {
         let Rank { elements, order } = self;
         assert!(elements == order.len());
         TotalRank { order }
-    }
-}
-
-// Sort two arrays, sorted according to the values in `b`.
-// Uses insertion sort
-pub(crate) fn sort_using<A, B>(a: &mut [A], b: &mut [B])
-where
-    B: PartialOrd,
-{
-    debug_assert!(a.len() == b.len());
-    let mut i: usize = 1;
-    while i < b.len() {
-        let mut j = i;
-        while j > 0 && b[j - 1] > b[j] {
-            a.swap(j, j - 1);
-            b.swap(j, j - 1);
-            j -= 1;
-        }
-        i += 1;
     }
 }

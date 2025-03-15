@@ -1,4 +1,4 @@
-use super::Binary;
+use super::binary::Binary;
 
 pub struct Cardinal {
     values: Vec<usize>,

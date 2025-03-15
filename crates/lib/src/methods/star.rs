@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use orders::{dense::Cardinal, order::incomplete::TiedRank};
+use orders::{dense::Cardinal, order::tied_rank::TiedRank};
 
 use super::VotingMethod;
 
