@@ -6,7 +6,7 @@ mod bool_matrix;
 
 #[derive(Debug, Clone)]
 pub struct PartialOrder {
-    // 2D matrix of length n*n, order[a*len + b] is `true` if a <= b
+    // 2D matrix of length n*n, order[a*len + b] is `true` if a ≤ b
     matrix: MatrixBool,
 }
 
@@ -37,7 +37,7 @@ impl PartialOrder {
         self.matrix.dim
     }
 
-    /// Returns true if a <= b
+    /// Returns true if and only if `a ≤ b`.
     #[must_use]
     pub fn le(&self, a: usize, b: usize) -> bool {
         assert!(a < self.elements() && b < self.elements());
@@ -67,7 +67,7 @@ impl PartialOrder {
         self.matrix = self.matrix.remove_rows_set(x);
     }
 
-    /// Set `i <= j` and any transitive relations
+    /// Set `i ≤ j` and any transitive relations.
     pub fn set(&mut self, i: usize, j: usize) {
         assert!(i < self.elements() && j < self.elements());
         // Already done?
@@ -85,11 +85,6 @@ impl PartialOrder {
                 }
             }
         }
-    }
-
-    /// Set only `i <= j`, without setting transitive relations
-    pub unsafe fn set_only(&mut self, i: usize, j: usize) {
-        self.matrix[(i, j)] = true;
     }
 
     pub fn ord(&self, i: usize, j: usize) -> Option<Ordering> {
@@ -236,10 +231,41 @@ impl PartialOrder {
             .map(|(start, end)| objs[start..end].to_vec())
             .collect()
     }
+
+    pub(crate) fn to_manual(self) -> PartialOrderManual {
+        PartialOrderManual { matrix: self.matrix }
+    }
 }
 
 fn div_round_up(a: usize, b: usize) -> usize {
     (a + (b - 1)) / b
+}
+
+/// Like `PartialOrder` but transitive relations may not be set. Created using [`PartialOrder::to_manual`].
+pub(crate) struct PartialOrderManual {
+    matrix: MatrixBool,
+}
+
+// TODO: Implement `finish()` which adds the transitive relations.
+impl PartialOrderManual {
+    pub(crate) fn elements(&self) -> usize {
+        self.matrix.dim
+    }
+
+    /// Set only `i ≤ j`, without setting transitive relations.
+    pub(crate) fn set(&mut self, i: usize, j: usize) {
+        assert!(i < self.elements() && j < self.elements());
+        self.matrix[(i, j)] = true;
+    }
+
+    /// Convert to `PartialOrder`.
+    /// 
+    /// # Safety
+    /// 
+    /// All transitive relations have to be set.
+    pub(crate) unsafe fn finish_unchecked(self) -> PartialOrder {
+        PartialOrder { matrix: self.matrix }
+    }
 }
 
 #[cfg(test)]

@@ -39,20 +39,22 @@ impl Order for Binary {
     /// Convert to `PartialOrder`. We only know that `true` values are above `false` values, so
     /// those are the only relations that will be included in the result.
     fn as_partial(self) -> PartialOrder {
-        let mut po = PartialOrder::new_empty(self.elements());
+        let po = PartialOrder::new_empty(self.elements());
+        let mut tmp = po.to_manual();
         for (i1, b1) in self.values.iter().enumerate() {
             for (i2, b2) in self.values[(i1+1)..].iter().enumerate() {
                 match (b1, b2) {
-                    // SAFETY: There won't be any transitive relations between elements, so we can
-                    //         just set them directly.
-                    (true, false) => unsafe { po.set_only(i2, i1) },
-                    (false, true) => unsafe { po.set_only(i1, i2) },
+                    (true, false) => tmp.set(i2, i1),
+                    (false, true) => tmp.set(i1, i2),
                     (true, true) | (false, false) => {},
                 }
             }
         }
-        debug_assert!(po.valid());
-        po
+        // SAFETY: There won't be any transitive relations between elements, and we iterated
+        //         through every pair of elements, so we've set every relation.
+        let out = unsafe { tmp.finish_unchecked() };
+        debug_assert!(out.valid());
+        out
     }
 }
 
