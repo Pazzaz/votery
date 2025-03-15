@@ -157,7 +157,7 @@ impl PartialOrder {
         if self.elements() == 0 || x == 0 {
             return Vec::new();
         }
-        let category_size = div_round_up(self.elements(), x);
+        let category_size = self.elements().div_ceil(x);
 
         let mut objs: Vec<usize> = (0..self.elements()).collect();
         objs.sort_by(|&a, &b| self.ord(a, b).unwrap_or(Ordering::Equal));
@@ -246,10 +246,6 @@ impl Order for PartialOrder {
     fn as_partial(self) -> PartialOrder {
         self
     }
-}
-
-fn div_round_up(a: usize, b: usize) -> usize {
-    (a + (b - 1)) / b
 }
 
 /// Like `PartialOrder` but transitive relations may not be set. Created using
