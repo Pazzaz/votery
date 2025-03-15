@@ -39,6 +39,7 @@ impl PartialOrder {
     }
 
     // Returns true if a <= b
+    #[must_use]
     pub fn le(&self, a: usize, b: usize) -> bool {
         assert!(a < self.elements() && b < self.elements());
         self.matrix[(a, b)]
@@ -67,19 +68,11 @@ impl PartialOrder {
         self.matrix = self.matrix.remove_rows_set(x);
     }
 
-    // Check if i <= j
-    #[must_use]
-    #[inline(always)]
-    pub fn leq(&self, i: usize, j: usize) -> bool {
-        assert!(i < self.elements() && j < self.elements());
-        self.matrix[(i, j)]
-    }
-
     // Set i <= j
     pub fn set(&mut self, i: usize, j: usize) {
         assert!(i < self.elements() && j < self.elements());
         // Already done?
-        if self.leq(i, j) {
+        if self.le(i, j) {
             return;
         }
 
@@ -88,7 +81,7 @@ impl PartialOrder {
         // TODO: This feels wrong
         for ii in 0..self.elements() {
             for jj in 0..self.elements() {
-                if self.leq(ii, i) && self.leq(j, jj) {
+                if self.le(ii, i) && self.le(j, jj) {
                     self.matrix[(ii, jj)] = true;
                 }
             }
@@ -99,9 +92,9 @@ impl PartialOrder {
         assert!(i < self.elements() && j < self.elements());
         if self.eq(i, j) {
             Some(Ordering::Equal)
-        } else if self.leq(i, j) {
+        } else if self.le(i, j) {
             Some(Ordering::Less)
-        } else if self.leq(j, i) {
+        } else if self.le(j, i) {
             Some(Ordering::Greater)
         } else {
             None
@@ -115,8 +108,8 @@ impl PartialOrder {
                 if i == j {
                     continue;
                 }
-                let ij = self.leq(i, j);
-                let ji = self.leq(j, i);
+                let ij = self.le(i, j);
+                let ji = self.le(j, i);
                 if ij && ji {
                     parts.push(format!("({}={}) ", i, j));
                 } else if ij {
@@ -152,7 +145,7 @@ impl PartialOrder {
     pub fn and_mut(&mut self, other: &Self) {
         for i in 0..self.elements() {
             for j in 0..self.elements() {
-                let v: bool = self.leq(i, j) && other.leq(i, j);
+                let v: bool = self.le(i, j) && other.le(i, j);
                 self.matrix[(i, j)] = v;
             }
         }
