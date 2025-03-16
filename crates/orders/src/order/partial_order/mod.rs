@@ -6,10 +6,20 @@ use super::Order;
 
 mod bool_matrix;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PartialOrder {
     // 2D matrix of length n*n, order[a*len + b] is `true` if a ≤ b
     matrix: MatrixBool,
+}
+
+impl Clone for PartialOrder {
+    fn clone(&self) -> Self {
+        Self { matrix: self.matrix.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.matrix.clone_from(&source.matrix);
+    }
 }
 
 impl PartialOrder {

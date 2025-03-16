@@ -1,9 +1,20 @@
 use std::ops::{Index, IndexMut};
 
-#[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub(crate) struct MatrixBool {
     pub(crate) dim: usize,
     pub(crate) elements: Vec<bool>,
+}
+
+impl Clone for MatrixBool {
+    fn clone(&self) -> Self {
+        Self { dim: self.dim, elements: self.elements.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.dim = source.dim;
+        self.elements.clone_from(&source.elements);
+    }
 }
 
 impl MatrixBool {

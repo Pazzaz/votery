@@ -3,9 +3,19 @@ use rand::{Rng, distr::StandardUniform};
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
 use crate::order::partial_order::PartialOrderManual;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Binary {
     values: Vec<bool>,
+}
+
+impl Clone for Binary {
+    fn clone(&self) -> Self {
+        Self { values: self.values.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.values.clone_from(&source.values);
+    }
 }
 
 impl Binary {

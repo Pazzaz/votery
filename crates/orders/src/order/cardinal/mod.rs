@@ -9,9 +9,19 @@ use super::{
     partial_order::{PartialOrder, PartialOrderManual},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Cardinal {
     values: Vec<usize>,
+}
+
+impl Clone for Cardinal {
+    fn clone(&self) -> Self {
+        Self { values: self.values.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.values.clone_from(&source.values);
+    }
 }
 
 impl Cardinal {

@@ -21,10 +21,21 @@ use crate::order::{
 };
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Rank {
     pub(crate) elements: usize,
     pub(crate) order: Vec<usize>,
+}
+
+impl Clone for Rank {
+    fn clone(&self) -> Self {
+        Self { elements: self.elements, order: self.order.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.elements = source.elements;
+        self.order.clone_from(&source.order);
+    }
 }
 
 impl Rank {

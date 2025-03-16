@@ -8,11 +8,23 @@ use super::tied_rank_ref::TiedRankRef;
 use crate::order::sort_using;
 
 /// An order with possible ties.
-#[derive(Clone, Debug, PartialEq, Eq, Default, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
 pub struct TiedRank {
+    pub(crate) elements: usize,
     pub order: Vec<usize>,
     pub tied: Vec<bool>,
-    pub(crate) elements: usize,
+}
+
+impl Clone for TiedRank {
+    fn clone(&self) -> Self {
+        Self { elements: self.elements, order: self.order.clone(), tied: self.tied.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.elements = source.elements;
+        self.order.clone_from(&source.order);
+        self.tied.clone_from(&source.tied);
+    }
 }
 
 impl<'a> TiedRank {

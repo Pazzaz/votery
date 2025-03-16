@@ -3,9 +3,19 @@ use std::cmp;
 use super::{rank::Rank, total_rank_ref::TotalRankRef};
 use crate::order::unique;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct TotalRank {
     pub(crate) order: Vec<usize>,
+}
+
+impl Clone for TotalRank {
+    fn clone(&self) -> Self {
+        Self { order: self.order.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.order.clone_from(&source.order);
+    }
 }
 
 impl TotalRank {
