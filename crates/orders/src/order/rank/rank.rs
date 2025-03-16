@@ -9,7 +9,7 @@
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
 use super::{rank_ref::RankRef, total_rank::TotalRank};
-use crate::order::{Order, OrderOwned, OrderRef, partial_order::PartialOrder, unique};
+use crate::order::{partial_order::{PartialOrder, PartialOrderManual}, unique, Order, OrderOwned, OrderRef};
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -58,8 +58,7 @@ impl Order for Rank {
     }
 
     fn as_partial(self) -> PartialOrder {
-        let po = PartialOrder::new_empty(self.len());
-        let mut manual = po.to_manual();
+        let mut manual = PartialOrderManual::new(self.len());
         let seen: &mut [bool] = &mut vec![false; self.len()];
         for (i1, e1) in self.order.iter().enumerate() {
             seen[*e1] = true;
@@ -79,8 +78,9 @@ impl Order for Rank {
             }
         }
 
-        // SAFETY: We set the relations in `self.order`, including transitive relations,
-        // and every element in `self.order` is larger than the rest.
+        // SAFETY: We set the relations in `self.order`, including transitive relations, and every
+        // element in `self.order` is larger than the rest. The elements in `rest` have no
+        // relations with eachother.
         let out = unsafe { manual.finish_unchecked() };
         debug_assert!(out.valid());
         out

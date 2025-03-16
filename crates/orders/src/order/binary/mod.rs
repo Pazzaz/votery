@@ -1,3 +1,5 @@
+use crate::order::partial_order::PartialOrderManual;
+
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
 
 pub struct Binary {
@@ -40,8 +42,7 @@ impl Order for Binary {
     /// `false` values, so those are the only relations that will be
     /// included in the result.
     fn as_partial(self) -> PartialOrder {
-        let po = PartialOrder::new_empty(self.elements());
-        let mut tmp = po.to_manual();
+        let mut tmp = PartialOrderManual::new(self.elements());
         for (i1, b1) in self.values.iter().enumerate() {
             for (i2, b2) in self.values[(i1 + 1)..].iter().enumerate() {
                 match (b1, b2) {

@@ -260,6 +260,14 @@ impl PartialOrderManual {
         self.matrix.dim
     }
 
+    pub(crate) fn new(n: usize) -> Self {
+        let mut matrix = MatrixBool::new(n);
+        for i in 0..n {
+            matrix[(i, i)] = true;
+        }
+        Self { matrix }
+    }
+
     /// Set only `i ≤ j`, without setting transitive relations.
     pub(crate) fn set(&mut self, i: usize, j: usize) {
         assert!(i < self.elements() && j < self.elements());
