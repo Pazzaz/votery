@@ -239,7 +239,7 @@ impl Order for PartialOrder {
         self.matrix.dim
     }
 
-    fn as_partial(self) -> PartialOrder {
+    fn to_partial(self) -> PartialOrder {
         self
     }
 }

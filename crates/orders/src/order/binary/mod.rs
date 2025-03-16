@@ -49,7 +49,7 @@ impl Order for Binary {
     /// Convert to `PartialOrder`. We only know that `true` values are above
     /// `false` values, so those are the only relations that will be
     /// included in the result.
-    fn as_partial(self) -> PartialOrder {
+    fn to_partial(self) -> PartialOrder {
         let mut tmp = PartialOrderManual::new(self.elements());
         for (i1, b1) in self.values.iter().enumerate() {
             for (i2, b2) in self.values.iter().enumerate().skip(i1 + 1) {
@@ -77,10 +77,10 @@ impl<'a> OrderOwned<'a> for Binary {
     }
 }
 
-impl<'a> OrderRef for BinaryRef<'a> {
+impl OrderRef for BinaryRef<'_> {
     type Owned = Binary;
 
-    fn as_owned(self) -> Self::Owned {
+    fn to_owned(self) -> Self::Owned {
         Binary { values: self.values.to_vec() }
     }
 }
@@ -112,13 +112,13 @@ mod tests {
 
     #[quickcheck]
     fn as_partial(b: Binary) -> bool {
-        let po = b.as_partial();
+        let po = b.to_partial();
         po.valid()
     }
 
     #[quickcheck]
     fn as_partial_correct(b: Binary) -> bool {
-        let po = b.clone().as_partial();
+        let po = b.clone().to_partial();
         for i in 0..b.elements() {
             for j in 0..b.elements() {
                 let goal = if i == j {

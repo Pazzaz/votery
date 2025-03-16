@@ -46,7 +46,10 @@ where
 pub trait Order {
     fn elements(&self) -> usize;
     fn len(&self) -> usize;
-    fn as_partial(self) -> PartialOrder;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    fn to_partial(self) -> PartialOrder;
 }
 
 pub trait OrderOwned<'a> {
@@ -56,5 +59,5 @@ pub trait OrderOwned<'a> {
 
 pub trait OrderRef {
     type Owned;
-    fn as_owned(self) -> Self::Owned;
+    fn to_owned(self) -> Self::Owned;
 }

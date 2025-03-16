@@ -78,7 +78,7 @@ impl Order for Rank {
         self.order.len()
     }
 
-    fn as_partial(self) -> PartialOrder {
+    fn to_partial(self) -> PartialOrder {
         let mut manual = PartialOrderManual::new(self.elements());
         let seen: &mut [bool] = &mut vec![false; self.elements()];
         for (i1, e1) in self.order.iter().enumerate() {
@@ -88,7 +88,7 @@ impl Order for Rank {
             }
         }
         let rest: Vec<usize> = (*seen)
-            .into_iter()
+            .iter()
             .enumerate()
             .filter_map(|(i, b)| if !b { Some(i) } else { None })
             .collect();
@@ -119,7 +119,7 @@ impl<'a> OrderOwned<'a> for Rank {
 impl OrderRef for RankRef<'_> {
     type Owned = Rank;
 
-    fn as_owned(self) -> Self::Owned {
+    fn to_owned(self) -> Self::Owned {
         Rank::new(self.elements, self.order.to_vec())
     }
 }
@@ -149,13 +149,13 @@ mod tests {
 
     #[quickcheck]
     fn as_partial(b: Rank) -> bool {
-        let po = b.as_partial();
+        let po = b.to_partial();
         po.valid()
     }
 
     #[quickcheck]
     fn as_partial_correct(b: Rank) -> bool {
-        let po = b.clone().as_partial();
+        let po = b.clone().to_partial();
         for (i, vi) in b.order.iter().enumerate() {
             for (j, vj) in b.order.iter().enumerate() {
                 let index_cmp = j.cmp(&i);

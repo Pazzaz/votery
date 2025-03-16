@@ -41,7 +41,7 @@ impl MatrixBool {
     // Remove has to be sorted
     #[must_use]
     pub fn remove_rows_set(&self, remove: &[usize]) -> Self {
-        debug_assert!(remove.len() != 0);
+        debug_assert!(!remove.is_empty());
         debug_assert!(remove.is_sorted());
         debug_assert!(is_subset(self.dim, remove));
         let mut skipped = vec![false; self.dim];
@@ -50,8 +50,8 @@ impl MatrixBool {
         }
         let mut map = vec![0; self.dim - remove.len()];
         let mut j = 0;
-        for i in 0..self.dim {
-            if !skipped[i] {
+        for (i, skip) in skipped.iter().enumerate() {
+            if !skip {
                 map[j] = i;
                 j += 1;
             }
