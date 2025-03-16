@@ -228,10 +228,6 @@ impl PartialOrder {
 
         category_ranges.into_iter().map(|(start, end)| objs[start..end].to_vec()).collect()
     }
-
-    pub(crate) fn to_manual(self) -> PartialOrderManual {
-        PartialOrderManual { matrix: self.matrix }
-    }
 }
 
 impl Order for PartialOrder {
@@ -254,7 +250,6 @@ pub(crate) struct PartialOrderManual {
     matrix: MatrixBool,
 }
 
-// TODO: Implement `finish()` which adds the transitive relations.
 impl PartialOrderManual {
     pub(crate) fn elements(&self) -> usize {
         self.matrix.dim
@@ -274,6 +269,25 @@ impl PartialOrderManual {
         self.matrix[(i, j)] = true;
     }
 
+    #[cfg(test)]
+    pub(crate) fn finish(mut self) -> PartialOrder {
+        let mut updated = true;
+        while updated {
+            updated = false;
+            for i in 0..self.elements() {
+                for k in 0..self.elements() {
+                    for j in 0..self.elements() {
+                        if self.matrix[(i, j)] && self.matrix[(j, k)] && !self.matrix[(i, k)] {
+                            self.matrix[(i, k)] = true;
+                            updated = true;
+                        }
+                    }
+                }
+            }
+        }
+        PartialOrder { matrix: self.matrix }
+    }
+
     /// Convert to `PartialOrder`.
     ///
     /// # Safety
@@ -290,26 +304,20 @@ mod tests {
 
     use quickcheck::Arbitrary;
 
-    use super::PartialOrder;
+    use super::{PartialOrder, PartialOrderManual};
     use crate::order::Order;
 
     impl Arbitrary for PartialOrder {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {
-            let mut po = Self::new_empty(g.size());
+            let mut po = PartialOrderManual::new(g.size());
             for i in 0..po.elements() {
                 for j in 0..po.elements() {
-                    match po.ord(i, j) {
-                        Some(_) => {}
-                        None => match Arbitrary::arbitrary(g) {
-                            (true, true) => po.set_ord(i, j, Ordering::Less),
-                            (true, false) => po.set_ord(i, j, Ordering::Greater),
-                            (false, true) => po.set_ord(i, j, Ordering::Equal),
-                            (false, false) => {}
-                        },
+                    if Arbitrary::arbitrary(g) {
+                        po.set(i, j);
                     }
                 }
             }
-            po
+            po.finish()
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
