@@ -1,9 +1,8 @@
 use rand::Rng;
 use rand_distr::Standard;
 
-use crate::order::partial_order::PartialOrderManual;
-
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
+use crate::order::partial_order::PartialOrderManual;
 
 #[derive(Debug, Clone)]
 pub struct Binary {
@@ -53,7 +52,7 @@ impl Order for Binary {
     fn as_partial(self) -> PartialOrder {
         let mut tmp = PartialOrderManual::new(self.elements());
         for (i1, b1) in self.values.iter().enumerate() {
-            for (i2, b2) in self.values.iter().enumerate().skip(i1+1) {
+            for (i2, b2) in self.values.iter().enumerate().skip(i1 + 1) {
                 match (b1, b2) {
                     (true, false) => tmp.set(i2, i1),
                     (false, true) => tmp.set(i1, i2),
@@ -104,9 +103,9 @@ mod tests {
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let x = self.clone();
-            let iter = (0..(x.len().saturating_sub(1))).rev().map(move |i| {
-                Binary::new(x.values[0..i].to_vec())
-            });
+            let iter = (0..(x.len().saturating_sub(1)))
+                .rev()
+                .map(move |i| Binary::new(x.values[0..i].to_vec()));
             Box::new(iter)
         }
     }
