@@ -1,7 +1,11 @@
+use rand::Rng;
+use rand_distr::Standard;
+
 use crate::order::partial_order::PartialOrderManual;
 
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
 
+#[derive(Debug, Clone)]
 pub struct Binary {
     values: Vec<bool>,
 }
@@ -9,6 +13,11 @@ pub struct Binary {
 impl Binary {
     pub fn new(v: Vec<bool>) -> Self {
         Binary { values: v }
+    }
+
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Binary {
+        let values = rng.sample_iter(Standard).take(elements).collect();
+        Binary { values }
     }
 }
 
@@ -44,7 +53,7 @@ impl Order for Binary {
     fn as_partial(self) -> PartialOrder {
         let mut tmp = PartialOrderManual::new(self.elements());
         for (i1, b1) in self.values.iter().enumerate() {
-            for (i2, b2) in self.values[(i1 + 1)..].iter().enumerate() {
+            for (i2, b2) in self.values.iter().enumerate().skip(i1+1) {
                 match (b1, b2) {
                     (true, false) => tmp.set(i2, i1),
                     (false, true) => tmp.set(i1, i2),
@@ -74,5 +83,64 @@ impl<'a> OrderRef for BinaryRef<'a> {
 
     fn as_owned(self) -> Self::Owned {
         Binary { values: self.values.to_vec() }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cmp::Ordering;
+
+    use quickcheck::{Arbitrary, Gen};
+
+    use super::*;
+    use crate::tests::std_rng;
+
+    impl Arbitrary for Binary {
+        fn arbitrary(g: &mut Gen) -> Self {
+            // Modulo to avoid problematic values
+            let elements = <usize as Arbitrary>::arbitrary(g) % g.size();
+            Binary::random(&mut std_rng(g), elements)
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            let x = self.clone();
+            let iter = (0..(x.len().saturating_sub(1))).rev().map(move |i| {
+                Binary::new(x.values[0..i].to_vec())
+            });
+            Box::new(iter)
+        }
+    }
+
+    #[quickcheck]
+    fn as_partial(b: Binary) -> bool {
+        let po = b.as_partial();
+        po.valid()
+    }
+
+    #[quickcheck]
+    fn as_partial_correct(b: Binary) -> bool {
+        let po = b.clone().as_partial();
+        for i in 0..b.elements() {
+            for j in 0..b.elements() {
+                let goal = if i == j {
+                    Some(Ordering::Equal)
+                } else {
+                    match (b.values[i], b.values[j]) {
+                        (false, true) => Some(Ordering::Less),
+                        (true, false) => Some(Ordering::Greater),
+                        (true, true) | (false, false) => None,
+                    }
+                };
+                if po.ord(i, j) != goal {
+                    return false;
+                }
+            }
+        }
+        po.valid()
+    }
+
+    #[quickcheck]
+    fn complete(b: Binary) -> bool {
+        b.len() == b.elements()
     }
 }
