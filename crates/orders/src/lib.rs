@@ -1,7 +1,26 @@
 //! This is a library of different representations of orders. The most general
-//! order type is [`PartialOrder`](order::complete::PartialOrder), but we can
+//! order type is [`PartialOrder`](partial_order::PartialOrder), but we can
 //! represent orders more effectively if we use a type for a smaller set of
-//! orders.
+//! orders. Every order is finite, and stores how many elements the ordered set
+//! has&nbsp;(see [`Order::elements`]).
+//!
+//! The different types of orders are
+//! - [`Binary`](binary), a ranked order where every element either has a high
+//!   rank or a low rank.
+//! - [`Cardinal`](cardinal), a ranked order where every element is assigned
+//!   some number.
+//! - `PartialOrder`,
+//! - [`Rank`](rank), a linear order containing every element.
+//! - [`TiedRank`](tied_rank), a linear order containing every element, where
+//!   some elements can be tied.
+//!
+//! There are also variants of the orders which don't store all elements. Stored
+//! elements are considered higher in the poset than non-stored elements.
+//!
+//! There are also custom collections of orders. These are more effective than
+//! just using a [`Vec`] of orders, as the orders themselves often contain a
+//! `Vec`. By using custom containers it's possible to store them in a more
+//! compact form and avoid nested containers.
 
 #[cfg(test)]
 extern crate quickcheck;
@@ -9,11 +28,9 @@ extern crate quickcheck;
 #[macro_use(quickcheck)]
 extern crate quickcheck_macros;
 
-use partial_order::PartialOrder;
-
-pub mod dense;
 pub mod binary;
 pub mod cardinal;
+pub mod dense;
 pub mod partial_order;
 pub mod rank;
 pub mod tied_rank;
@@ -113,12 +130,15 @@ where
 }
 
 pub trait Order {
+    /// The number of elements that can be in this order.
     fn elements(&self) -> usize;
+
+    /// The number of elements currently part of this order.
     fn len(&self) -> usize;
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
-    fn to_partial(self) -> PartialOrder;
+    fn to_partial(self) -> partial_order::PartialOrder;
 }
 
 pub trait OrderOwned<'a> {
