@@ -72,12 +72,12 @@ impl MatrixBool {
             if !self[(a, a)] {
                 return false;
             }
-            for c in a..self.dim {
+            for c in 0..self.dim {
                 if a == c {
                     continue;
                 }
-                for b in a..c {
-                    if b == a {
+                for b in 0..self.dim {
+                    if b == a || b == c {
                         continue;
                     }
                     if self[(a, b)] && self[(b, c)] && !self[(a, c)] {
