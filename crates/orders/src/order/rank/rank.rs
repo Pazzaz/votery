@@ -60,7 +60,7 @@ impl Rank {
         if elements == 0 {
             Rank { order: Vec::new(), elements }
         } else {
-            let len = rng.gen_range(0..elements);
+            let len = rng.random_range(0..elements);
 
             let mut order = (0..elements).choose_multiple(rng, len);
             order.shuffle(rng);

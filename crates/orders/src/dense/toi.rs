@@ -1,6 +1,5 @@
 use rand::{
-    distributions::{Bernoulli, Uniform},
-    prelude::Distribution,
+    distr::{Bernoulli, Distribution, Uniform},
     seq::SliceRandom,
 };
 
@@ -299,7 +298,7 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
         self.orders.reserve(new_orders * self.elements);
         self.ties.reserve(new_orders * (self.elements - 1));
         let dist = Bernoulli::new(0.5).unwrap();
-        let range = Uniform::from(0..self.elements);
+        let range = Uniform::new(0, self.elements).unwrap();
         for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);

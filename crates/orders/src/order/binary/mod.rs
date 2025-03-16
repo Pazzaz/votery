@@ -1,5 +1,4 @@
-use rand::Rng;
-use rand_distr::Standard;
+use rand::{Rng, distr::StandardUniform};
 
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
 use crate::order::partial_order::PartialOrderManual;
@@ -15,7 +14,7 @@ impl Binary {
     }
 
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Binary {
-        let values = rng.sample_iter(Standard).take(elements).collect();
+        let values = rng.sample_iter(StandardUniform).take(elements).collect();
         Binary { values }
     }
 }

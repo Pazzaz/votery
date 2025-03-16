@@ -5,7 +5,7 @@ use std::{
     slice::Chunks,
 };
 
-use rand::distributions::{Distribution, Uniform};
+use rand::distr::{Distribution, Uniform};
 
 use super::{Binary, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
@@ -318,7 +318,7 @@ impl<'a> DenseOrders<'a> for Cardinal {
         }
 
         self.orders.reserve(new_orders);
-        let dist = Uniform::from(self.min..=self.max);
+        let dist = Uniform::new_inclusive(self.min, self.max).unwrap();
         for _ in 0..new_orders {
             for _ in 0..self.elements {
                 let i = dist.sample(rng);

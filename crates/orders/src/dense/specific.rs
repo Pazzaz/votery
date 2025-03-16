@@ -2,7 +2,7 @@ use std::{fmt, fmt::Display, io::BufRead};
 
 use rand::{
     Rng,
-    distributions::{Distribution, Uniform},
+    distr::{Distribution, Uniform},
 };
 
 use super::{DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
@@ -147,7 +147,7 @@ impl DenseOrders<'_> for Specific {
         }
 
         self.orders.reserve(new_orders);
-        let dist = Uniform::from(0..self.elements);
+        let dist = Uniform::new(0, self.elements).unwrap();
         for _ in 0..new_orders {
             let i = dist.sample(rng);
             self.orders.push(i);

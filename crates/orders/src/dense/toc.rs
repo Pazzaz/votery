@@ -1,4 +1,7 @@
-use rand::{distributions::Bernoulli, prelude::Distribution, seq::SliceRandom};
+use rand::{
+    distr::{Bernoulli, Distribution},
+    seq::{IndexedRandom, SliceRandom},
+};
 
 use super::{Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
 use crate::order::tied_rank::TiedRankRef;

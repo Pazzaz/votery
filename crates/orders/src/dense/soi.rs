@@ -1,4 +1,7 @@
-use rand::{distributions::Uniform, prelude::Distribution, seq::SliceRandom};
+use rand::{
+    distr::{Distribution, Uniform},
+    seq::SliceRandom,
+};
 
 use super::{DenseOrders, soc::StrictOrdersComplete};
 use crate::order::{
@@ -145,7 +148,7 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
         }
         let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(self.elements * new_orders);
-        let range = Uniform::from(0..self.elements);
+        let range = Uniform::new(0, self.elements).unwrap();
         for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);

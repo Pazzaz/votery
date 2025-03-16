@@ -5,7 +5,7 @@ use std::{
 
 use rand::{
     Rng,
-    distributions::{Bernoulli, Distribution},
+    distr::{Bernoulli, Distribution},
 };
 
 use super::{Cardinal, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};

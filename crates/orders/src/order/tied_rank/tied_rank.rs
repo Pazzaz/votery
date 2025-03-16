@@ -1,8 +1,8 @@
 use rand::{
     Rng,
+    distr::{Bernoulli, Uniform},
     seq::{IteratorRandom, SliceRandom},
 };
-use rand_distr::{Bernoulli, Uniform};
 
 use super::tied_rank_ref::TiedRankRef;
 use crate::order::sort_using;
@@ -273,7 +273,7 @@ impl<'a> TiedRank {
         if elements == 0 {
             return TiedRank::new_zero();
         }
-        let order_len = rng.sample(Uniform::new(0, elements));
+        let order_len = rng.sample(Uniform::new(0, elements).unwrap());
         let mut order = (0..elements).choose_multiple(rng, order_len);
         order.shuffle(rng);
         let tied_len = order_len.saturating_sub(1);
