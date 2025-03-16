@@ -269,7 +269,18 @@ impl PartialOrderManual {
         self.matrix[(i, j)] = true;
     }
 
-    #[cfg(test)]
+    pub fn set_ord(&mut self, i: usize, j: usize, o: Ordering) {
+        assert!(i < self.elements() && j < self.elements());
+        match o {
+            Ordering::Less => self.set(i, j),
+            Ordering::Equal => {
+                self.set(i, j);
+                self.set(j, i);
+            }
+            Ordering::Greater => self.set(j, i),
+        }
+    }
+
     pub(crate) fn finish(mut self) -> PartialOrder {
         let mut updated = true;
         while updated {
