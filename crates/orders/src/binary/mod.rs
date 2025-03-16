@@ -1,7 +1,7 @@
 use rand::{Rng, distr::StandardUniform};
 
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};
-use crate::order::partial_order::PartialOrderManual;
+use crate::partial_order::PartialOrderManual;
 
 #[derive(Debug)]
 pub struct Binary {

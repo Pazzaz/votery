@@ -14,7 +14,7 @@ use rand::{
 };
 
 use super::{rank_ref::RankRef, total_rank::TotalRank};
-use crate::order::{
+use crate::{
     Order, OrderOwned, OrderRef,
     partial_order::{PartialOrder, PartialOrderManual},
     unique,

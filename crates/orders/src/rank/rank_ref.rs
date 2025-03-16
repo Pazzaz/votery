@@ -1,5 +1,5 @@
 use super::total_rank_ref::TotalRankRef;
-use crate::order::{tied_rank::TiedRankRef, unique};
+use crate::{tied_rank::TiedRankRef, unique};
 
 /// A possibly incomplete order without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]

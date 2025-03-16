@@ -326,7 +326,7 @@ mod tests {
     use quickcheck::Arbitrary;
 
     use super::{PartialOrder, PartialOrderManual};
-    use crate::order::Order;
+    use crate::Order;
 
     impl Arbitrary for PartialOrder {
         fn arbitrary(g: &mut quickcheck::Gen) -> Self {

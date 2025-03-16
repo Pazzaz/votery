@@ -4,7 +4,7 @@ use rand::{
 };
 
 use super::{DenseOrders, soc::StrictOrdersComplete};
-use crate::order::{
+use crate::{
     OrderOwned,
     rank::{Rank, RankRef},
 };

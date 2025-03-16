@@ -4,7 +4,7 @@ use rand::{
 };
 
 use super::{Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
-use crate::order::tied_rank::TiedRankRef;
+use crate::tied_rank::TiedRankRef;
 
 /// TOC - Orders with Ties - Complete List
 ///
