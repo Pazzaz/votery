@@ -8,6 +8,11 @@
 //!   ranked higher and where some elements can be tied with others. There are
 //!   also reference versions which don't own the data: [`TiedRankRef`].
 
+use rand::{
+    Rng,
+    seq::{IteratorRandom, SliceRandom},
+};
+
 use super::{rank_ref::RankRef, total_rank::TotalRank};
 use crate::order::{
     Order, OrderOwned, OrderRef,
@@ -50,6 +55,18 @@ impl Rank {
         assert!(elements == order.len());
         TotalRank { order }
     }
+
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Rank {
+        if elements == 0 {
+            Rank { order: Vec::new(), elements }
+        } else {
+            let len = rng.gen_range(0..elements);
+
+            let mut order = (0..elements).choose_multiple(rng, len);
+            order.shuffle(rng);
+            Rank { order, elements }
+        }
+    }
 }
 
 impl Order for Rank {
@@ -62,8 +79,8 @@ impl Order for Rank {
     }
 
     fn as_partial(self) -> PartialOrder {
-        let mut manual = PartialOrderManual::new(self.len());
-        let seen: &mut [bool] = &mut vec![false; self.len()];
+        let mut manual = PartialOrderManual::new(self.elements());
+        let seen: &mut [bool] = &mut vec![false; self.elements()];
         for (i1, e1) in self.order.iter().enumerate() {
             seen[*e1] = true;
             for e2 in &self.order[(i1 + 1)..] {
@@ -104,5 +121,80 @@ impl OrderRef for RankRef<'_> {
 
     fn as_owned(self) -> Self::Owned {
         Rank::new(self.elements, self.order.to_vec())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::{Arbitrary, Gen};
+
+    use super::*;
+    use crate::tests::std_rng;
+
+    impl Arbitrary for Rank {
+        fn arbitrary(g: &mut Gen) -> Self {
+            // Modulo to avoid problematic values
+            let elements = <usize as Arbitrary>::arbitrary(g) % g.size();
+            Rank::random(&mut std_rng(g), elements)
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            let x = self.clone();
+            let iter = (0..(x.len().saturating_sub(1)))
+                .rev()
+                .map(move |i| Rank::new(x.elements, x.order[0..i].to_vec()));
+            Box::new(iter)
+        }
+    }
+
+    #[quickcheck]
+    fn as_partial(b: Rank) -> bool {
+        let po = b.as_partial();
+        po.valid()
+    }
+
+    #[quickcheck]
+    fn as_partial_correct(b: Rank) -> bool {
+        let po = b.clone().as_partial();
+        for (i, vi) in b.order.iter().enumerate() {
+            for (j, vj) in b.order.iter().enumerate() {
+                let index_cmp = j.cmp(&i);
+                if let Some(value_cmp) = po.ord(*vi, *vj) {
+                    if index_cmp != value_cmp {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+        let mut values = b.order;
+        values.sort();
+        let rest: Vec<usize> =
+            (0..b.elements).filter(|x| !values.binary_search(x).is_ok()).collect();
+        for &p in &values {
+            for &q in &rest {
+                if !po.le(q, p) {
+                    return false;
+                }
+            }
+        }
+        for &r1 in &rest {
+            for &r2 in &rest {
+                if r1 == r2 {
+                    if !po.eq(r1, r2) {
+                        return false;
+                    }
+                } else if po.le(r1, r2) {
+                    return false;
+                }
+            }
+        }
+        po.valid()
+    }
+
+    #[quickcheck]
+    fn len(b: Rank) -> bool {
+        b.len() <= b.elements()
     }
 }
