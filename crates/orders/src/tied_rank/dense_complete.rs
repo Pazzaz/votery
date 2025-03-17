@@ -5,7 +5,7 @@ use rand::{
 
 use super::dense::TiedOrdersIncomplete;
 use crate::{
-    cardinal::CardinalDense, rank::StrictOrdersComplete, specific::SpecificDense,
+    cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete,
     tied_rank::TiedRankRef,
 };
 

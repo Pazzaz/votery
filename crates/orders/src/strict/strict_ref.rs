@@ -1,22 +1,22 @@
-use super::{rank_ref::RankRef, total_rank::TotalRank};
+use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
 use crate::unique;
 
 #[derive(Debug, Clone, Copy)]
-pub struct TotalRankRef<'a> {
+pub struct StrictRef<'a> {
     pub(crate) order: &'a [usize],
 }
 
-impl<'a> TotalRankRef<'a> {
+impl<'a> StrictRef<'a> {
     pub fn new(v: &'a [usize]) -> Self {
         if !v.is_empty() {
             assert!(unique(v));
             assert!(v.contains(&0));
         }
-        TotalRankRef { order: v }
+        StrictRef { order: v }
     }
 
     pub unsafe fn new_unchecked(v: &'a [usize]) -> Self {
-        TotalRankRef { order: v }
+        StrictRef { order: v }
     }
 
     pub fn elements(&self) -> usize {
@@ -27,13 +27,13 @@ impl<'a> TotalRankRef<'a> {
         &self.order[..n]
     }
 
-    pub fn owned(&self) -> TotalRank {
-        TotalRank { order: self.order.to_vec() }
+    pub fn owned(&self) -> Strict {
+        Strict { order: self.order.to_vec() }
     }
 
-    pub fn to_incomplete(self) -> RankRef<'a> {
+    pub fn to_incomplete(self) -> StrictIRef<'a> {
         let Self { order } = self;
         let elements = order.len();
-        RankRef { elements, order }
+        StrictIRef { elements, order }
     }
 }

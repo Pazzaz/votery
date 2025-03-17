@@ -1,14 +1,14 @@
 use std::cmp;
 
-use super::{rank::Rank, total_rank_ref::TotalRankRef};
+use super::{strict_incomplete::StrictI, strict_ref::StrictRef};
 use crate::unique;
 
 #[derive(Debug)]
-pub struct TotalRank {
+pub struct Strict {
     pub(crate) order: Vec<usize>,
 }
 
-impl Clone for TotalRank {
+impl Clone for Strict {
     fn clone(&self) -> Self {
         Self { order: self.order.clone() }
     }
@@ -18,7 +18,7 @@ impl Clone for TotalRank {
     }
 }
 
-impl TotalRank {
+impl Strict {
     pub fn new(v: Vec<usize>) -> Self {
         if !v.is_empty() {
             assert!(unique(&v));
@@ -32,15 +32,15 @@ impl TotalRank {
     }
 
     pub fn new_empty() -> Self {
-        TotalRank { order: Vec::new() }
+        Strict { order: Vec::new() }
     }
 
     pub fn new_default(n: usize) -> Self {
-        TotalRank { order: (0..n).collect() }
+        Strict { order: (0..n).collect() }
     }
 
-    pub fn as_ref(&self) -> TotalRankRef {
-        TotalRankRef { order: &self.order }
+    pub fn as_ref(&self) -> StrictRef {
+        StrictRef { order: &self.order }
     }
 
     pub fn get_inner(self) -> Vec<usize> {
@@ -71,14 +71,14 @@ impl TotalRank {
         self.order.sort_by(f);
     }
 
-    pub fn copy_from_ref(&mut self, other: TotalRankRef) {
+    pub fn copy_from_ref(&mut self, other: StrictRef) {
         self.order.clear();
         self.order.extend(other.order);
     }
 
-    pub fn to_incomplete(self) -> Rank {
+    pub fn to_incomplete(self) -> StrictI {
         let Self { order } = self;
         let elements = order.len();
-        Rank { elements, order }
+        StrictI { elements, order }
     }
 }

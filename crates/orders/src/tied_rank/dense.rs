@@ -7,7 +7,7 @@ use super::TiedOrdersComplete;
 use crate::{
     DenseOrders,
     cardinal::CardinalDense,
-    rank::StrictOrdersIncomplete,
+    strict::StrictIDense,
     tied_rank::{TiedRank, TiedRankRef},
 };
 
@@ -385,8 +385,8 @@ impl<'a> Iterator for TiedOrdersIncompleteIterator<'a> {
 
 impl ExactSizeIterator for TiedOrdersIncompleteIterator<'_> {}
 
-impl From<StrictOrdersIncomplete> for TiedOrdersIncomplete {
-    fn from(value: StrictOrdersIncomplete) -> Self {
+impl From<StrictIDense> for TiedOrdersIncomplete {
+    fn from(value: StrictIDense) -> Self {
         let orders: usize = value.orders_count();
         let s = TiedOrdersIncomplete {
             orders: value.orders,

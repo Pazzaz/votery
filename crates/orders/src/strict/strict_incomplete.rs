@@ -13,7 +13,7 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
 };
 
-use super::{rank_ref::RankRef, total_rank::TotalRank};
+use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
 use crate::{
     Order, OrderOwned, OrderRef,
     partial_order::{PartialOrder, PartialOrderManual},
@@ -22,12 +22,12 @@ use crate::{
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Debug, PartialEq, Eq)]
-pub struct Rank {
+pub struct StrictI {
     pub(crate) elements: usize,
     pub(crate) order: Vec<usize>,
 }
 
-impl Clone for Rank {
+impl Clone for StrictI {
     fn clone(&self) -> Self {
         Self { elements: self.elements, order: self.order.clone() }
     }
@@ -38,10 +38,10 @@ impl Clone for Rank {
     }
 }
 
-impl Rank {
+impl StrictI {
     pub fn new(elements: usize, order: Vec<usize>) -> Self {
         debug_assert!(unique(&order));
-        Rank { elements, order }
+        StrictI { elements, order }
     }
 
     pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
@@ -57,30 +57,30 @@ impl Rank {
             order.push(n);
         }
 
-        Some(Rank::new(elements, order))
+        Some(StrictI::new(elements, order))
     }
 
     /// Converts to complete ranking. Panics if not all elements are ranked.
-    pub fn to_complete(self) -> TotalRank {
-        let Rank { elements, order } = self;
+    pub fn to_complete(self) -> Strict {
+        let StrictI { elements, order } = self;
         assert!(elements == order.len());
-        TotalRank { order }
+        Strict { order }
     }
 
-    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Rank {
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> StrictI {
         if elements == 0 {
-            Rank { order: Vec::new(), elements }
+            StrictI { order: Vec::new(), elements }
         } else {
             let len = rng.random_range(0..elements);
 
             let mut order = (0..elements).choose_multiple(rng, len);
             order.shuffle(rng);
-            Rank { order, elements }
+            StrictI { order, elements }
         }
     }
 }
 
-impl Order for Rank {
+impl Order for StrictI {
     fn elements(&self) -> usize {
         self.elements
     }
@@ -119,19 +119,19 @@ impl Order for Rank {
     }
 }
 
-impl<'a> OrderOwned<'a> for Rank {
-    type Ref = RankRef<'a>;
+impl<'a> OrderOwned<'a> for StrictI {
+    type Ref = StrictIRef<'a>;
 
     fn as_ref(&'a self) -> Self::Ref {
-        RankRef { elements: self.elements, order: &self.order }
+        StrictIRef { elements: self.elements, order: &self.order }
     }
 }
 
-impl OrderRef for RankRef<'_> {
-    type Owned = Rank;
+impl OrderRef for StrictIRef<'_> {
+    type Owned = StrictI;
 
     fn to_owned(self) -> Self::Owned {
-        Rank::new(self.elements, self.order.to_vec())
+        StrictI::new(self.elements, self.order.to_vec())
     }
 }
 
@@ -142,30 +142,30 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for Rank {
+    impl Arbitrary for StrictI {
         fn arbitrary(g: &mut Gen) -> Self {
             // Modulo to avoid problematic values
             let elements = <usize as Arbitrary>::arbitrary(g) % g.size();
-            Rank::random(&mut std_rng(g), elements)
+            StrictI::random(&mut std_rng(g), elements)
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let x = self.clone();
             let iter = (0..(x.len().saturating_sub(1)))
                 .rev()
-                .map(move |i| Rank::new(x.elements, x.order[0..i].to_vec()));
+                .map(move |i| StrictI::new(x.elements, x.order[0..i].to_vec()));
             Box::new(iter)
         }
     }
 
     #[quickcheck]
-    fn as_partial(b: Rank) -> bool {
+    fn as_partial(b: StrictI) -> bool {
         let po = b.to_partial();
         po.valid()
     }
 
     #[quickcheck]
-    fn as_partial_correct(b: Rank) -> bool {
+    fn as_partial_correct(b: StrictI) -> bool {
         let po = b.clone().to_partial();
         for (i, vi) in b.order.iter().enumerate() {
             for (j, vj) in b.order.iter().enumerate() {
@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn len(b: Rank) -> bool {
+    fn len(b: StrictI) -> bool {
         b.len() <= b.elements()
     }
 }

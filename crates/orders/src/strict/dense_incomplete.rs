@@ -3,17 +3,17 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::dense_complete::StrictOrdersComplete;
+use super::dense::StrictOrdersComplete;
 use crate::{
     DenseOrders, OrderOwned,
-    rank::{Rank, RankRef},
+    strict::{StrictI, StrictIRef},
 };
 
 /// SOI - Strict Orders - Incomplete List
 ///
 /// A packed list of (possibly incomplete) strict orders, with related methods.
 #[derive(Clone, Debug)]
-pub struct StrictOrdersIncomplete {
+pub struct StrictIDense {
     pub(crate) orders: Vec<usize>,
 
     // Length of each order
@@ -21,9 +21,9 @@ pub struct StrictOrdersIncomplete {
     pub(crate) elements: usize,
 }
 
-impl StrictOrdersIncomplete {
+impl StrictIDense {
     pub fn new(elements: usize) -> Self {
-        StrictOrdersIncomplete { orders: Vec::new(), order_len: Vec::new(), elements }
+        StrictIDense { orders: Vec::new(), order_len: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -49,7 +49,7 @@ impl StrictOrdersIncomplete {
             seen[i] = true;
             order.push(i);
         }
-        let order = Rank::new(self.elements, order);
+        let order = StrictI::new(self.elements, order);
         self.add(order.as_ref()).unwrap();
         debug_assert!(self.valid());
         true
@@ -70,15 +70,15 @@ impl StrictOrdersIncomplete {
         true
     }
 
-    pub fn order_i(&self, i: usize) -> RankRef {
+    pub fn order_i(&self, i: usize) -> StrictIRef {
         let start: usize = self.order_len[0..i].iter().sum();
         let end = start + self.order_len[i];
-        RankRef::new(self.elements, &self.orders[start..end])
+        StrictIRef::new(self.elements, &self.orders[start..end])
     }
 }
 
-impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
-    type Order = RankRef<'a>;
+impl<'a> DenseOrders<'a> for StrictIDense {
+    type Order = StrictIRef<'a>;
 
     fn elements(&self) -> usize {
         self.elements
@@ -161,7 +161,7 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
     }
 }
 
-impl<'a> IntoIterator for &'a StrictOrdersIncomplete {
+impl<'a> IntoIterator for &'a StrictIDense {
     type Item = &'a [usize];
     type IntoIter = StrictOrdersIncompleteIterator<'a>;
 
@@ -171,7 +171,7 @@ impl<'a> IntoIterator for &'a StrictOrdersIncomplete {
 }
 
 pub struct StrictOrdersIncompleteIterator<'a> {
-    orig: &'a StrictOrdersIncomplete,
+    orig: &'a StrictIDense,
     i: usize,
     start: usize,
 }
@@ -194,10 +194,10 @@ impl<'a> Iterator for StrictOrdersIncompleteIterator<'a> {
 
 impl ExactSizeIterator for StrictOrdersIncompleteIterator<'_> {}
 
-impl From<StrictOrdersComplete> for StrictOrdersIncomplete {
+impl From<StrictOrdersComplete> for StrictIDense {
     fn from(value: StrictOrdersComplete) -> Self {
         let orders: usize = value.orders();
-        let s = StrictOrdersIncomplete {
+        let s = StrictIDense {
             orders: value.orders,
             order_len: vec![value.elements; orders],
             elements: value.elements,

@@ -10,16 +10,16 @@ use rand::seq::SliceRandom;
 use crate::{DenseOrders, get_order, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TotalRankingDense {
+pub struct StrictDense {
     // Has size elements * orders_count
     pub orders: Vec<usize>,
     pub(crate) elements: usize,
     pub orders_count: usize,
 }
 
-impl TotalRankingDense {
+impl StrictDense {
     pub fn new(elements: usize) -> Self {
-        TotalRankingDense { orders: Vec::new(), elements, orders_count: 0 }
+        StrictDense { orders: Vec::new(), elements, orders_count: 0 }
     }
 
     pub fn elements(&self) -> usize {
@@ -105,7 +105,7 @@ impl TotalRankingDense {
     }
 }
 
-impl Display for TotalRankingDense {
+impl Display for StrictDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
@@ -119,7 +119,7 @@ impl Display for TotalRankingDense {
     }
 }
 
-impl<'a> DenseOrders<'a> for TotalRankingDense {
+impl<'a> DenseOrders<'a> for StrictDense {
     type Order = &'a [usize];
     fn elements(&self) -> usize {
         self.elements
