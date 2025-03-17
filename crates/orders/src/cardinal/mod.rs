@@ -46,10 +46,14 @@ impl Cardinal {
 }
 
 pub struct CardinalRef<'a> {
-    values: &'a [usize],
+    pub values: &'a [usize],
 }
 
-impl CardinalRef<'_> {
+impl<'a> CardinalRef<'a> {
+    pub fn new(s: &'a [usize]) -> Self {
+        CardinalRef { values: s }
+    }
+
     /// Returns the number of elements in the order
     pub fn len(&self) -> usize {
         self.values.len()

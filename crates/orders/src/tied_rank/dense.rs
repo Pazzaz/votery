@@ -221,7 +221,7 @@ impl TiedOrdersIncomplete {
         let mut v = TiedRank::new_tied(self.elements);
         let mut cardinal_rank = vec![0; self.elements];
         let max = self.elements - 1;
-        let mut cardinal_orders = CardinalDense::new(self.elements, 0, max);
+        let mut cardinal_orders = CardinalDense::new(self.elements, 0..=max);
         for order in &self {
             v.copy_from(order);
             v.make_complete(false);

@@ -10,25 +10,55 @@ use rand::{
 
 use crate::{cardinal::CardinalDense, pairwise_lt, remove_newline, DenseOrders};
 
+use super::BinaryRef;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BinaryDense {
     pub orders: Vec<bool>,
     pub(crate) elements: usize,
-    pub orders_count: usize,
 }
 
 impl BinaryDense {
     pub fn new(elements: usize) -> BinaryDense {
-        BinaryDense { orders: Vec::new(), elements, orders_count: 0 }
+        BinaryDense { orders: Vec::new(), elements }
+    }
+
+    pub fn new_from_parts(orders: Vec<bool>, elements: usize) -> BinaryDense {
+        assert!(orders.len() == 0 && elements == 0 || orders.len() % elements == 0);
+        BinaryDense { orders, elements }
+    }
+
+    pub unsafe fn new_from_parts_unchecked(orders: Vec<bool>, elements: usize) -> BinaryDense {
+        BinaryDense { orders, elements }
+    }
+
+    pub fn get(&self, i: usize) -> Option<BinaryRef> {
+        if i < self.count() {
+            let start = i*self.elements;
+            let end = (i+1)*self.elements;
+            let s = &self.orders[start..end];
+            Some(BinaryRef::new(s))
+        } else {
+            None
+        }
+    }
+
+    /// Number of orders
+    pub fn count(&self) -> usize {
+        if self.elements == 0 {
+            0
+        } else {
+            self.orders.len() / self.elements
+        }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
+    #[cfg(test)]
     pub(crate) fn valid(&self) -> bool {
-        !(self.elements == 0 && (self.orders_count != 0 || !self.orders.is_empty())
-            || self.orders.len() != self.orders_count * self.elements)
+        self.elements == 0 && self.orders.len() == 0 || self.orders.len() % self.elements == 0
     }
 
     /// Sample and add `new_orders` new orders, where each elements has a
@@ -46,8 +76,6 @@ impl BinaryDense {
                 data.orders.push(b);
             }
         }
-        data.orders_count += new_orders;
-        debug_assert!(data.valid());
     }
 
     pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
@@ -83,9 +111,7 @@ impl BinaryDense {
             } else {
                 return Err("Invalid order");
             }
-            self.orders_count += 1;
         }
-        debug_assert!(self.valid());
         Ok(())
     }
 
@@ -96,13 +122,12 @@ impl BinaryDense {
     pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
         let mut orders: Vec<usize> = Vec::new();
         orders
-            .try_reserve_exact(self.elements * self.orders_count)
+            .try_reserve_exact(self.elements * self.count())
             .or(Err("Could not allocate"))?;
         orders.extend(self.orders.iter().map(|x| if *x { 1 } else { 0 }));
         let v = CardinalDense {
             orders,
             elements: self.elements,
-            orders_count: self.orders_count,
             min: 0,
             max: 1,
         };
@@ -113,7 +138,7 @@ impl BinaryDense {
 
 impl Display for BinaryDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             for j in 0..(self.elements - 1) {
                 let b = self.orders[i * self.elements + j];
                 let v = if b { '1' } else { '0' };
@@ -128,7 +153,7 @@ impl Display for BinaryDense {
 }
 
 impl<'a> DenseOrders<'a> for BinaryDense {
-    type Order = &'a [bool];
+    type Order = BinaryRef<'a>;
     fn elements(&self) -> usize {
         self.elements
     }
@@ -138,10 +163,7 @@ impl<'a> DenseOrders<'a> for BinaryDense {
             return Err("Order must contains all elements");
         }
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        for c in v {
-            self.orders.push(*c);
-        }
-        self.orders_count += 1;
+        self.orders.extend_from_slice(&v.values);
         Ok(())
     }
 
@@ -152,7 +174,7 @@ impl<'a> DenseOrders<'a> for BinaryDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -167,9 +189,8 @@ impl<'a> DenseOrders<'a> for BinaryDense {
                 }
             }
         }
-        self.orders.truncate(self.orders_count * new_elements);
+        self.orders.truncate(self.count() * new_elements);
         self.elements = new_elements;
-        debug_assert!(self.valid());
         Ok(())
     }
 

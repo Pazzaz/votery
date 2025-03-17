@@ -51,13 +51,13 @@ fn rank_by_matchups(v: &[usize], data: &CardinalDense) -> TiedRank {
 ///
 /// Higher rank means they got the rating more often.
 fn rank_by_specific(v: &[usize], data: &CardinalDense, rating: usize) -> TiedRank {
-    debug_assert!(data.min <= rating && rating <= data.max);
+    debug_assert!(data.min() <= rating && rating <= data.max());
 
     let mut count: Vec<usize> = vec![0; v.len()];
     for vote in data.iter() {
         for i in 0..v.len() {
             let e = v[i];
-            if vote[e] == rating {
+            if vote.values[e] == rating {
                 count[i] += 1;
             }
         }
@@ -83,9 +83,9 @@ fn tiebreak_scoring_official(ranking: &mut TiedRank, goal_len: usize, data: &Car
         let (order_slice, tied_slice) = ranking.top_n_threshold(goal_len);
         let tiebreak_rank = match tiebreaker {
             TieBreaker::Matchups => rank_by_matchups(&order_slice, data),
-            TieBreaker::Max => rank_by_specific(&order_slice, data, data.max),
+            TieBreaker::Max => rank_by_specific(&order_slice, data, data.max()),
             TieBreaker::Min => {
-                let mut r = rank_by_specific(&order_slice, data, data.min);
+                let mut r = rank_by_specific(&order_slice, data, data.min());
                 r.reverse();
                 r
             }
@@ -129,7 +129,7 @@ fn score_ranking(data: &CardinalDense) -> TiedRank {
     let mut sum = vec![0; data.elements()];
     for vote in data.iter() {
         for i in 0..data.elements() {
-            sum[i] += vote[i];
+            sum[i] += vote.values[i];
         }
     }
     TiedRank::from_scores(data.elements(), &sum)
@@ -144,7 +144,7 @@ fn runoff_round(a: usize, b: usize, data: &CardinalDense) -> Ordering {
     let b_v = matrix[2];
     a_v.cmp(&b_v)
         .then_with(|| data.compare(a, b))
-        .then_with(|| data.compare_specific(a, b, data.max))
+        .then_with(|| data.compare_specific(a, b, data.max()))
 }
 
 impl<'a> VotingMethod<'a> for Star {
@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn simple_example() {
-        let mut votes = CardinalDense::new(4,0,4);
+        let mut votes = CardinalDense::new(4,0..=4);
         votes.add(&[1, 3, 2, 4]).unwrap();
         votes.add(&[3, 1, 1, 3]).unwrap();
         votes.add(&[0, 2, 1, 2]).unwrap();

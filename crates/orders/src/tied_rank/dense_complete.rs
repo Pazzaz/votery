@@ -169,7 +169,7 @@ impl TiedOrdersComplete {
             orders.extend(&new_order);
         }
         let v =
-            CardinalDense { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
+            CardinalDense { orders, elements: self.elements, min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
     }

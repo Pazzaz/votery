@@ -1,48 +1,85 @@
 use std::{
-    cmp::Ordering,
-    fmt::{self, Display},
-    io::BufRead,
-    slice::Chunks,
+    cmp::Ordering, fmt::{self, Display}, io::BufRead, ops::RangeBounds, slice::Chunks
 };
 
 use rand::distr::{Distribution, Uniform};
 
 use crate::{binary::BinaryDense, pairwise_lt, remove_newline, DenseOrders};
 
+use super::CardinalRef;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CardinalDense {
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
-    pub(crate) orders_count: usize,
-    pub min: usize,
-    pub max: usize,
+    pub(crate) min: usize,
+    pub(crate) max: usize,
 }
 
 impl CardinalDense {
-    pub fn new(elements: usize, min: usize, max: usize) -> CardinalDense {
+    pub fn new<R: RangeBounds<usize>>(elements: usize, range: R) -> CardinalDense {
+        let min = match range.start_bound() {
+            std::ops::Bound::Included(&x) => x,
+            std::ops::Bound::Excluded(&x) => x+1,
+            std::ops::Bound::Unbounded => 0,
+        };
+        let max = match range.end_bound() {
+            std::ops::Bound::Included(&x) => x,
+            std::ops::Bound::Excluded(&x) => x-1,
+            std::ops::Bound::Unbounded => usize::MAX,
+        };
         debug_assert!(min <= max);
-        CardinalDense { orders: Vec::new(), elements, orders_count: 0, min, max }
+        CardinalDense { orders: Vec::new(), elements, min, max }
+    }
+
+    pub fn count(&self) -> usize {
+        if self.elements == 0 {
+            0
+        } else {
+            self.orders.len() / self.elements
+        }
+    }
+
+    pub fn min(&self) -> usize {
+        self.min
+    }
+
+    pub fn max(&self) -> usize {
+        self.max
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
-    pub(crate) fn valid(&self) -> bool {
-        if self.elements == 0 && (self.orders_count != 0 || !self.orders.is_empty())
-            || self.orders.len() != self.orders_count * self.elements
-        {
-            return false;
+
+    pub fn get(&self, i: usize) -> Option<CardinalRef> {
+        if i < self.count() {
+            let start = i*self.elements;
+            let end = (i+1)*self.elements;
+            let s = &self.orders[start..end];
+            Some(CardinalRef::new(s))
+        } else {
+            None
         }
-        for i in 0..self.orders_count {
-            for j in 0..self.elements {
-                let v = self.orders[self.elements * i + j];
-                if v < self.min || v > self.max {
-                    return false;
+    }
+
+    pub(crate) fn valid(&self) -> bool {
+        if self.elements == 0 {
+            self.orders.len() == 0
+        } else if self.orders.len() % self.elements != 0 {
+            false
+        } else {
+            for i in 0..self.count() {
+                for j in 0..self.elements {
+                    let v = self.orders[self.elements * i + j];
+                    if v < self.min || v > self.max {
+                        return false;
+                    }
                 }
             }
+            true
         }
-        true
     }
 
     /// Multiply each order score with constant `a`, changing the `min` and
@@ -53,10 +90,8 @@ impl CardinalDense {
         }
         let new_min = self.min.checked_mul(a).unwrap();
         let new_max = self.max.checked_mul(a).unwrap();
-        for i in 0..self.orders_count {
-            for j in 0..self.elements {
-                self.orders[i * self.elements + j] *= a;
-            }
+        for v in &mut self.orders {
+            *v *= a;
         }
         self.min = new_min;
         self.max = new_max;
@@ -71,10 +106,8 @@ impl CardinalDense {
         }
         let new_min = self.min.checked_add(a).unwrap();
         let new_max = self.max.checked_add(a).unwrap();
-        for i in 0..self.orders_count {
-            for j in 0..self.elements {
-                self.orders[i * self.elements + j] += a;
-            }
+        for v in &mut self.orders {
+            *v += a;
         }
         self.min = new_min;
         self.max = new_max;
@@ -89,10 +122,8 @@ impl CardinalDense {
         }
         let new_min = self.min.checked_sub(a).unwrap();
         let new_max = self.max.checked_sub(a).unwrap();
-        for i in 0..self.orders_count {
-            for j in 0..self.elements {
-                self.orders[i * self.elements + j] -= a;
-            }
+        for v in &mut self.orders {
+            *v -= a;
         }
         self.min = new_min;
         self.max = new_max;
@@ -129,7 +160,6 @@ impl CardinalDense {
                 Ordering::Less => return Err("Too few elements listed in order"),
                 Ordering::Equal => {}
             }
-            self.orders_count += 1;
         }
         debug_assert!(self.valid());
         Ok(())
@@ -145,12 +175,12 @@ impl CardinalDense {
         let mut binary_orders: Vec<bool> = Vec::new();
         let orders_size = self
             .elements
-            .checked_mul(self.orders_count)
+            .checked_mul(self.count())
             .ok_or("Number of orders would be too large")?
             .checked_mul(self.values() - 1)
             .ok_or("Number of orders would be too large")?;
         binary_orders.try_reserve_exact(orders_size).or(Err("Could not allocate"))?;
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             let order = &self.orders[i * self.elements..(i + 1) * self.elements];
             for lower in self.min..self.max {
                 for &j in order {
@@ -158,38 +188,27 @@ impl CardinalDense {
                 }
             }
         }
-        let orders = BinaryDense {
-            orders: binary_orders,
-            elements: self.elements,
-            orders_count: self.orders_count * (self.values() - 1),
-        };
-        debug_assert!(orders.valid());
-        Ok(orders)
+        Ok(BinaryDense::new_from_parts(binary_orders, self.elements))
     }
 
     /// Turn every order into a binary order, where every value larger or equal
     /// to `n` becomes an approval.
     ///
     /// # Panics
+    ///
     /// Will panic if n is not contained in `self.min..=self.max`.
     pub fn to_binary_cutoff(&self, n: usize) -> Result<BinaryDense, &'static str> {
         debug_assert!(self.min <= n && n <= self.max);
         let mut binary_orders: Vec<bool> = Vec::new();
         binary_orders
-            .try_reserve_exact(self.elements * self.orders_count)
+            .try_reserve_exact(self.elements * self.count())
             .or(Err("Could not allocate"))?;
         binary_orders.extend(self.orders.iter().map(|x| *x >= n));
-        let orders = BinaryDense {
-            orders: binary_orders,
-            elements: self.elements,
-            orders_count: self.orders_count,
-        };
-        debug_assert!(orders.valid());
-        Ok(orders)
+        Ok(BinaryDense::new_from_parts(binary_orders, self.elements))
     }
 
-    pub fn iter(&self) -> Chunks<usize> {
-        self.orders.chunks(self.elements)
+    pub fn iter(&self) -> impl Iterator<Item = CardinalRef> {
+        (0..self.count()).map(|i| self.get(i).unwrap())
     }
 
     /// Fill the given preference matrix for the elements listed in `keep`.
@@ -198,11 +217,11 @@ impl CardinalDense {
     pub fn fill_preference_matrix(&self, keep: &[usize], matrix: &mut [usize]) {
         let l = keep.len();
         debug_assert!(l * l == matrix.len());
-        for order in self.iter() {
+        for v in self.iter() {
             for i in 0..l {
-                let ci = order[keep[i]];
+                let ci = v.values[keep[i]];
                 for j in (i + 1)..l {
-                    let cj = order[keep[j]];
+                    let cj = v.values[keep[j]];
 
                     // TODO: What should the orientation of the matrix be?
                     match ci.cmp(&cj) {
@@ -220,8 +239,8 @@ impl CardinalDense {
         debug_assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
-        for order in self.iter() {
-            match order[a].cmp(&order[b]) {
+        for v in self.iter() {
+            match v.values[a].cmp(&v.values[b]) {
                 Ordering::Greater => a_v += 1,
                 Ordering::Less => b_v += 1,
                 Ordering::Equal => {}
@@ -235,11 +254,11 @@ impl CardinalDense {
         debug_assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
-        for order in self.iter() {
-            if order[a] == value {
+        for v in self.iter() {
+            if v.values[a] == value {
                 a_v += 1;
             }
-            if order[b] == value {
+            if v.values[b] == value {
                 b_v += 1;
             }
         }
@@ -249,7 +268,7 @@ impl CardinalDense {
 
 impl Display for CardinalDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             for j in 0..(self.elements - 1) {
                 let v = self.orders[i * self.elements + j];
                 write!(f, "{},", v)?;
@@ -275,7 +294,6 @@ impl<'a> DenseOrders<'a> for CardinalDense {
         for c in v {
             self.orders.push(*c);
         }
-        self.orders_count += 1;
         Ok(())
     }
 
@@ -286,7 +304,7 @@ impl<'a> DenseOrders<'a> for CardinalDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -301,9 +319,8 @@ impl<'a> DenseOrders<'a> for CardinalDense {
                 }
             }
         }
-        self.orders.truncate(self.orders_count * new_elements);
+        self.orders.truncate(self.count() * new_elements);
         self.elements = new_elements;
-        debug_assert!(self.valid());
         Ok(())
     }
 
@@ -320,8 +337,6 @@ impl<'a> DenseOrders<'a> for CardinalDense {
                 self.orders.push(i);
             }
         }
-        self.orders_count += new_orders;
-        debug_assert!(self.valid());
     }
 }
 
@@ -349,7 +364,7 @@ mod tests {
                 std::mem::swap(&mut min, &mut max);
             }
 
-            let mut orders = CardinalDense::new(elements, min, max);
+            let mut orders = CardinalDense::new(elements, min..=max);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             orders
         }
@@ -358,7 +373,7 @@ mod tests {
     #[quickcheck]
     fn kp_tranform_orders(cv: CardinalDense) -> bool {
         match cv.kp_tranform() {
-            Ok(bv) => bv.orders_count == cv.orders_count * (cv.values() - 1),
+            Ok(bv) => bv.count() == cv.count() * (cv.values() - 1),
             Err(_) => true,
         }
     }
