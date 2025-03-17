@@ -7,55 +7,86 @@ use std::{
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
+use super::StrictRef;
 use crate::{DenseOrders, get_order, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StrictDense {
-    // Has size elements * orders_count
     pub orders: Vec<usize>,
     pub(crate) elements: usize,
-    pub orders_count: usize,
+}
+
+pub enum AddError {
+    Alloc,
+    Elements,
 }
 
 impl StrictDense {
     pub fn new(elements: usize) -> Self {
-        StrictDense { orders: Vec::new(), elements, orders_count: 0 }
+        StrictDense { orders: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
+    pub fn add(&mut self, v: StrictRef) -> Result<(), AddError> {
+        if v.elements() != self.elements {
+            Err(AddError::Elements)
+        } else if let Err(_) = self.orders.try_reserve(self.elements) {
+            Err(AddError::Alloc)
+        } else {
+            self.orders.extend_from_slice(&v.order);
+            Ok(())
+        }
+    }
+
+    pub fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
+    }
+
+    pub fn get(&self, i: usize) -> StrictRef {
+        let start = i * self.elements;
+        let end = (i + 1) * self.elements;
+        let s = &self.orders[start..end];
+        // TODO: Use unsafe?
+        StrictRef::new(s)
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = StrictRef> {
+        (0..self.count()).map(|i| self.get(i))
+    }
+
     // Check if a given total ranking is valid, i.e.
-    // 1. len(orders) = elements * orders_count
+    // 1. len(orders) % elements == 0
     // 2. Every ranking is total
     fn valid(&self) -> bool {
-        if self.elements == 0 && (self.orders_count != 0 || !self.orders.is_empty())
-            || self.orders.len() != self.orders_count * self.elements
-        {
-            return false;
-        }
-
-        let seen: &mut [bool] = &mut vec![false; self.elements];
-        for i in 0..self.orders_count {
-            seen.fill(false);
-            for j in 0..self.elements {
-                let order = self.orders[i * self.elements + j];
-                if order >= self.elements {
-                    return false;
+        if self.elements == 0 {
+            self.orders.len() == 0
+        } else if self.orders.len() % self.elements != 0 {
+            false
+        } else {
+            let seen: &mut [bool] = &mut vec![false; self.elements];
+            for i in 0..self.count() {
+                seen.fill(false);
+                for j in 0..self.elements {
+                    let order = self.orders[i * self.elements + j];
+                    if order >= self.elements {
+                        return false;
+                    }
+                    if seen[order] {
+                        return false;
+                    }
+                    seen[order] = true;
                 }
-                if seen[order] {
-                    return false;
+                for &s in &*seen {
+                    if !s {
+                        return false;
+                    }
                 }
-                seen[order] = true;
             }
-            for &s in &*seen {
-                if !s {
-                    return false;
-                }
-            }
+            true
         }
-        true
     }
 
     pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
@@ -98,7 +129,6 @@ impl StrictDense {
                     return Err("Invalid order, gap in ranking");
                 }
             }
-            self.orders_count += 1;
         }
         debug_assert!(self.valid());
         Ok(())
@@ -107,14 +137,16 @@ impl StrictDense {
 
 impl Display for StrictDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.orders_count {
-            for j in 0..(self.elements - 1) {
-                let v = self.orders[i * self.elements + j];
-                write!(f, "{},", v)?;
+        let end = self.count();
+        write!(f, "[")?;
+        for (i, v) in self.iter().enumerate() {
+            if i == end.saturating_sub(1) {
+                write!(f, "({})", v)?;
+            } else {
+                write!(f, "({}), ", v)?;
             }
-            let v_last = self.orders[i * self.elements + (self.elements - 1)];
-            writeln!(f, "{}", v_last)?;
         }
+        write!(f, "]")?;
         Ok(())
     }
 }
@@ -133,7 +165,6 @@ impl<'a> DenseOrders<'a> for StrictDense {
         for c in v {
             self.orders.push(*c);
         }
-        self.orders_count += 1;
         Ok(())
     }
 
@@ -144,7 +175,7 @@ impl<'a> DenseOrders<'a> for StrictDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.orders_count {
+        for i in 0..self.count() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -163,9 +194,8 @@ impl<'a> DenseOrders<'a> for StrictDense {
             // TODO: Can we do this in place?
             new_order.clone_from_slice(&get_order(new_order, false));
         }
-        self.orders.truncate(self.orders_count * new_elements);
+        self.orders.truncate(self.count() * new_elements);
         self.elements = new_elements;
-        debug_assert!(self.valid());
         Ok(())
     }
 
@@ -179,8 +209,6 @@ impl<'a> DenseOrders<'a> for StrictDense {
             v.shuffle(rng);
             self.orders.extend_from_slice(&v);
         }
-        self.orders_count += new_orders;
-        debug_assert!(self.valid());
     }
 }
 
