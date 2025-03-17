@@ -1,4 +1,5 @@
 mod groups;
+mod split_ref;
 mod tied_rank;
 mod tied_rank_ref;
 

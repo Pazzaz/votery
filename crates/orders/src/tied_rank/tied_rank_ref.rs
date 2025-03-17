@@ -1,6 +1,6 @@
 use std::fmt::{self, Write};
 
-use super::{groups::GroupIterator, tied_rank::TiedRank};
+use super::{groups::GroupIterator, split_ref::SplitRef, tied_rank::TiedRank};
 use crate::unique;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -8,9 +8,7 @@ pub struct TiedRankRef<'a> {
     /// The total number of elements this ranking concerns, some of them may
     /// not actually be part of the ranking.
     pub(crate) elements: usize,
-
-    order: &'a [usize],
-    tied: &'a [bool],
+    order_tied: SplitRef<'a>,
 }
 
 impl fmt::Display for TiedRankRef<'_> {
@@ -40,12 +38,23 @@ impl fmt::Display for TiedRankRef<'_> {
 
 impl<'a> TiedRankRef<'a> {
     pub fn new(elements: usize, order: &'a [usize], tied: &'a [bool]) -> Self {
-        debug_assert!(tied.len() + 1 == order.len() || order.is_empty() && tied.is_empty());
-        debug_assert!(unique(order));
+        assert!(tied.len() + 1 == order.len() || order.is_empty() && tied.is_empty());
+        assert!(unique(order));
         for i in order {
-            debug_assert!(*i < elements);
+            assert!(*i < elements);
         }
-        TiedRankRef { elements, order, tied }
+        let order_tied = SplitRef::new(order, tied);
+        TiedRankRef { elements, order_tied }
+    }
+
+    #[inline]
+    pub fn order(self: &TiedRankRef<'a>) -> &'a [usize] {
+        self.order_tied.a()
+    }
+
+    #[inline]
+    pub fn tied(self: &TiedRankRef<'a>) -> &'a [bool] {
+        self.order_tied.b()
     }
 
     pub fn elements(&self) -> usize {
@@ -75,17 +84,6 @@ impl<'a> TiedRankRef<'a> {
                 c[*e] = mapped;
             }
         }
-    }
-
-    // We may not want to store whole slice in the future, so use accessor function
-    #[inline]
-    pub fn order(self: &TiedRankRef<'a>) -> &'a [usize] {
-        self.order
-    }
-
-    #[inline]
-    pub fn tied(self: &TiedRankRef<'a>) -> &'a [bool] {
-        self.tied
     }
 
     pub fn increase_elements(&mut self, elements: usize) {
@@ -118,20 +116,16 @@ impl<'a> TiedRankRef<'a> {
         if n == 0 {
             return self.zeroed();
         }
-        debug_assert!(n <= self.order.len());
+        debug_assert!(n <= self.order().len());
         let mut i = n;
-        while i < self.order.len() {
-            if self.tied[i - 1] {
+        while i < self.order().len() {
+            if self.tied()[i - 1] {
                 i += 1;
             } else {
                 break;
             }
         }
-        TiedRankRef {
-            elements: self.elements,
-            order: &self.order[0..i],
-            tied: &self.tied[0..(i.saturating_sub(1))],
-        }
+        TiedRankRef::new(self.elements, &self.order()[0..i], &self.tied()[0..(i.saturating_sub(1))])
     }
 
     pub fn len(&self) -> usize {
@@ -188,7 +182,7 @@ impl<'a> TiedRankRef<'a> {
             }
         }
         let (out, rest_order, rest_tied): (&[usize], &[usize], &[bool]) = if values == self.len() {
-            (self.order, &[], &[])
+            (self.order(), &[], &[])
         } else {
             let (_, rest_tied) = self.tied().split_at(values);
             let (out, rest_order) = self.order().split_at(values);
