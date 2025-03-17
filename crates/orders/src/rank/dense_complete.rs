@@ -7,7 +7,7 @@ use std::{
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
-use crate::{get_order, pairwise_lt, remove_newline, DenseOrders};
+use crate::{DenseOrders, get_order, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalRankingDense {

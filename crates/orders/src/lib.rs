@@ -32,8 +32,8 @@ pub mod binary;
 pub mod cardinal;
 pub mod partial_order;
 pub mod rank;
-pub mod tied_rank;
 pub mod specific;
+pub mod tied_rank;
 
 fn pairwise_lt(v: &[usize]) -> bool {
     if v.len() >= 2 {

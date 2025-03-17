@@ -1,12 +1,14 @@
 use std::{
-    cmp::Ordering, fmt::{self, Display}, io::BufRead, ops::RangeBounds, slice::Chunks
+    cmp::Ordering,
+    fmt::{self, Display},
+    io::BufRead,
+    ops::RangeBounds,
 };
 
 use rand::distr::{Distribution, Uniform};
 
-use crate::{binary::BinaryDense, pairwise_lt, remove_newline, DenseOrders};
-
 use super::CardinalRef;
+use crate::{DenseOrders, binary::BinaryDense, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CardinalDense {
@@ -20,12 +22,12 @@ impl CardinalDense {
     pub fn new<R: RangeBounds<usize>>(elements: usize, range: R) -> CardinalDense {
         let min = match range.start_bound() {
             std::ops::Bound::Included(&x) => x,
-            std::ops::Bound::Excluded(&x) => x+1,
+            std::ops::Bound::Excluded(&x) => x + 1,
             std::ops::Bound::Unbounded => 0,
         };
         let max = match range.end_bound() {
             std::ops::Bound::Included(&x) => x,
-            std::ops::Bound::Excluded(&x) => x-1,
+            std::ops::Bound::Excluded(&x) => x - 1,
             std::ops::Bound::Unbounded => usize::MAX,
         };
         debug_assert!(min <= max);
@@ -33,11 +35,7 @@ impl CardinalDense {
     }
 
     pub fn count(&self) -> usize {
-        if self.elements == 0 {
-            0
-        } else {
-            self.orders.len() / self.elements
-        }
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     pub fn min(&self) -> usize {
@@ -52,11 +50,10 @@ impl CardinalDense {
         self.elements
     }
 
-
     pub fn get(&self, i: usize) -> Option<CardinalRef> {
         if i < self.count() {
-            let start = i*self.elements;
-            let end = (i+1)*self.elements;
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
             Some(CardinalRef::new(s))
         } else {

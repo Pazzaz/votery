@@ -1,7 +1,6 @@
 mod dense;
 
 pub use dense::BinaryDense;
-
 use rand::{Rng, distr::StandardUniform};
 
 use super::{Order, OrderOwned, OrderRef, partial_order::PartialOrder};

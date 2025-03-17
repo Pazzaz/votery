@@ -3,11 +3,11 @@ use rand::{
     seq::SliceRandom,
 };
 
-use crate::{
-    rank::{Rank, RankRef}, DenseOrders, OrderOwned
-};
-
 use super::dense_complete::StrictOrdersComplete;
+use crate::{
+    DenseOrders, OrderOwned,
+    rank::{Rank, RankRef},
+};
 
 /// SOI - Strict Orders - Incomplete List
 ///

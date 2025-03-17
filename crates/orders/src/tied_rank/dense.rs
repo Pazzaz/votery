@@ -3,9 +3,13 @@ use rand::{
     seq::SliceRandom,
 };
 
-use crate::{cardinal::CardinalDense, rank::StrictOrdersIncomplete, tied_rank::{TiedRank, TiedRankRef}, DenseOrders};
-
 use super::TiedOrdersComplete;
+use crate::{
+    DenseOrders,
+    cardinal::CardinalDense,
+    rank::StrictOrdersIncomplete,
+    tied_rank::{TiedRank, TiedRankRef},
+};
 
 /// TOI - Orders with Ties - Incomplete List
 ///

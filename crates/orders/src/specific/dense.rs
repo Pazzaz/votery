@@ -5,7 +5,7 @@ use rand::{
     distr::{Distribution, Uniform},
 };
 
-use crate::{pairwise_lt, remove_newline, DenseOrders};
+use crate::{DenseOrders, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpecificDense {

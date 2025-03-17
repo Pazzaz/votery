@@ -3,9 +3,11 @@ use rand::{
     seq::{IndexedRandom, SliceRandom},
 };
 
-use crate::{cardinal::CardinalDense, rank::StrictOrdersComplete, specific::SpecificDense, tied_rank::TiedRankRef};
-
 use super::dense::TiedOrdersIncomplete;
+use crate::{
+    cardinal::CardinalDense, rank::StrictOrdersComplete, specific::SpecificDense,
+    tied_rank::TiedRankRef,
+};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -168,8 +170,7 @@ impl TiedOrdersComplete {
             // between iterations.
             orders.extend(&new_order);
         }
-        let v =
-            CardinalDense { orders, elements: self.elements, min: 0, max };
+        let v = CardinalDense { orders, elements: self.elements, min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
     }

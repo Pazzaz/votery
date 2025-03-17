@@ -8,9 +8,8 @@ use rand::{
     distr::{Bernoulli, Distribution},
 };
 
-use crate::{cardinal::CardinalDense, pairwise_lt, remove_newline, DenseOrders};
-
 use super::BinaryRef;
+use crate::{DenseOrders, cardinal::CardinalDense, pairwise_lt, remove_newline};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BinaryDense {
@@ -34,8 +33,8 @@ impl BinaryDense {
 
     pub fn get(&self, i: usize) -> Option<BinaryRef> {
         if i < self.count() {
-            let start = i*self.elements;
-            let end = (i+1)*self.elements;
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
             Some(BinaryRef::new(s))
         } else {
@@ -45,11 +44,7 @@ impl BinaryDense {
 
     /// Number of orders
     pub fn count(&self) -> usize {
-        if self.elements == 0 {
-            0
-        } else {
-            self.orders.len() / self.elements
-        }
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -121,16 +116,9 @@ impl BinaryDense {
     /// Returns `Err` if it failed to allocate
     pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
         let mut orders: Vec<usize> = Vec::new();
-        orders
-            .try_reserve_exact(self.elements * self.count())
-            .or(Err("Could not allocate"))?;
+        orders.try_reserve_exact(self.elements * self.count()).or(Err("Could not allocate"))?;
         orders.extend(self.orders.iter().map(|x| if *x { 1 } else { 0 }));
-        let v = CardinalDense {
-            orders,
-            elements: self.elements,
-            min: 0,
-            max: 1,
-        };
+        let v = CardinalDense { orders, elements: self.elements, min: 0, max: 1 };
         debug_assert!(v.valid());
         Ok(v)
     }
