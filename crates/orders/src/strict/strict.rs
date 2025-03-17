@@ -1,7 +1,8 @@
 use std::cmp;
 
+use crate::{Order, OrderOwned};
+
 use super::{strict_incomplete::StrictI, strict_ref::StrictRef};
-use crate::unique;
 
 #[derive(Debug)]
 pub struct Strict {
@@ -18,12 +19,28 @@ impl Clone for Strict {
     }
 }
 
+// Every value is less than `s.len()` and unique, i.e. the slice is a
+// permutation of `0..s.len()`.
+pub(super) fn strict_valid(s: &[usize]) -> bool {
+    for (i, &a) in s.iter().enumerate() {
+        if a < s.len() {
+            return false;
+        }
+        for (j, &b) in s.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+            if a == b {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 impl Strict {
     pub fn new(v: Vec<usize>) -> Self {
-        if !v.is_empty() {
-            assert!(unique(&v));
-            assert!(v.contains(&0));
-        }
+        assert!(strict_valid(&v));
         Self { order: v }
     }
 
@@ -31,16 +48,8 @@ impl Strict {
         Self { order: v }
     }
 
-    pub fn new_empty() -> Self {
-        Strict { order: Vec::new() }
-    }
-
     pub fn new_default(n: usize) -> Self {
         Strict { order: (0..n).collect() }
-    }
-
-    pub fn as_ref(&self) -> StrictRef {
-        StrictRef { order: &self.order }
     }
 
     pub fn get_inner(self) -> Vec<usize> {
@@ -73,12 +82,34 @@ impl Strict {
 
     pub fn copy_from_ref(&mut self, other: StrictRef) {
         self.order.clear();
-        self.order.extend(other.order);
+        self.order.extend_from_slice(other.order);
     }
 
     pub fn to_incomplete(self) -> StrictI {
         let Self { order } = self;
         let elements = order.len();
         StrictI { elements, order }
+    }
+}
+
+impl Order for Strict {
+    fn elements(&self) -> usize {
+        self.order.len()
+    }
+
+    fn len(&self) -> usize {
+        self.order.len()
+    }
+
+    fn to_partial(self) -> crate::partial_order::PartialOrder {
+        todo!()
+    }
+}
+
+impl<'a> OrderOwned<'a> for Strict {
+    type Ref = StrictRef<'a>;
+
+    fn as_ref(&'a self) -> Self::Ref {
+        StrictRef { order: &self.order }
     }
 }

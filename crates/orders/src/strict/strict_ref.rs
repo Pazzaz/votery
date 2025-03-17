@@ -1,29 +1,14 @@
 use std::fmt::{self, Display};
 
+use crate::OrderRef;
+
+use super::strict_valid;
+
 use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
 
 #[derive(Debug, Clone, Copy)]
 pub struct StrictRef<'a> {
     pub(crate) order: &'a [usize],
-}
-
-// Every value is less than `s.len()` and unique, i.e. the slice is a
-// permutation of `0..s.len()`.
-fn strict_valid(s: &[usize]) -> bool {
-    for (i, &a) in s.iter().enumerate() {
-        if a < s.len() {
-            return false;
-        }
-        for (j, &b) in s.iter().enumerate() {
-            if i == j {
-                continue;
-            }
-            if a == b {
-                return false;
-            }
-        }
-    }
-    true
 }
 
 impl<'a> StrictRef<'a> {
@@ -45,14 +30,18 @@ impl<'a> StrictRef<'a> {
         &self.order[..n]
     }
 
-    pub fn owned(&self) -> Strict {
-        Strict { order: self.order.to_vec() }
-    }
-
     pub fn to_incomplete(self) -> StrictIRef<'a> {
         let Self { order } = self;
         let elements = order.len();
         StrictIRef { elements, order }
+    }
+}
+
+impl OrderRef for StrictRef<'_> {
+    type Owned = Strict;
+
+    fn to_owned(self) -> Self::Owned {
+        Strict { order: self.order.to_vec() }
     }
 }
 
