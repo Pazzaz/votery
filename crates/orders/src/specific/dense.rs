@@ -5,8 +5,7 @@ use rand::{
     distr::{Distribution, Uniform},
 };
 
-use super::{DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
-use crate::pairwise_lt;
+use crate::{pairwise_lt, remove_newline, DenseOrders};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpecificDense {
@@ -131,16 +130,6 @@ impl DenseOrders<'_> for SpecificDense {
         Ok(())
     }
 
-    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        let n = self.orders.len();
-        TiedOrdersIncomplete {
-            orders: self.orders,
-            ties: Vec::new(),
-            order_len: vec![1; n],
-            elements: self.elements,
-        }
-    }
-
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize) {
         if self.elements == 0 || new_orders == 0 {
             return;
@@ -218,21 +207,5 @@ mod tests {
             Some(i) => i < orders.elements,
             None => true,
         }
-    }
-
-    #[quickcheck]
-    fn majority_partial(orders: SpecificDense) -> bool {
-        let normal_majority = orders.majority();
-        let partial_majority = orders.to_partial_ranking().majority();
-        match (normal_majority, &partial_majority[..]) {
-            (Some(i), [j]) => i == *j,
-            (None, []) => true,
-            (_, _) => false,
-        }
-    }
-
-    #[quickcheck]
-    fn to_partial_ranking(orders: SpecificDense) -> bool {
-        orders.to_partial_ranking().valid()
     }
 }

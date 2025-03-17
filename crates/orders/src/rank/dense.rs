@@ -3,21 +3,21 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::{DenseOrders, soc::StrictOrdersComplete};
 use crate::{
-    OrderOwned,
-    rank::{Rank, RankRef},
+    rank::{Rank, RankRef}, DenseOrders, OrderOwned
 };
+
+use super::dense_complete::StrictOrdersComplete;
 
 /// SOI - Strict Orders - Incomplete List
 ///
 /// A packed list of (possibly incomplete) strict orders, with related methods.
 #[derive(Clone, Debug)]
 pub struct StrictOrdersIncomplete {
-    pub(super) orders: Vec<usize>,
+    pub(crate) orders: Vec<usize>,
 
     // Length of each order
-    pub(super) order_len: Vec<usize>,
+    pub(crate) order_len: Vec<usize>,
     pub(crate) elements: usize,
 }
 
@@ -158,10 +158,6 @@ impl<'a> DenseOrders<'a> for StrictOrdersIncomplete {
             self.order_len.push(elements);
         }
         debug_assert!(self.valid());
-    }
-
-    fn to_partial_ranking(self) -> super::toi::TiedOrdersIncomplete {
-        todo!()
     }
 }
 

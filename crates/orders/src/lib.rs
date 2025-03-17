@@ -30,10 +30,10 @@ extern crate quickcheck_macros;
 
 pub mod binary;
 pub mod cardinal;
-pub mod dense;
 pub mod partial_order;
 pub mod rank;
 pub mod tied_rank;
+pub mod specific;
 
 fn pairwise_lt(v: &[usize]) -> bool {
     if v.len() >= 2 {
@@ -151,4 +151,34 @@ pub trait OrderOwned<'a> {
 pub trait OrderRef {
     type Owned;
     fn to_owned(self) -> Self::Owned;
+}
+
+use rand::Rng;
+
+// Lifetime needed because `Order` may be a reference which then needs a
+// lifetime
+pub trait DenseOrders<'a> {
+    type Order;
+    /// Number of elements
+    fn elements(&self) -> usize;
+
+    fn add(&mut self, v: Self::Order) -> Result<(), &'static str>;
+
+    /// Removes element from the orders, offsetting the other elements to
+    /// take their place.
+    fn remove_element(&mut self, target: usize) -> Result<(), &'static str>;
+
+    /// Sample and add `new_orders` uniformly random orders for this format,
+    /// using random numbers from `rng`.
+    fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize);
+}
+
+// Utility functions
+fn remove_newline(buf: &mut String) {
+    if buf.ends_with('\n') {
+        buf.pop();
+        if buf.ends_with('\r') {
+            buf.pop();
+        }
+    }
 }

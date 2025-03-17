@@ -1,7 +1,7 @@
 // There are several different types of borda count. We have tried to handle
 // every variation. See also the Dowdall system, a similar method.
 
-use orders::{dense::toi::TiedOrdersIncomplete, tied_rank::TiedRank};
+use orders::tied_rank::{TiedOrdersIncomplete, TiedRank};
 
 use super::{fptp::order_to_vote, VotingMethod};
 

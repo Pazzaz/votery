@@ -1,4 +1,4 @@
-use orders::{dense::{soi::StrictOrdersIncomplete, toi::TiedOrdersIncomplete}, rank::Rank, tied_rank::TiedRank};
+use orders::{rank::{Rank, StrictOrdersIncomplete}, tied_rank::{TiedOrdersIncomplete, TiedRank}};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
 

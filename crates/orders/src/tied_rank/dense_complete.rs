@@ -3,8 +3,9 @@ use rand::{
     seq::{IndexedRandom, SliceRandom},
 };
 
-use super::{CardinalDense, SpecificDense, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
-use crate::tied_rank::TiedRankRef;
+use crate::{cardinal::CardinalDense, rank::StrictOrdersComplete, specific::SpecificDense, tied_rank::TiedRankRef};
+
+use super::dense::TiedOrdersIncomplete;
 
 /// TOC - Orders with Ties - Complete List
 ///

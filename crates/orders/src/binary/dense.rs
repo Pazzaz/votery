@@ -8,8 +8,7 @@ use rand::{
     distr::{Bernoulli, Distribution},
 };
 
-use super::{CardinalDense, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
-use crate::pairwise_lt;
+use crate::{cardinal::CardinalDense, pairwise_lt, remove_newline, DenseOrders};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BinaryDense {
@@ -176,10 +175,6 @@ impl<'a> DenseOrders<'a> for BinaryDense {
 
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize) {
         BinaryDense::bernoulli(self, rng, new_orders, 0.5);
-    }
-
-    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        unimplemented!();
     }
 }
 

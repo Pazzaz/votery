@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use orders::{dense::CardinalDense, tied_rank::TiedRank};
+use orders::{cardinal::CardinalDense, tied_rank::TiedRank};
 
 use super::VotingMethod;
 
@@ -192,8 +192,9 @@ impl Star {
 
 #[cfg(test)]
 mod tests {
+    use orders::DenseOrders;
+
     use super::*;
-    use orders::dense::DenseOrders;
 
     #[test]
     fn simple_example() {

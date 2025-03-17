@@ -3,8 +3,9 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::{CardinalDense, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
-use crate::tied_rank::{TiedRank, TiedRankRef};
+use crate::{cardinal::CardinalDense, rank::StrictOrdersIncomplete, tied_rank::{TiedRank, TiedRankRef}, DenseOrders};
+
+use super::TiedOrdersComplete;
 
 /// TOI - Orders with Ties - Incomplete List
 ///
@@ -313,10 +314,6 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
             self.order_len.push(elements);
         }
         debug_assert!(self.valid());
-    }
-
-    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        self
     }
 }
 

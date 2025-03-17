@@ -7,8 +7,7 @@ use std::{
 
 use rand::distr::{Distribution, Uniform};
 
-use super::{BinaryDense, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
-use crate::pairwise_lt;
+use crate::{binary::BinaryDense, pairwise_lt, remove_newline, DenseOrders};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CardinalDense {
@@ -306,10 +305,6 @@ impl<'a> DenseOrders<'a> for CardinalDense {
         self.elements = new_elements;
         debug_assert!(self.valid());
         Ok(())
-    }
-
-    fn to_partial_ranking(self) -> TiedOrdersIncomplete {
-        unimplemented!();
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
