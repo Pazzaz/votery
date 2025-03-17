@@ -54,13 +54,13 @@ pub mod toc;
 pub mod toi;
 
 mod binary;
-pub use binary::Binary;
+pub use binary::BinaryDense;
 mod cardinal;
-pub use cardinal::Cardinal;
+pub use cardinal::CardinalDense;
 mod specific;
-pub use specific::Specific;
+pub use specific::SpecificDense;
 mod total_ranking;
-pub use total_ranking::TotalRanking;
+pub use total_ranking::TotalRankingDense;
 
 use self::toi::TiedOrdersIncomplete;
 

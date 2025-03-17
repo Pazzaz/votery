@@ -11,16 +11,16 @@ use super::{DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::{get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TotalRanking {
+pub struct TotalRankingDense {
     // Has size elements * orders_count
     pub orders: Vec<usize>,
     pub(crate) elements: usize,
     pub orders_count: usize,
 }
 
-impl TotalRanking {
+impl TotalRankingDense {
     pub fn new(elements: usize) -> Self {
-        TotalRanking { orders: Vec::new(), elements, orders_count: 0 }
+        TotalRankingDense { orders: Vec::new(), elements, orders_count: 0 }
     }
 
     pub fn elements(&self) -> usize {
@@ -106,7 +106,7 @@ impl TotalRanking {
     }
 }
 
-impl Display for TotalRanking {
+impl Display for TotalRankingDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
@@ -120,7 +120,7 @@ impl Display for TotalRanking {
     }
 }
 
-impl<'a> DenseOrders<'a> for TotalRanking {
+impl<'a> DenseOrders<'a> for TotalRankingDense {
     type Order = &'a [usize];
     fn elements(&self) -> usize {
         self.elements

@@ -135,6 +135,8 @@ pub trait Order {
 
     /// The number of elements currently part of this order.
     fn len(&self) -> usize;
+
+    /// Shorthand for `self.len() == 0`
     fn is_empty(&self) -> bool {
         self.len() == 0
     }

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use orders::{dense::Cardinal, tied_rank::TiedRank};
+use orders::{dense::CardinalDense, tied_rank::TiedRank};
 
 use super::VotingMethod;
 
@@ -28,7 +28,7 @@ pub struct Star {
 /// eachother.
 ///
 /// Higher rank means they won more matchups
-fn rank_by_matchups(v: &[usize], data: &Cardinal) -> TiedRank {
+fn rank_by_matchups(v: &[usize], data: &CardinalDense) -> TiedRank {
     let mut matrix = vec![0; v.len() * v.len()];
     data.fill_preference_matrix(v, &mut matrix);
 
@@ -50,7 +50,7 @@ fn rank_by_matchups(v: &[usize], data: &Cardinal) -> TiedRank {
 /// Rank the candidates according to how many they got of a specific rating
 ///
 /// Higher rank means they got the rating more often.
-fn rank_by_specific(v: &[usize], data: &Cardinal, rating: usize) -> TiedRank {
+fn rank_by_specific(v: &[usize], data: &CardinalDense, rating: usize) -> TiedRank {
     debug_assert!(data.min <= rating && rating <= data.max);
 
     let mut count: Vec<usize> = vec![0; v.len()];
@@ -75,7 +75,7 @@ enum TieBreaker {
 // The "Official Tiebreaker Protocol" for the scoring round of star voting.
 // We tiebreak `ranking` until it is well defined which ones are ranked better
 // than `goal_len`. Returns `true` if it manages to tiebreak, else `false`.
-fn tiebreak_scoring_official(ranking: &mut TiedRank, goal_len: usize, data: &Cardinal) -> bool {
+fn tiebreak_scoring_official(ranking: &mut TiedRank, goal_len: usize, data: &CardinalDense) -> bool {
     let mut tiebreaker = TieBreaker::Matchups;
     loop {
         // We will only tiebreak those that are tied, who would change
@@ -122,7 +122,7 @@ fn tiebreak_scoring_official(ranking: &mut TiedRank, goal_len: usize, data: &Car
 }
 
 // Get a ranking of the candidates sorted by their total score
-fn score_ranking(data: &Cardinal) -> TiedRank {
+fn score_ranking(data: &CardinalDense) -> TiedRank {
     if data.elements() < 2 {
         return TiedRank::new_tied(data.elements());
     }
@@ -137,7 +137,7 @@ fn score_ranking(data: &Cardinal) -> TiedRank {
 
 // Return a comparison between `a` and `b`, a "greater" result means `a` has a
 // better rank.
-fn runoff_round(a: usize, b: usize, data: &Cardinal) -> Ordering {
+fn runoff_round(a: usize, b: usize, data: &CardinalDense) -> Ordering {
     let mut matrix = [0; 4];
     data.fill_preference_matrix(&[a, b], &mut matrix);
     let a_v = matrix[1];
@@ -148,9 +148,9 @@ fn runoff_round(a: usize, b: usize, data: &Cardinal) -> Ordering {
 }
 
 impl<'a> VotingMethod<'a> for Star {
-    type Format = Cardinal;
+    type Format = CardinalDense;
 
-    fn count(data: &Cardinal) -> Result<Self, &'static str> {
+    fn count(data: &CardinalDense) -> Result<Self, &'static str> {
         if data.elements() < 2 {
             return Ok(Star { score: TiedRank::new_tied(data.elements()) });
         }
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn simple_example() {
-        let mut votes = Cardinal::new(4,0,4);
+        let mut votes = CardinalDense::new(4,0,4);
         votes.add(&[1, 3, 2, 4]).unwrap();
         votes.add(&[3, 1, 1, 3]).unwrap();
         votes.add(&[0, 2, 1, 2]).unwrap();

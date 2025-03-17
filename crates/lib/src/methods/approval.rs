@@ -1,4 +1,4 @@
-use orders::dense::Binary;
+use orders::dense::BinaryDense;
 
 use super::VotingMethod;
 
@@ -7,9 +7,9 @@ pub struct Approval {
 }
 
 impl<'a> VotingMethod<'a> for Approval {
-    type Format = Binary;
+    type Format = BinaryDense;
 
-    fn count(data: &Binary) -> Result<Self, &'static str> {
+    fn count(data: &BinaryDense) -> Result<Self, &'static str> {
         debug_assert!(data.orders.len() == data.orders_count * data.elements());
         let mut score: Vec<usize> = vec![0; data.elements()];
         for i in 0..data.orders_count {

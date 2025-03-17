@@ -1,4 +1,4 @@
-use orders::{dense::Specific, tied_rank::TiedRank};
+use orders::{dense::SpecificDense, tied_rank::TiedRank};
 
 use super::VotingMethod;
 
@@ -7,9 +7,9 @@ pub struct Fptp {
 }
 
 impl<'a> VotingMethod<'a> for Fptp {
-    type Format = Specific;
+    type Format = SpecificDense;
 
-    fn count(data: &Specific) -> Result<Self, &'static str> {
+    fn count(data: &SpecificDense) -> Result<Self, &'static str> {
         let mut score: Vec<usize> = vec![0; data.elements()];
         for vote in data.orders_count() {
             debug_assert!(*vote < data.elements());

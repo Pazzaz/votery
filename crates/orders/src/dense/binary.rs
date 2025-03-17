@@ -8,19 +8,19 @@ use rand::{
     distr::{Bernoulli, Distribution},
 };
 
-use super::{Cardinal, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
+use super::{CardinalDense, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Binary {
+pub struct BinaryDense {
     pub orders: Vec<bool>,
     pub(crate) elements: usize,
     pub orders_count: usize,
 }
 
-impl Binary {
-    pub fn new(elements: usize) -> Binary {
-        Binary { orders: Vec::new(), elements, orders_count: 0 }
+impl BinaryDense {
+    pub fn new(elements: usize) -> BinaryDense {
+        BinaryDense { orders: Vec::new(), elements, orders_count: 0 }
     }
 
     pub fn elements(&self) -> usize {
@@ -94,13 +94,13 @@ impl Binary {
     /// disapproval 0.
     ///
     /// Returns `Err` if it failed to allocate
-    pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
+    pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
         let mut orders: Vec<usize> = Vec::new();
         orders
             .try_reserve_exact(self.elements * self.orders_count)
             .or(Err("Could not allocate"))?;
         orders.extend(self.orders.iter().map(|x| if *x { 1 } else { 0 }));
-        let v = Cardinal {
+        let v = CardinalDense {
             orders,
             elements: self.elements,
             orders_count: self.orders_count,
@@ -112,7 +112,7 @@ impl Binary {
     }
 }
 
-impl Display for Binary {
+impl Display for BinaryDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
@@ -128,7 +128,7 @@ impl Display for Binary {
     }
 }
 
-impl<'a> DenseOrders<'a> for Binary {
+impl<'a> DenseOrders<'a> for BinaryDense {
     type Order = &'a [bool];
     fn elements(&self) -> usize {
         self.elements
@@ -175,7 +175,7 @@ impl<'a> DenseOrders<'a> for Binary {
     }
 
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize) {
-        Binary::bernoulli(self, rng, new_orders, 0.5);
+        BinaryDense::bernoulli(self, rng, new_orders, 0.5);
     }
 
     fn to_partial_ranking(self) -> TiedOrdersIncomplete {
@@ -190,7 +190,7 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for Binary {
+    impl Arbitrary for BinaryDense {
         fn arbitrary(g: &mut Gen) -> Self {
             let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
@@ -200,7 +200,7 @@ mod tests {
             orders_count = orders_count % g.size();
             elements = elements % g.size();
 
-            let mut orders = Binary::new(elements);
+            let mut orders = BinaryDense::new(elements);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             debug_assert!(orders.valid());
             orders
@@ -208,8 +208,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn to_cardinal(orders: Binary) -> bool {
-        let around: Binary = orders.to_cardinal().unwrap().to_binary_cutoff(1).unwrap();
+    fn to_cardinal(orders: BinaryDense) -> bool {
+        let around: BinaryDense = orders.to_cardinal().unwrap().to_binary_cutoff(1).unwrap();
         around == orders
     }
 }

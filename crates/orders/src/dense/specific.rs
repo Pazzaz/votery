@@ -9,15 +9,15 @@ use super::{DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Specific {
+pub struct SpecificDense {
     // number of orders = orders.len()
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
 }
 
-impl Specific {
+impl SpecificDense {
     pub fn new(elements: usize) -> Self {
-        Specific { orders: Vec::new(), elements }
+        SpecificDense { orders: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -88,7 +88,7 @@ impl Specific {
     }
 }
 
-impl Display for Specific {
+impl Display for SpecificDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for v in &self.orders {
             writeln!(f, "{}", v)?;
@@ -97,7 +97,7 @@ impl Display for Specific {
     }
 }
 
-impl DenseOrders<'_> for Specific {
+impl DenseOrders<'_> for SpecificDense {
     type Order = usize;
     fn elements(&self) -> usize {
         self.elements
@@ -156,7 +156,7 @@ impl DenseOrders<'_> for Specific {
     }
 }
 
-impl FromIterator<usize> for Specific {
+impl FromIterator<usize> for SpecificDense {
     fn from_iter<I: IntoIterator<Item = usize>>(iter: I) -> Self {
         let ii = iter.into_iter();
         let (min_len, _) = ii.size_hint();
@@ -168,7 +168,7 @@ impl FromIterator<usize> for Specific {
                 max = v;
             }
         }
-        Specific { orders, elements: max + 1 }
+        SpecificDense { orders, elements: max + 1 }
     }
 }
 
@@ -179,7 +179,7 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for Specific {
+    impl Arbitrary for SpecificDense {
         fn arbitrary(g: &mut Gen) -> Self {
             let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
@@ -189,7 +189,7 @@ mod tests {
             orders_count = orders_count % g.size();
             elements = elements % g.size();
 
-            let mut orders = Specific::new(elements);
+            let mut orders = SpecificDense::new(elements);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             debug_assert!(orders.valid());
             orders
@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn majority_bound(orders: Specific) -> bool {
+    fn majority_bound(orders: SpecificDense) -> bool {
         let major = orders.majority();
         eprintln!("{:?}", major);
         match major {
@@ -221,7 +221,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn majority_partial(orders: Specific) -> bool {
+    fn majority_partial(orders: SpecificDense) -> bool {
         let normal_majority = orders.majority();
         let partial_majority = orders.to_partial_ranking().majority();
         match (normal_majority, &partial_majority[..]) {
@@ -232,7 +232,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn to_partial_ranking(orders: Specific) -> bool {
+    fn to_partial_ranking(orders: SpecificDense) -> bool {
         orders.to_partial_ranking().valid()
     }
 }

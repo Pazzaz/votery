@@ -3,7 +3,7 @@ use rand::{
     seq::{IndexedRandom, SliceRandom},
 };
 
-use super::{Cardinal, Specific, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
+use super::{CardinalDense, SpecificDense, soc::StrictOrdersComplete, toi::TiedOrdersIncomplete};
 use crate::tied_rank::TiedRankRef;
 
 /// TOC - Orders with Ties - Complete List
@@ -138,9 +138,9 @@ impl TiedOrdersComplete {
 
     /// Pick a winning element from each ordering, randomly from their highest
     /// ranked (tied) elements.
-    pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> Specific {
+    pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> SpecificDense {
         let elements = self.elements;
-        let mut orders: Specific =
+        let mut orders: SpecificDense =
             self.into_iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
 
         orders.set_elements(elements);
@@ -151,7 +151,7 @@ impl TiedOrdersComplete {
     /// elements receiving a score of `self.elements`.
     ///
     /// Returns `Err` if it failed to allocate
-    pub fn to_cardinal(&self) -> Result<Cardinal, &'static str> {
+    pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
         let mut orders: Vec<usize> = Vec::new();
         orders.try_reserve_exact(self.elements * self.orders()).or(Err("Could not allocate"))?;
         let max = self.elements - 1;
@@ -168,7 +168,7 @@ impl TiedOrdersComplete {
             orders.extend(&new_order);
         }
         let v =
-            Cardinal { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
+            CardinalDense { orders, elements: self.elements, orders_count: self.orders(), min: 0, max };
         debug_assert!(v.valid());
         Ok(v)
     }

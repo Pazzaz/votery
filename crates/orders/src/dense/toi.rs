@@ -3,7 +3,7 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::{Cardinal, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
+use super::{CardinalDense, DenseOrders, soi::StrictOrdersIncomplete, toc::TiedOrdersComplete};
 use crate::tied_rank::{TiedRank, TiedRankRef};
 
 /// TOI - Orders with Ties - Incomplete List
@@ -216,11 +216,11 @@ impl TiedOrdersIncomplete {
         true
     }
 
-    pub fn to_cardinal(self) -> Result<Cardinal, &'static str> {
+    pub fn to_cardinal(self) -> Result<CardinalDense, &'static str> {
         let mut v = TiedRank::new_tied(self.elements);
         let mut cardinal_rank = vec![0; self.elements];
         let max = self.elements - 1;
-        let mut cardinal_orders = Cardinal::new(self.elements, 0, max);
+        let mut cardinal_orders = CardinalDense::new(self.elements, 0, max);
         for order in &self {
             v.copy_from(order);
             v.make_complete(false);

@@ -7,11 +7,11 @@ use std::{
 
 use rand::distr::{Distribution, Uniform};
 
-use super::{Binary, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
+use super::{BinaryDense, DenseOrders, remove_newline, toi::TiedOrdersIncomplete};
 use crate::pairwise_lt;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Cardinal {
+pub struct CardinalDense {
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
     pub(crate) orders_count: usize,
@@ -19,10 +19,10 @@ pub struct Cardinal {
     pub max: usize,
 }
 
-impl Cardinal {
-    pub fn new(elements: usize, min: usize, max: usize) -> Cardinal {
+impl CardinalDense {
+    pub fn new(elements: usize, min: usize, max: usize) -> CardinalDense {
         debug_assert!(min <= max);
-        Cardinal { orders: Vec::new(), elements, orders_count: 0, min, max }
+        CardinalDense { orders: Vec::new(), elements, orders_count: 0, min, max }
     }
 
     pub fn elements(&self) -> usize {
@@ -142,7 +142,7 @@ impl Cardinal {
     }
 
     /// The Kotze-Pereira transformation
-    pub fn kp_tranform(&self) -> Result<Binary, &'static str> {
+    pub fn kp_tranform(&self) -> Result<BinaryDense, &'static str> {
         let mut binary_orders: Vec<bool> = Vec::new();
         let orders_size = self
             .elements
@@ -159,7 +159,7 @@ impl Cardinal {
                 }
             }
         }
-        let orders = Binary {
+        let orders = BinaryDense {
             orders: binary_orders,
             elements: self.elements,
             orders_count: self.orders_count * (self.values() - 1),
@@ -173,14 +173,14 @@ impl Cardinal {
     ///
     /// # Panics
     /// Will panic if n is not contained in `self.min..=self.max`.
-    pub fn to_binary_cutoff(&self, n: usize) -> Result<Binary, &'static str> {
+    pub fn to_binary_cutoff(&self, n: usize) -> Result<BinaryDense, &'static str> {
         debug_assert!(self.min <= n && n <= self.max);
         let mut binary_orders: Vec<bool> = Vec::new();
         binary_orders
             .try_reserve_exact(self.elements * self.orders_count)
             .or(Err("Could not allocate"))?;
         binary_orders.extend(self.orders.iter().map(|x| *x >= n));
-        let orders = Binary {
+        let orders = BinaryDense {
             orders: binary_orders,
             elements: self.elements,
             orders_count: self.orders_count,
@@ -248,7 +248,7 @@ impl Cardinal {
     }
 }
 
-impl Display for Cardinal {
+impl Display for CardinalDense {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for i in 0..self.orders_count {
             for j in 0..(self.elements - 1) {
@@ -262,7 +262,7 @@ impl Display for Cardinal {
     }
 }
 
-impl<'a> DenseOrders<'a> for Cardinal {
+impl<'a> DenseOrders<'a> for CardinalDense {
     type Order = &'a [usize];
     fn elements(&self) -> usize {
         self.elements
@@ -337,7 +337,7 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for Cardinal {
+    impl Arbitrary for CardinalDense {
         fn arbitrary(g: &mut Gen) -> Self {
             let (mut orders_count, mut elements, mut min, mut max): (usize, usize, usize, usize) =
                 Arbitrary::arbitrary(g);
@@ -354,14 +354,14 @@ mod tests {
                 std::mem::swap(&mut min, &mut max);
             }
 
-            let mut orders = Cardinal::new(elements, min, max);
+            let mut orders = CardinalDense::new(elements, min, max);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             orders
         }
     }
 
     #[quickcheck]
-    fn kp_tranform_orders(cv: Cardinal) -> bool {
+    fn kp_tranform_orders(cv: CardinalDense) -> bool {
         match cv.kp_tranform() {
             Ok(bv) => bv.orders_count == cv.orders_count * (cv.values() - 1),
             Err(_) => true,
