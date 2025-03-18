@@ -99,7 +99,7 @@ fn sample_pixel<R: Rng>(
 ) -> (Color, TiedRank) {
     let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
-    let votes = g.sample(rng, &[x, y]).to_toi().unwrap();
+    let votes = g.sample(rng, &[x, y]).into();
     let vote: TiedRank = Borda::count(&votes).unwrap().as_vote();
     let color = Color::from_vote(config.vote_color, vote.as_ref(), colors);
     (color, vote)

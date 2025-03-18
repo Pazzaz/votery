@@ -23,14 +23,14 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         R: Rng,
         Self: Sized,
     {
-        debug_assert!(data.orders_count() != 0);
+        debug_assert!(data.count() != 0);
         debug_assert!(positions <= data.elements());
         let mut left = positions;
         let mut order: Vec<usize> = Vec::new();
-        let mut values: Vec<usize> = (0..data.orders_count()).collect();
+        let mut values: Vec<usize> = (0..data.count()).collect();
         values.shuffle(rng);
         'outer: for i in values {
-            let vote = data.order_i(i);
+            let vote = data.get(i);
             for v in vote.order {
                 let l = order.len();
                 // Quadratic, maybe bad
@@ -69,8 +69,8 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
         Self: Sized,
     {
         let _ = positions;
-        let i: usize = rng.sample(Uniform::new(0, data.orders()));
-        let vote = data.order_i(i);
+        let i: usize = rng.sample(Uniform::new(0, data.count()));
+        let vote = data.get(i);
         Ok(RandomBallotSingle { ranking: vote.owned() })
     }
 

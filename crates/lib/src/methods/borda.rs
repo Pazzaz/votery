@@ -15,7 +15,7 @@ impl<'a> VotingMethod<'a> for Borda {
     fn count(data: &TiedOrdersIncomplete) -> Result<Self, &'static str> {
         let n = data.elements();
         let mut score: Vec<usize> = vec![0; n];
-        for vote in data {
+        for vote in data.iter() {
             // println!("{:?}", &vote);
             let mut seen = 0;
             for group in vote.iter_groups() {
