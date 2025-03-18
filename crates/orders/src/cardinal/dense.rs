@@ -18,6 +18,11 @@ pub struct CardinalDense {
     pub(crate) max: usize,
 }
 
+pub enum MapError {
+    Overflow,
+    Underflow,
+}
+
 impl CardinalDense {
     pub fn new<R: RangeBounds<usize>>(elements: usize, range: R) -> CardinalDense {
         let min = match range.start_bound() {
@@ -81,50 +86,50 @@ impl CardinalDense {
 
     /// Multiply each order score with constant `a`, changing the `min` and
     /// `max` score.
-    pub fn mul(&mut self, a: usize) {
+    pub fn map_mul(&mut self, a: usize) -> Result<(), MapError> {
         if a == 1 {
-            return;
+            return Ok(());
         }
-        let new_min = self.min.checked_mul(a).unwrap();
-        let new_max = self.max.checked_mul(a).unwrap();
+        let new_min = self.min.checked_mul(a).ok_or(MapError::Underflow)?;
+        let new_max = self.max.checked_mul(a).ok_or(MapError::Overflow)?;
         for v in &mut self.orders {
             *v *= a;
         }
         self.min = new_min;
         self.max = new_max;
-        debug_assert!(self.valid());
+        Ok(())
     }
 
     /// Add to each order score a constant `a`, changing the `min` and `max`
     /// score.
-    pub fn add_constant(&mut self, a: usize) {
+    pub fn map_add(&mut self, a: usize) -> Result<(), MapError> {
         if a == 0 {
-            return;
+            return Ok(());
         }
-        let new_min = self.min.checked_add(a).unwrap();
-        let new_max = self.max.checked_add(a).unwrap();
+        let new_min = self.min.checked_add(a).ok_or(MapError::Underflow)?;
+        let new_max = self.max.checked_add(a).ok_or(MapError::Overflow)?;
         for v in &mut self.orders {
             *v += a;
         }
         self.min = new_min;
         self.max = new_max;
-        debug_assert!(self.valid());
+        Ok(())
     }
 
     /// Subtracts from each order score a constant `a`, changing the `min` and
     /// `max` score.
-    pub fn sub(&mut self, a: usize) {
+    pub fn map_sub(&mut self, a: usize) -> Result<(), MapError> {
         if a == 0 {
-            return;
+            return Ok(());
         }
-        let new_min = self.min.checked_sub(a).unwrap();
-        let new_max = self.max.checked_sub(a).unwrap();
+        let new_min = self.min.checked_sub(a).ok_or(MapError::Underflow)?;
+        let new_max = self.max.checked_sub(a).ok_or(MapError::Overflow)?;
         for v in &mut self.orders {
             *v -= a;
         }
         self.min = new_min;
         self.max = new_max;
-        debug_assert!(self.valid());
+        Ok(())
     }
 
     pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
@@ -167,7 +172,8 @@ impl CardinalDense {
         self.max - self.min + 1
     }
 
-    /// The Kotze-Pereira transformation
+    /// The [Kotze-Pereira transformation](https://electowiki.org/wiki/Kotze-Pereira_transformation).
+    #[doc(alias = "kotze")]
     pub fn kp_tranform(&self) -> Result<BinaryDense, &'static str> {
         let mut binary_orders: Vec<bool> = Vec::new();
         let orders_size = self
@@ -177,11 +183,10 @@ impl CardinalDense {
             .checked_mul(self.values() - 1)
             .ok_or("Number of orders would be too large")?;
         binary_orders.try_reserve_exact(orders_size).or(Err("Could not allocate"))?;
-        for i in 0..self.count() {
-            let order = &self.orders[i * self.elements..(i + 1) * self.elements];
-            for lower in self.min..self.max {
-                for &j in order {
-                    binary_orders.push(j > lower);
+        for order in self.iter() {
+            for i in self.min..self.max {
+                for &j in order.values {
+                    binary_orders.push(j > i);
                 }
             }
         }
@@ -193,7 +198,7 @@ impl CardinalDense {
     ///
     /// # Panics
     ///
-    /// Will panic if n is not contained in `self.min..=self.max`.
+    /// Will panic if `n` is not contained in `self.min..=self.max`.
     pub fn to_binary_cutoff(&self, n: usize) -> Result<BinaryDense, &'static str> {
         debug_assert!(self.min <= n && n <= self.max);
         let mut binary_orders: Vec<bool> = Vec::new();
@@ -233,7 +238,7 @@ impl CardinalDense {
 
     // Return whether element `a` was rated higher more times than `b`
     pub fn compare(&self, a: usize, b: usize) -> Ordering {
-        debug_assert!(a < self.elements && b < self.elements);
+        assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
         for v in self.iter() {
@@ -248,7 +253,7 @@ impl CardinalDense {
 
     // Return whether element `a` was rated `value` more times than `b`
     pub fn compare_specific(&self, a: usize, b: usize, value: usize) -> Ordering {
-        debug_assert!(a < self.elements && b < self.elements);
+        assert!(a < self.elements && b < self.elements);
         let mut a_v = 0;
         let mut b_v = 0;
         for v in self.iter() {

@@ -1,6 +1,6 @@
 mod dense;
 
-pub use dense::CardinalDense;
+pub use dense::*;
 use rand::{
     Rng,
     distr::{Distribution, Uniform},
