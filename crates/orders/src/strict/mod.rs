@@ -6,7 +6,7 @@ mod strict_incomplete_ref;
 mod strict_ref;
 
 pub use dense::{StrictDense, StrictOrdersComplete, StrictOrdersCompleteIterator};
-pub use dense_incomplete::{StrictIDense, StrictOrdersIncompleteIterator};
+pub use dense_incomplete::*;
 pub use strict::*;
 pub use strict_incomplete::*;
 pub use strict_incomplete_ref::*;

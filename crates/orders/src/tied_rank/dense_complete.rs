@@ -3,7 +3,6 @@ use rand::{
     seq::{IndexedRandom, SliceRandom},
 };
 
-use super::dense::TiedOrdersIncomplete;
 use crate::{
     cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete,
     tied_rank::TiedRankRef,
@@ -30,6 +29,25 @@ impl TiedOrdersComplete {
 
     pub fn elements(&self) -> usize {
         self.elements
+    }
+
+    pub fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders() / self.elements }
+    }
+
+    pub fn get(&self, i: usize) -> TiedRankRef {
+        assert!(i < self.count());
+        let start = i * self.elements;
+        let end = (i + 1) * self.elements;
+        TiedRankRef::new(
+            self.elements,
+            &self.orders[start..end],
+            &self.ties[(start - i)..(end - i)],
+        )
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = TiedRankRef> {
+        (0..self.count()).map(|i| self.get(i))
     }
 
     pub fn add(&mut self, v: TiedRankRef) {
@@ -102,7 +120,7 @@ impl TiedOrdersComplete {
             return false;
         }
         let mut seen = vec![false; self.elements];
-        for order in self {
+        for order in self.iter() {
             seen.fill(false);
             if order.order().len() != self.elements || order.tied().len() != self.elements - 1 {
                 return false;
@@ -144,7 +162,7 @@ impl TiedOrdersComplete {
     pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> SpecificDense {
         let elements = self.elements;
         let mut orders: SpecificDense =
-            self.into_iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
+            self.iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
 
         orders.set_elements(elements);
         orders
@@ -159,7 +177,7 @@ impl TiedOrdersComplete {
         orders.try_reserve_exact(self.elements * self.orders()).or(Err("Could not allocate"))?;
         let max = self.elements - 1;
         let mut new_order = vec![0; self.elements];
-        for order in self {
+        for order in self.iter() {
             for (i, group) in order.iter_groups().enumerate() {
                 for &c in group {
                     debug_assert!(max >= i);
@@ -174,61 +192,7 @@ impl TiedOrdersComplete {
         debug_assert!(v.valid());
         Ok(v)
     }
-
-    pub fn to_toi(self) -> Result<TiedOrdersIncomplete, &'static str> {
-        let mut order_len = Vec::new();
-        order_len.try_reserve_exact(self.orders()).or(Err("Could not allocate"))?;
-        order_len.resize(self.orders(), self.elements);
-        let v = TiedOrdersIncomplete {
-            orders: self.orders,
-            ties: self.ties,
-            order_len,
-            elements: self.elements,
-        };
-        debug_assert!(v.valid());
-        Ok(v)
-    }
 }
-
-impl<'a> IntoIterator for &'a TiedOrdersComplete {
-    type Item = TiedRankRef<'a>;
-    type IntoIter = TiedOrdersCompleteIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        TiedOrdersCompleteIterator { orig: self, i: 0 }
-    }
-}
-
-pub struct TiedOrdersCompleteIterator<'a> {
-    orig: &'a TiedOrdersComplete,
-    i: usize,
-}
-
-impl<'a> Iterator for TiedOrdersCompleteIterator<'a> {
-    type Item = TiedRankRef<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.i == self.orig.orders() {
-            return None;
-        }
-        let len1 = self.orig.elements;
-        let len2 = self.orig.elements - 1;
-        let start1 = self.i * len1;
-        let start2 = self.i * len2;
-        let order = &self.orig.orders[start1..(start1 + len1)];
-        let tie = &self.orig.ties[start2..(start2 + len2)];
-        self.i += 1;
-        debug_assert!(tie.len() + 1 == order.len());
-
-        Some(TiedRankRef::new(self.orig.elements, order, tie))
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.orig.orders() - self.i;
-        (remaining, Some(remaining))
-    }
-}
-
-impl ExactSizeIterator for TiedOrdersCompleteIterator<'_> {}
 
 impl From<StrictOrdersComplete> for TiedOrdersComplete {
     fn from(value: StrictOrdersComplete) -> Self {
@@ -238,7 +202,6 @@ impl From<StrictOrdersComplete> for TiedOrdersComplete {
             ties: vec![false; (value.elements - 1) * orders],
             elements: value.elements,
         };
-        debug_assert!(s.valid());
         s
     }
 }

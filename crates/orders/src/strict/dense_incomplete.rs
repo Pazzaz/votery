@@ -16,22 +16,22 @@ use crate::{
 pub struct StrictIDense {
     pub(crate) orders: Vec<usize>,
 
-    // Length of each order
-    pub(crate) order_len: Vec<usize>,
+    // End position of order
+    pub(crate) order_end: Vec<usize>,
     pub(crate) elements: usize,
 }
 
 impl StrictIDense {
     pub fn new(elements: usize) -> Self {
-        StrictIDense { orders: Vec::new(), order_len: Vec::new(), elements }
+        StrictIDense { orders: Vec::new(), order_end: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
-    pub fn orders_count(&self) -> usize {
-        self.order_len.len()
+    pub fn count(&self) -> usize {
+        self.order_end.len()
     }
 
     /// Return true if it was a valid order.
@@ -58,22 +58,37 @@ impl StrictIDense {
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
         let mut seen = vec![false; self.elements];
-        for order in self {
+        for v in self.iter() {
             seen.fill(false);
-            for &i in order {
+            for &i in v.order {
                 if i >= self.elements || seen[i] {
                     return false;
                 }
                 seen[i] = true;
             }
         }
+        for &o in &self.order_end {
+            if o >= self.orders.len() {
+                return false;
+            }
+        }
+        for o in self.order_end.windows(2) {
+            if o[0] >= o[1] {
+                return false;
+            }
+        }
         true
     }
 
-    pub fn order_i(&self, i: usize) -> StrictIRef {
-        let start: usize = self.order_len[0..i].iter().sum();
-        let end = start + self.order_len[i];
+    pub fn get(&self, i: usize) -> StrictIRef {
+        assert!(i < self.count());
+        let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
+        let end = start + self.order_end[i];
         StrictIRef::new(self.elements, &self.orders[start..end])
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = StrictIRef> {
+        (0..self.count()).map(|i| self.get(i))
     }
 }
 
@@ -85,61 +100,16 @@ impl<'a> DenseOrders<'a> for StrictIDense {
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
-        debug_assert!(v.elements == self.elements);
+        assert!(v.elements == self.elements);
         self.orders.reserve(v.len());
-        let mut seen = vec![false; self.elements];
-        for &i in v.order {
-            debug_assert!(i < self.elements || !seen[i]);
-            seen[i] = true;
-        }
-        self.order_len.push(v.len());
+        let start = self.order_end.last().unwrap_or(&0);
+        self.order_end.push(*start + v.len());
         self.orders.extend_from_slice(v.order);
-        debug_assert!(self.valid());
         Ok(())
     }
 
-    fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
-        if self.orders_count() == 0 {
-            return Ok(());
-        }
-        // where in `orders` will we write
-        let mut j_1 = 0;
-        // where in `order_len` are we reading
-        let mut i_2 = 0;
-        // where in `order_len` will we write
-        let mut j_2 = 0;
-
-        let mut last = 0;
-        let mut i_1 = 0;
-        while i_1 < self.orders.len() {
-            let el = self.orders[i_1];
-            match el.cmp(&target) {
-                std::cmp::Ordering::Equal => {
-                    self.order_len[i_2] -= 1;
-                }
-                std::cmp::Ordering::Greater => {
-                    self.orders[j_1] = el - 1;
-                    j_1 += 1;
-                }
-                std::cmp::Ordering::Less => {
-                    self.orders[j_1] = el;
-                    j_1 += 1;
-                }
-            }
-            i_1 += 1;
-            if i_1 == last + self.order_len[i_2] {
-                last += self.order_len[i_2];
-                if self.order_len[i_2] != 0 {
-                    self.order_len[j_2] = self.order_len[i_2];
-                    j_2 += 1;
-                }
-                i_2 += 1;
-            }
-        }
-        self.orders.drain(j_1..);
-        self.order_len.drain(i_2..);
-        debug_assert!(self.valid());
-        Ok(())
+    fn remove_element(&mut self, _target: usize) -> Result<(), &'static str> {
+        todo!();
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
@@ -155,53 +125,18 @@ impl<'a> DenseOrders<'a> for StrictIDense {
             for &el in &v[..elements] {
                 self.orders.push(el);
             }
-            self.order_len.push(elements);
+            let start = self.order_end.last().unwrap_or(&0);
+            self.order_end.push(*start + elements);
         }
         debug_assert!(self.valid());
     }
 }
 
-impl<'a> IntoIterator for &'a StrictIDense {
-    type Item = &'a [usize];
-    type IntoIter = StrictOrdersIncompleteIterator<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        StrictOrdersIncompleteIterator { orig: self, i: 0, start: 0 }
-    }
-}
-
-pub struct StrictOrdersIncompleteIterator<'a> {
-    orig: &'a StrictIDense,
-    i: usize,
-    start: usize,
-}
-
-impl<'a> Iterator for StrictOrdersIncompleteIterator<'a> {
-    type Item = &'a [usize];
-    fn next(&mut self) -> Option<Self::Item> {
-        let len = self.orig.order_len[self.i];
-        let order = &self.orig.orders[self.start..(self.start + len)];
-        self.i += 1;
-        self.start += len;
-        Some(order)
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.orig.order_len.len() - self.i;
-        (remaining, Some(remaining))
-    }
-}
-
-impl ExactSizeIterator for StrictOrdersIncompleteIterator<'_> {}
-
 impl From<StrictOrdersComplete> for StrictIDense {
     fn from(value: StrictOrdersComplete) -> Self {
         let orders: usize = value.orders();
-        let s = StrictIDense {
-            orders: value.orders,
-            order_len: vec![value.elements; orders],
-            elements: value.elements,
-        };
+        let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
+        let s = StrictIDense { orders: value.orders, order_end, elements: value.elements };
         debug_assert!(s.valid());
         s
     }
