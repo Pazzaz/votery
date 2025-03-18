@@ -5,14 +5,14 @@ use rand::{
 
 use crate::{
     cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete,
-    tied_rank::TiedRankRef,
+    tied::TiedIRef,
 };
 
 /// TOC - Orders with Ties - Complete List
 ///
 /// A packed list of complete orders with ties, with related methods.
 #[derive(Clone, Debug)]
-pub struct TiedOrdersComplete {
+pub struct TiedDense {
     // Has length orders_count * elements
     pub(crate) orders: Vec<usize>,
 
@@ -22,9 +22,9 @@ pub struct TiedOrdersComplete {
     pub(crate) elements: usize,
 }
 
-impl TiedOrdersComplete {
+impl TiedDense {
     pub fn new(elements: usize) -> Self {
-        TiedOrdersComplete { orders: Vec::new(), ties: Vec::new(), elements }
+        TiedDense { orders: Vec::new(), ties: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -35,22 +35,23 @@ impl TiedOrdersComplete {
         if self.elements == 0 { 0 } else { self.orders() / self.elements }
     }
 
-    pub fn get(&self, i: usize) -> TiedRankRef {
+    // TODO: Use `TiedRef`
+    pub fn get(&self, i: usize) -> TiedIRef {
         assert!(i < self.count());
         let start = i * self.elements;
         let end = (i + 1) * self.elements;
-        TiedRankRef::new(
+        TiedIRef::new(
             self.elements,
             &self.orders[start..end],
             &self.ties[(start - i)..(end - i)],
         )
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TiedRankRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 
-    pub fn add(&mut self, v: TiedRankRef) {
+    pub fn add(&mut self, v: TiedIRef) {
         let order = v.order();
         let tie = v.tied();
         debug_assert!(order.len() == self.elements);
@@ -107,7 +108,7 @@ impl TiedOrdersComplete {
         if grouped || order.len() != self.elements {
             return false;
         }
-        self.add(TiedRankRef::new(self.elements, &order, &tie));
+        self.add(TiedIRef::new(self.elements, &order, &tie));
         debug_assert!(self.valid());
         true
     }
@@ -194,10 +195,10 @@ impl TiedOrdersComplete {
     }
 }
 
-impl From<StrictOrdersComplete> for TiedOrdersComplete {
+impl From<StrictOrdersComplete> for TiedDense {
     fn from(value: StrictOrdersComplete) -> Self {
         let orders: usize = value.orders();
-        let s = TiedOrdersComplete {
+        let s = TiedDense {
             orders: value.orders,
             ties: vec![false; (value.elements - 1) * orders],
             elements: value.elements,

@@ -4,18 +4,18 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
 };
 
-use super::tied_rank_ref::TiedRankRef;
+use super::tied_incomplete_ref::TiedIRef;
 use crate::sort_using;
 
 /// An order with possible ties.
 #[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
-pub struct TiedRank {
+pub struct TiedI {
     pub(crate) elements: usize,
     pub order: Vec<usize>,
     pub tied: Vec<bool>,
 }
 
-impl Clone for TiedRank {
+impl Clone for TiedI {
     fn clone(&self) -> Self {
         Self { elements: self.elements, order: self.order.clone(), tied: self.tied.clone() }
     }
@@ -27,35 +27,35 @@ impl Clone for TiedRank {
     }
 }
 
-impl<'a> TiedRank {
+impl<'a> TiedI {
     pub fn new(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
         assert!(tied.len() + 1 == order.len() || tied.is_empty() && order.is_empty());
-        TiedRank { elements, order, tied }
+        TiedI { elements, order, tied }
     }
 
     pub unsafe fn new_unchecked(elements: usize, order: Vec<usize>, tied: Vec<bool>) -> Self {
-        TiedRank { elements, order, tied }
+        TiedI { elements, order, tied }
     }
 
     pub fn new_tied_from_slice(elements: usize, order: &[usize]) -> Self {
         let tie_len = order.len().saturating_sub(1);
         let tied = vec![true; tie_len];
-        TiedRank::new(elements, order.to_vec(), tied)
+        TiedI::new(elements, order.to_vec(), tied)
     }
 
-    pub fn as_ref(&'a self) -> TiedRankRef<'a> {
-        TiedRankRef::new(self.elements, &self.order[..], &self.tied[..])
+    pub fn as_ref(&'a self) -> TiedIRef<'a> {
+        TiedIRef::new(self.elements, &self.order[..], &self.tied[..])
     }
 
     /// Return the number of ranked elements.
     ///
     /// ```
-    /// use orders::tied_rank::TiedRank;
+    /// use orders::tied::TiedI;
     ///
-    /// let empty = TiedRank::new_zero();
+    /// let empty = TiedI::new_zero();
     /// assert!(empty.len() == 0);
     ///
-    /// let full = TiedRank::new_tied(10);
+    /// let full = TiedI::new_tied(10);
     /// assert!(full.len() == 10);
     /// ```
     pub fn len(&self) -> usize {
@@ -67,7 +67,7 @@ impl<'a> TiedRank {
     }
 
     /// Become a copy of `rank`, useful to reuse allocations.
-    pub fn copy_from(&mut self, rank: TiedRankRef) {
+    pub fn copy_from(&mut self, rank: TiedIRef) {
         self.order.clear();
         self.order.extend_from_slice(rank.order());
         self.tied.clear();
@@ -79,22 +79,22 @@ impl<'a> TiedRank {
     /// Create a new ranking of `elements`, where every element is tied.
     ///
     /// ```
-    /// use orders::tied_rank::TiedRank;
+    /// use orders::tied::TiedI;
     ///
     /// let c = 10;
-    /// let rank = TiedRank::new_tied(c);
+    /// let rank = TiedI::new_tied(c);
     /// assert!(rank.as_ref().winners().len() == c);
     /// ```
     pub fn new_tied(elements: usize) -> Self {
         if elements == 0 {
-            return TiedRank::new(0, Vec::new(), Vec::new());
+            return TiedI::new(0, Vec::new(), Vec::new());
         }
         let mut order = Vec::with_capacity(elements);
         for i in 0..elements {
             order.push(i);
         }
         let tied = vec![true; elements - 1];
-        TiedRank::new(elements, order, tied)
+        TiedI::new(elements, order, tied)
     }
 
     pub fn increase_elements(&mut self, elements: usize) {
@@ -106,10 +106,10 @@ impl<'a> TiedRank {
     /// not a valid ranking.
     ///
     /// ```
-    /// use orders::tied_rank::TiedRank;
+    /// use orders::tied::TiedI;
     ///
     /// let order_str = "2,{0,1},4";
-    /// let order = TiedRank::parse_order(5, order_str).expect("Parse failed");
+    /// let order = TiedI::parse_order(5, order_str).expect("Parse failed");
     /// assert_eq!(format!("{}", order.as_ref()), order_str);
     /// ```
     ///
@@ -117,14 +117,14 @@ impl<'a> TiedRank {
     /// means that `f`, the function from valid string representations of
     /// rankings to actual rankings, is not injective. Example:
     /// ```
-    /// use orders::tied_rank::TiedRank;
+    /// use orders::tied::TiedI;
     ///
-    /// let rank = TiedRank::parse_order(5, "0,{1}").unwrap();
+    /// let rank = TiedI::parse_order(5, "0,{1}").unwrap();
     /// assert!(rank.as_ref().to_string() == "0,1");
     /// ```
     pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
         if s.is_empty() {
-            let mut rank = TiedRank::new_zero();
+            let mut rank = TiedI::new_zero();
             rank.increase_elements(elements);
             return Some(rank);
         }
@@ -166,25 +166,25 @@ impl<'a> TiedRank {
         if grouped {
             return None;
         }
-        Some(TiedRank::new(elements, order, tied))
+        Some(TiedI::new(elements, order, tied))
     }
 
-    pub fn single(elements: usize, n: usize) -> TiedRank {
+    pub fn single(elements: usize, n: usize) -> TiedI {
         debug_assert!(n < elements);
         let order = vec![n];
         let tied = Vec::new();
-        TiedRank::new(elements, order, tied)
+        TiedI::new(elements, order, tied)
     }
 
     /// Given a score to every element, create a new TiedRank of those
     /// elements. Higher score is better.
-    pub fn from_scores(elements: usize, v: &[usize]) -> TiedRank {
+    pub fn from_scores(elements: usize, v: &[usize]) -> TiedI {
         debug_assert!(v.len() == elements);
         let mut list: Vec<(usize, usize)> = v.iter().cloned().enumerate().collect();
         list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
         let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
         let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
-        TiedRank::new(elements, order, tied)
+        TiedI::new(elements, order, tied)
     }
 
     /// Make the order into a ranking which ranks all `elements`. Use
@@ -214,7 +214,7 @@ impl<'a> TiedRank {
         self.tied.resize(self.elements - 1, true)
     }
 
-    pub fn from_score(elements: usize, mut order: Vec<usize>, score: &mut [usize]) -> TiedRank {
+    pub fn from_score(elements: usize, mut order: Vec<usize>, score: &mut [usize]) -> TiedI {
         let l = order.len();
         debug_assert!(l != 0);
         sort_using(&mut order, score);
@@ -222,7 +222,7 @@ impl<'a> TiedRank {
         for i in 0..(l - 1) {
             tied.push(order[i] == order[i + 1]);
         }
-        TiedRank::new(elements, order, tied)
+        TiedI::new(elements, order, tied)
     }
 
     /// Reverses the ranking in place.
@@ -277,13 +277,13 @@ impl<'a> TiedRank {
 
     /// Create a ranking of zero elements
     pub fn new_zero() -> Self {
-        TiedRank::new(0, Vec::new(), Vec::new())
+        TiedI::new(0, Vec::new(), Vec::new())
     }
 
     /// Generate a random tied ranking of `elements`.
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Self {
         if elements == 0 {
-            return TiedRank::new_zero();
+            return TiedI::new_zero();
         }
         let order_len = rng.sample(Uniform::new(0, elements).unwrap());
         let mut order = (0..elements).choose_multiple(rng, order_len);
@@ -294,17 +294,17 @@ impl<'a> TiedRank {
         for _ in 0..tied_len {
             tied.push(rng.sample(d));
         }
-        TiedRank::new(elements, order, tied)
+        TiedI::new(elements, order, tied)
     }
 
     /// Normalize the inner representation of `self`, i.e. sorting the tied
     /// groups.
     ///
     /// ```
-    /// use orders::tied_rank::TiedRank;
+    /// use orders::tied::TiedI;
     ///
-    /// let a = TiedRank::parse_order(3, "{0,1,2}").unwrap();
-    /// let mut b = TiedRank::parse_order(3, "{2,1,0}").unwrap();
+    /// let a = TiedI::parse_order(3, "{0,1,2}").unwrap();
+    /// let mut b = TiedI::parse_order(3, "{2,1,0}").unwrap();
     /// assert!(a != b);
     /// b.normalize();
     /// assert!(a == b);
@@ -368,12 +368,12 @@ impl<'a> TiedRank {
         (&mut self.order[(n - 1)..i], &mut self.tied[(n - 1)..(i - 1)])
     }
 
-    pub fn random_total<R: Rng>(rng: &mut R, elements: usize, order: &[usize]) -> TiedRank {
+    pub fn random_total<R: Rng>(rng: &mut R, elements: usize, order: &[usize]) -> TiedI {
         let mut v = order.to_vec();
         v.shuffle(rng);
         let tied_len = v.len().saturating_sub(1);
         let tied = vec![false; tied_len];
-        TiedRank::new(elements, v, tied)
+        TiedI::new(elements, v, tied)
     }
 }
 
@@ -384,17 +384,17 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for TiedRank {
+    impl Arbitrary for TiedI {
         fn arbitrary(g: &mut Gen) -> Self {
             // Modulo to avoid problematic values
             let elements = <usize as Arbitrary>::arbitrary(g) % g.size();
-            TiedRank::random(&mut std_rng(g), elements)
+            TiedI::random(&mut std_rng(g), elements)
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let x = self.clone();
             let iter = (0..(x.len().saturating_sub(1))).rev().map(move |i| {
-                TiedRank::new(
+                TiedI::new(
                     x.elements,
                     x.order[0..i].to_vec(),
                     x.tied[0..(i.saturating_sub(1))].to_vec(),
@@ -405,7 +405,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn reverse_involution(before: TiedRank) -> bool {
+    fn reverse_involution(before: TiedI) -> bool {
         let mut after = before.clone();
         after.reverse();
         after.reverse();
@@ -413,40 +413,40 @@ mod tests {
     }
 
     #[quickcheck]
-    fn owned(rank: TiedRank) -> bool {
+    fn owned(rank: TiedI) -> bool {
         rank == rank.as_ref().owned()
     }
 
     #[test]
     fn iter_groups_zero() {
-        let rank = TiedRank::new_zero();
+        let rank = TiedI::new_zero();
         let first_group = rank.as_ref().iter_groups().next();
         assert!(first_group.is_none());
     }
 
     #[quickcheck]
-    fn iter_groups_len(rank: TiedRank) -> bool {
+    fn iter_groups_len(rank: TiedI) -> bool {
         let calc_len = rank.as_ref().iter_groups().map(|g| g.len()).sum::<usize>();
         rank.len() == calc_len
     }
 
     #[quickcheck]
-    fn top_len(rank: TiedRank, n: usize) -> bool {
+    fn top_len(rank: TiedI, n: usize) -> bool {
         let values = if rank.len() == 0 { 0 } else { n % rank.len() };
         let l = rank.as_ref().top(values).len();
         values <= l && l <= rank.len()
     }
 
     #[quickcheck]
-    fn make_complete_len(mut rank: TiedRank, tied_last: bool) -> bool {
+    fn make_complete_len(mut rank: TiedI, tied_last: bool) -> bool {
         rank.make_complete(tied_last);
         rank.len() == rank.elements
     }
 
     // We have that rank.to_str.to_rank == rank.
     #[quickcheck]
-    fn parse_random(rank: TiedRank) -> bool {
-        let new_rank_o = TiedRank::parse_order(rank.elements, &format!("{}", rank.as_ref()));
+    fn parse_random(rank: TiedI) -> bool {
+        let new_rank_o = TiedI::parse_order(rank.elements, &format!("{}", rank.as_ref()));
         match new_rank_o {
             Some(new_rank) => rank == new_rank,
             None => false,
@@ -467,20 +467,20 @@ mod tests {
             "{0,1,2,3},4",
         ];
         for s in examples {
-            let rank = TiedRank::parse_order(elements, s).expect("Could not parse");
+            let rank = TiedI::parse_order(elements, s).expect("Could not parse");
             assert!(rank.as_ref().top(x).len() == x);
         }
     }
 
     #[test]
     fn tied_remove_last() {
-        let mut r = TiedRank::new_tied(20);
+        let mut r = TiedI::new_tied(20);
         r.remove_last();
         assert!(r.len() == 0);
     }
 
     #[quickcheck]
-    fn top_idempotent(rank: TiedRank, n: usize) -> bool {
+    fn top_idempotent(rank: TiedI, n: usize) -> bool {
         let values = if rank.len() == 0 { 0 } else { n % rank.len() };
         let first = rank.as_ref().top(values);
         let second = first.top(values);
@@ -488,7 +488,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn remove_last_complete(rank: TiedRank) -> bool {
+    fn remove_last_complete(rank: TiedI) -> bool {
         let mut before = rank.clone();
         before.make_complete(true);
         let mut after = before.clone();
@@ -502,7 +502,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn keep_top_n_threshold(mut rank: TiedRank, i: usize) -> bool {
+    fn keep_top_n_threshold(mut rank: TiedI, i: usize) -> bool {
         let n = if rank.len() == 0 { 0 } else { i % rank.len() };
         let (order_group, tied_group) = rank.top_n_threshold(n);
         let o = order_group.to_vec();
@@ -514,7 +514,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn keep_top_n_len(mut rank: TiedRank, i: usize) -> bool {
+    fn keep_top_n_len(mut rank: TiedI, i: usize) -> bool {
         let n = if rank.len() == 0 { 0 } else { i % rank.len() };
         let l1 = rank.len();
         rank.keep_top(n);
@@ -547,7 +547,7 @@ mod tests {
             (" 1", false),
         ];
         for (s, some) in examples {
-            let order_o = TiedRank::parse_order(elements, s);
+            let order_o = TiedI::parse_order(elements, s);
             match (order_o, some) {
                 (Some(_), true) | (None, false) => {}
                 (None, true) => panic!("`{}` could not be parsed", s),

@@ -2,7 +2,7 @@
 //! some space, and voters vote for nearby candidates.
 use std::slice::{ChunksExact, ChunksExactMut};
 
-use orders::tied_rank::{TiedOrdersComplete, TiedRank};
+use orders::tied::{TiedDense, TiedI};
 use rand_distr::{Distribution, Normal};
 
 pub struct Gaussian {
@@ -48,8 +48,8 @@ impl Gaussian {
         self.candidates.chunks_exact_mut(self.dimensions)
     }
 
-    pub fn sample<R: rand::Rng>(&self, rng: &mut R, mean: &[f64]) -> TiedOrdersComplete {
-        let mut votes = TiedOrdersComplete::new(self.candidates());
+    pub fn sample<R: rand::Rng>(&self, rng: &mut R, mean: &[f64]) -> TiedDense {
+        let mut votes = TiedDense::new(self.candidates());
         for _ in 0..self.points {
             let point = generate_point(self.dimensions, mean, self.variance, rng);
             let candidate_score: Vec<f64> =
@@ -74,13 +74,13 @@ fn are_fuzzy(w0: f64, w1: f64, fuzzy: FuzzyType) -> bool {
     }
 }
 
-fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> TiedRank {
+fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> TiedI {
     let mut list: Vec<(usize, f64)> = scores.iter().cloned().enumerate().collect();
     list.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
     // TODO: We assume self.dimension = 2 here
     let tied: Vec<bool> = list.windows(2).map(|w| are_fuzzy(w[0].1, w[1].1, fuzzy)).collect();
     let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
-    TiedRank::new(scores.len(), order, tied)
+    TiedI::new(scores.len(), order, tied)
 }
 
 fn generate_point<R: rand::Rng>(len: usize, mean: &[f64], variance: f64, rng: &mut R) -> Vec<f64> {

@@ -1,7 +1,7 @@
 // There are several different types of borda count. We have tried to handle
 // every variation. See also the Dowdall system, a similar method.
 
-use orders::tied_rank::{TiedOrdersIncomplete, TiedRank};
+use orders::tied::{TiedIDense, TiedI};
 
 use super::{fptp::order_to_vote, VotingMethod};
 
@@ -10,9 +10,9 @@ pub struct Borda {
 }
 
 impl<'a> VotingMethod<'a> for Borda {
-    type Format = TiedOrdersIncomplete;
+    type Format = TiedIDense;
 
-    fn count(data: &TiedOrdersIncomplete) -> Result<Self, &'static str> {
+    fn count(data: &TiedIDense) -> Result<Self, &'static str> {
         let n = data.elements();
         let mut score: Vec<usize> = vec![0; n];
         for vote in data.iter() {
@@ -41,7 +41,7 @@ impl<'a> VotingMethod<'a> for Borda {
 }
 
 impl Borda {
-    pub fn as_vote(&self) -> TiedRank {
+    pub fn as_vote(&self) -> TiedI {
         let order = self.get_order();
         order_to_vote(&order)
     }

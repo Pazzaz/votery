@@ -1,4 +1,4 @@
-use orders::{strict::{StrictI, StrictIDense}, tied_rank::{TiedOrdersIncomplete, TiedRank}};
+use orders::{strict::{StrictI, StrictIDense}, tied::{TiedIDense, TiedI}};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
 
@@ -57,11 +57,11 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
 
 /// Draw a single random vote
 pub struct RandomBallotSingle {
-    ranking: TiedRank,
+    ranking: TiedI,
 }
 
 impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
-    type Format = TiedOrdersIncomplete;
+    type Format = TiedIDense;
 
     fn count<R>(data: &Self::Format, rng: &mut R, positions: usize) -> Result<Self, &'static str>
     where
@@ -84,7 +84,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
 }
 
 impl RandomBallotSingle {
-    pub fn as_vote(&self) -> TiedRank {
+    pub fn as_vote(&self) -> TiedI {
         self.ranking.clone()
     }
 }

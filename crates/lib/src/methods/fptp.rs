@@ -1,4 +1,4 @@
-use orders::{specific::SpecificDense, tied_rank::TiedRank};
+use orders::{specific::SpecificDense, tied::TiedI};
 
 use super::VotingMethod;
 
@@ -26,13 +26,13 @@ impl<'a> VotingMethod<'a> for Fptp {
 }
 
 impl Fptp {
-    pub fn as_vote(&self) -> TiedRank {
+    pub fn as_vote(&self) -> TiedI {
         let order = self.get_order();
         order_to_vote(&order)
     }
 }
 
-pub fn order_to_vote(v: &[usize]) -> TiedRank {
+pub fn order_to_vote(v: &[usize]) -> TiedI {
     let mut order = Vec::new();
     let mut tied = Vec::new();
     for i in 0..v.len() {
@@ -52,5 +52,5 @@ pub fn order_to_vote(v: &[usize]) -> TiedRank {
     }
     tied.pop();
     debug_assert!(order.len() == v.len());
-    TiedRank::new(v.len(), order, tied)
+    TiedI::new(v.len(), order, tied)
 }

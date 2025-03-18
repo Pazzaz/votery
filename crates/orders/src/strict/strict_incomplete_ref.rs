@@ -1,5 +1,5 @@
 use super::strict_ref::StrictRef;
-use crate::{tied_rank::TiedRankRef, unique};
+use crate::{tied::TiedIRef, unique};
 
 /// A possibly incomplete order without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -31,8 +31,8 @@ impl<'a> StrictIRef<'a> {
         self.order[0]
     }
 
-    pub fn to_tied(self, tied: &'a [bool]) -> TiedRankRef<'a> {
-        TiedRankRef::new(self.elements, self.order, tied)
+    pub fn to_tied(self, tied: &'a [bool]) -> TiedIRef<'a> {
+        TiedIRef::new(self.elements, self.order, tied)
     }
 
     /// Converts to complete ranking. Panics if not all elements are ranked.

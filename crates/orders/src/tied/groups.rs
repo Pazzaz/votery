@@ -1,8 +1,8 @@
-use super::tied_rank_ref::TiedRankRef;
+use super::tied_incomplete_ref::TiedIRef;
 
 // Splits an order up into its rankings
 pub struct GroupIterator<'a> {
-    pub(crate) order: TiedRankRef<'a>,
+    pub(crate) order: TiedIRef<'a>,
 }
 
 impl<'a> Iterator for GroupIterator<'a> {

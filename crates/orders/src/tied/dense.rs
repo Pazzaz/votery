@@ -3,12 +3,12 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::TiedOrdersComplete;
+use super::TiedDense;
 use crate::{
     DenseOrders,
     cardinal::CardinalDense,
     strict::StrictIDense,
-    tied_rank::{TiedRank, TiedRankRef},
+    tied::{TiedI, TiedIRef},
 };
 
 /// TOI - Orders with Ties - Incomplete List
@@ -16,7 +16,7 @@ use crate::{
 /// A packed list of (possibly incomplete) orders with ties, with related
 /// methods. One can see it as a `Vec<TiedRank>`, but more efficient.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct TiedOrdersIncomplete {
+pub struct TiedIDense {
     // Has length count * elements
     pub(crate) orders: Vec<usize>,
 
@@ -29,9 +29,9 @@ pub struct TiedOrdersIncomplete {
     pub(crate) elements: usize,
 }
 
-impl TiedOrdersIncomplete {
+impl TiedIDense {
     pub fn new(elements: usize) -> Self {
-        TiedOrdersIncomplete {
+        TiedIDense {
             orders: Vec::new(),
             ties: Vec::new(),
             order_end: Vec::new(),
@@ -59,18 +59,18 @@ impl TiedOrdersIncomplete {
         self.elements
     }
 
-    pub fn get(&self, i: usize) -> TiedRankRef {
+    pub fn get(&self, i: usize) -> TiedIRef {
         assert!(i < self.count());
         let start = if i == 0 { 0 } else { self.order_end[i - 1] };
         let end = self.order_end[i];
-        TiedRankRef::new(
+        TiedIRef::new(
             self.elements,
             &self.orders[start..end],
             &self.ties[(start - i)..(end - i - 1)],
         )
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TiedRankRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 
@@ -87,7 +87,7 @@ impl TiedOrdersIncomplete {
     /// order.
     pub fn add_from_str_i(&mut self, s: &str, i: usize) -> bool {
         debug_assert!(i != 0);
-        match TiedRank::parse_order(self.elements, s) {
+        match TiedI::parse_order(self.elements, s) {
             Some(order) => {
                 for _ in 0..i {
                     self.add(order.as_ref()).unwrap();
@@ -137,7 +137,7 @@ impl TiedOrdersIncomplete {
     /// as if the new element was a clone of `n`.
     pub fn add_clone(&mut self, n: usize) {
         let c = self.elements;
-        let mut new = TiedOrdersIncomplete::new(c + 1);
+        let mut new = TiedIDense::new(c + 1);
         for order in self.iter() {
             let mut new_order: Vec<usize> = order.order().to_vec();
             let mut tied: Vec<bool> = order.tied().to_vec();
@@ -145,7 +145,7 @@ impl TiedOrdersIncomplete {
                 new_order.insert(i, c);
                 tied.insert(i, true);
             };
-            let yeah = TiedRank::new(c + 1, new_order, tied);
+            let yeah = TiedI::new(c + 1, new_order, tied);
             new.add(yeah.as_ref()).unwrap();
         }
         *self = new;
@@ -246,7 +246,7 @@ impl TiedOrdersIncomplete {
     }
 
     pub fn to_cardinal(self) -> Result<CardinalDense, &'static str> {
-        let mut v = TiedRank::new_tied(self.elements);
+        let mut v = TiedI::new_tied(self.elements);
         let mut cardinal_rank = vec![0; self.elements];
         let max = self.elements - 1;
         let mut cardinal_orders = CardinalDense::new(self.elements, 0..=max);
@@ -261,14 +261,14 @@ impl TiedOrdersIncomplete {
     }
 }
 
-impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
-    type Order = TiedRankRef<'a>;
+impl<'a> DenseOrders<'a> for TiedIDense {
+    type Order = TiedIRef<'a>;
     /// List the number of elements
     fn elements(&self) -> usize {
         self.elements
     }
 
-    fn add(&mut self, order: TiedRankRef) -> Result<(), &'static str> {
+    fn add(&mut self, order: TiedIRef) -> Result<(), &'static str> {
         assert!(order.elements() == self.elements);
         assert!(!order.is_empty());
         self.orders.reserve(order.len());
@@ -286,7 +286,7 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
     /// with higher index. May remove orders if they only contain `n`.
     fn remove_element(&mut self, n: usize) -> Result<(), &'static str> {
         let new_elements = self.elements - 1;
-        let mut new = TiedOrdersIncomplete::new(new_elements);
+        let mut new = TiedIDense::new(new_elements);
         for order in self.iter() {
             let mut new_order: Vec<usize> = Vec::with_capacity(order.order().len() - 1);
             let mut new_tied: Vec<bool> = Vec::with_capacity(order.tied().len().saturating_sub(1));
@@ -306,7 +306,7 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
             if new_order.is_empty() {
                 continue;
             }
-            let out = TiedRank::new(new_elements, new_order, new_tied);
+            let out = TiedI::new(new_elements, new_order, new_tied);
             new.add(out.as_ref())?;
         }
         *self = new;
@@ -337,10 +337,10 @@ impl<'a> DenseOrders<'a> for TiedOrdersIncomplete {
     }
 }
 
-impl From<StrictIDense> for TiedOrdersIncomplete {
+impl From<StrictIDense> for TiedIDense {
     fn from(value: StrictIDense) -> Self {
         let orders: usize = value.count();
-        let s = TiedOrdersIncomplete::from_parts(
+        let s = TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],
             value.order_end,
@@ -350,11 +350,11 @@ impl From<StrictIDense> for TiedOrdersIncomplete {
     }
 }
 
-impl From<TiedOrdersComplete> for TiedOrdersIncomplete {
-    fn from(value: TiedOrdersComplete) -> Self {
+impl From<TiedDense> for TiedIDense {
+    fn from(value: TiedDense) -> Self {
         let orders: usize = value.orders();
         let order_end = (0..value.count()).map(|i| (i + 1) * value.elements()).collect();
-        let s = TiedOrdersIncomplete::from_parts(
+        let s = TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],
             order_end,
@@ -371,7 +371,7 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for TiedOrdersIncomplete {
+    impl Arbitrary for TiedIDense {
         fn arbitrary(g: &mut Gen) -> Self {
             let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
@@ -381,19 +381,19 @@ mod tests {
             orders_count = orders_count % g.size();
             elements = elements % g.size();
 
-            let mut orders = TiedOrdersIncomplete::new(elements);
+            let mut orders = TiedIDense::new(elements);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             orders
         }
     }
 
     #[quickcheck]
-    fn arbitrary(orders: TiedOrdersIncomplete) -> bool {
+    fn arbitrary(orders: TiedIDense) -> bool {
         orders.valid()
     }
 
     #[quickcheck]
-    fn clone_remove(orders: TiedOrdersIncomplete, i: usize) -> bool {
+    fn clone_remove(orders: TiedIDense, i: usize) -> bool {
         let mut orders = orders.clone();
         let c = orders.elements;
         if c == 0 {

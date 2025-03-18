@@ -18,7 +18,7 @@ use votery::{
     methods::{
         random_ballot::{RandomBallot, RandomBallotSingle},
         Borda, Fptp, RandomVotingMethod, VotingMethod,
-    }, orders::tied_rank::TiedRank
+    }, orders::tied::TiedI
 };
 
 mod candidates;
@@ -96,11 +96,11 @@ fn sample_pixel<R: Rng>(
     rng: &mut R,
     colors: &[Color],
     config: &ImageConfig,
-) -> (Color, TiedRank) {
+) -> (Color, TiedI) {
     let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]).into();
-    let vote: TiedRank = Borda::count(&votes).unwrap().as_vote();
+    let vote: TiedI = Borda::count(&votes).unwrap().as_vote();
     let color = Color::from_vote(config.vote_color, vote.as_ref(), colors);
     (color, vote)
 }
@@ -156,7 +156,7 @@ fn render_animation(
 struct SampleResult {
     image: Vec<Vec<[u8; 3]>>,
     sample_count: Vec<Vec<usize>>,
-    all_rankings: Vec<Vec<Vec<TiedRank>>>,
+    all_rankings: Vec<Vec<Vec<TiedI>>>,
 }
 
 fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
@@ -171,7 +171,7 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
     let mut needs_samples = vec![vec![true; config.resolution]; config.resolution];
     let mut queue = Vec::with_capacity(config.resolution * config.resolution);
     let mut sample_count: Vec<Vec<usize>> = vec![vec![0; config.resolution]; config.resolution];
-    let mut all_rankings: Vec<Vec<Vec<TiedRank>>> =
+    let mut all_rankings: Vec<Vec<Vec<TiedI>>> =
         vec![vec![Vec::new(); config.resolution]; config.resolution];
     loop {
         iterations += 1;
@@ -187,7 +187,7 @@ fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) ->
         }
         println!("{}: pixels to sample: {}", iterations, queue.len());
         // Then we actually get some samples
-        let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedRank>)> = queue
+        let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedI>)> = queue
             .par_drain(..)
             .map(|(xi, yi)| {
                 let mut rng = thread_rng();

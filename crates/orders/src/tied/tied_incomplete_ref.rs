@@ -1,17 +1,17 @@
 use std::fmt::{self, Write};
 
-use super::{groups::GroupIterator, split_ref::SplitRef, tied_rank::TiedRank};
+use super::{groups::GroupIterator, split_ref::SplitRef, tied_incomplete::TiedI};
 use crate::unique;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct TiedRankRef<'a> {
+pub struct TiedIRef<'a> {
     /// The total number of elements this ranking concerns, some of them may
     /// not actually be part of the ranking.
     pub(crate) elements: usize,
     order_tied: SplitRef<'a>,
 }
 
-impl fmt::Display for TiedRankRef<'_> {
+impl fmt::Display for TiedIRef<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut left = self.len();
         for group in self.iter_groups() {
@@ -36,7 +36,7 @@ impl fmt::Display for TiedRankRef<'_> {
     }
 }
 
-impl<'a> TiedRankRef<'a> {
+impl<'a> TiedIRef<'a> {
     pub fn new(elements: usize, order: &'a [usize], tied: &'a [bool]) -> Self {
         assert!(tied.len() + 1 == order.len() || order.is_empty() && tied.is_empty());
         assert!(unique(order));
@@ -44,16 +44,16 @@ impl<'a> TiedRankRef<'a> {
             assert!(*i < elements);
         }
         let order_tied = SplitRef::new(order, tied);
-        TiedRankRef { elements, order_tied }
+        TiedIRef { elements, order_tied }
     }
 
     #[inline]
-    pub fn order(self: &TiedRankRef<'a>) -> &'a [usize] {
+    pub fn order(self: &TiedIRef<'a>) -> &'a [usize] {
         self.order_tied.a()
     }
 
     #[inline]
-    pub fn tied(self: &TiedRankRef<'a>) -> &'a [bool] {
+    pub fn tied(self: &TiedIRef<'a>) -> &'a [bool] {
         self.order_tied.b()
     }
 
@@ -93,26 +93,26 @@ impl<'a> TiedRankRef<'a> {
 
     /// Return an empty ranking of zero elements.
     pub fn new_zero() -> Self {
-        TiedRankRef::new(0, &[], &[])
+        TiedIRef::new(0, &[], &[])
     }
 
     /// Return an empty ranking of `elements`.
     pub fn new_zero_c(elements: usize) -> Self {
-        let mut rank = TiedRankRef::new_zero();
+        let mut rank = TiedIRef::new_zero();
         rank.increase_elements(elements);
         rank
     }
 
     /// Return an empty ranking of the same `elements` as `self`.
-    pub fn zeroed(self: &TiedRankRef<'a>) -> TiedRankRef<'a> {
-        TiedRankRef::new(self.elements, &[], &[])
+    pub fn zeroed(self: &TiedIRef<'a>) -> TiedIRef<'a> {
+        TiedIRef::new(self.elements, &[], &[])
     }
 
     /// Return a ranking of the top `n` elements. The ranking will be larger
     /// than `n` if ties prevent us from saying which ones are ranked
     /// higher.
     #[must_use]
-    pub fn top(self: &TiedRankRef<'a>, n: usize) -> TiedRankRef<'a> {
+    pub fn top(self: &TiedIRef<'a>, n: usize) -> TiedIRef<'a> {
         if n == 0 {
             return self.zeroed();
         }
@@ -125,15 +125,15 @@ impl<'a> TiedRankRef<'a> {
                 break;
             }
         }
-        TiedRankRef::new(self.elements, &self.order()[0..i], &self.tied()[0..(i.saturating_sub(1))])
+        TiedIRef::new(self.elements, &self.order()[0..i], &self.tied()[0..(i.saturating_sub(1))])
     }
 
     pub fn len(&self) -> usize {
         self.order().len()
     }
 
-    pub fn owned(self) -> TiedRank {
-        TiedRank::new(self.elements, self.order().to_vec(), self.tied().to_vec())
+    pub fn owned(self) -> TiedI {
+        TiedI::new(self.elements, self.order().to_vec(), self.tied().to_vec())
     }
 
     pub fn iter_groups(&self) -> GroupIterator<'a> {
@@ -158,7 +158,7 @@ impl<'a> TiedRankRef<'a> {
         None
     }
 
-    pub fn winners(self: &TiedRankRef<'a>) -> &'a [usize] {
+    pub fn winners(self: &TiedIRef<'a>) -> &'a [usize] {
         let i = self.tied().iter().take_while(|x| **x).count();
         &self.order()[0..=i]
     }
@@ -169,7 +169,7 @@ impl<'a> TiedRankRef<'a> {
 
     /// Returns a list of all elements with the top rank, and a ranking of the
     /// rest
-    pub fn split_winner_group(self: &TiedRankRef<'a>) -> (&'a [usize], TiedRankRef<'a>) {
+    pub fn split_winner_group(self: &TiedIRef<'a>) -> (&'a [usize], TiedIRef<'a>) {
         if self.is_empty() {
             return (&[], *self);
         }
@@ -188,6 +188,6 @@ impl<'a> TiedRankRef<'a> {
             let (out, rest_order) = self.order().split_at(values);
             (out, rest_order, rest_tied)
         };
-        (out, TiedRankRef::new(self.elements, rest_order, rest_tied))
+        (out, TiedIRef::new(self.elements, rest_order, rest_tied))
     }
 }

@@ -1,4 +1,4 @@
-use votery::orders::tied_rank::TiedRankRef;
+use votery::orders::tied::TiedIRef;
 
 // Normal RGB color
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
@@ -133,7 +133,7 @@ impl Color {
     }
 
     /// Turn a vote into a color.
-    pub fn from_vote(vote_color: VoteColorBlending, vote: TiedRankRef, colors: &[Color]) -> Color {
+    pub fn from_vote(vote_color: VoteColorBlending, vote: TiedIRef, colors: &[Color]) -> Color {
         match vote_color {
             VoteColorBlending::Harmonic => {
                 let mut mixes: Vec<Color> = Vec::new();

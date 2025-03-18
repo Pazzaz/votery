@@ -1,5 +1,5 @@
 use rand::{distributions::Uniform, prelude::Distribution, Rng};
-use votery::orders::tied_rank::TiedRankRef;
+use votery::orders::tied::TiedIRef;
 
 use crate::{MAX, MIN, vector::Vector};
 
@@ -83,7 +83,7 @@ impl OptimizingCandidates {
         self.candidates.len()
     }
 
-    pub fn step(&mut self, ranking: TiedRankRef) {
+    pub fn step(&mut self, ranking: TiedIRef) {
         let old = &self.candidates;
         let mut new_candidates = Vec::with_capacity(self.len());
         for c1 in 0..self.candidates.len() {
