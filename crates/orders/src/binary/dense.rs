@@ -31,22 +31,6 @@ impl BinaryDense {
         BinaryDense { orders, elements }
     }
 
-    pub fn get(&self, i: usize) -> Option<BinaryRef> {
-        if i < self.count() {
-            let start = i * self.elements;
-            let end = (i + 1) * self.elements;
-            let s = &self.orders[start..end];
-            Some(BinaryRef::new(s))
-        } else {
-            None
-        }
-    }
-
-    /// Number of orders
-    pub fn count(&self) -> usize {
-        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
-    }
-
     pub fn elements(&self) -> usize {
         self.elements
     }
@@ -144,6 +128,21 @@ impl<'a> DenseOrders<'a> for BinaryDense {
     type Order = BinaryRef<'a>;
     fn elements(&self) -> usize {
         self.elements
+    }
+
+    fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<Self::Order> {
+        if i < self.count() {
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
+            let s = &self.orders[start..end];
+            Some(BinaryRef::new(s))
+        } else {
+            None
+        }
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {

@@ -11,9 +11,9 @@ impl<'a> VotingMethod<'a> for Fptp {
 
     fn count(data: &SpecificDense) -> Result<Self, &'static str> {
         let mut score: Vec<usize> = vec![0; data.elements()];
-        for vote in data.orders_count() {
-            debug_assert!(*vote < data.elements());
-            score[*vote] = score[*vote]
+        for vote in data.iter() {
+            debug_assert!(vote < data.elements());
+            score[vote] = score[vote]
                 .checked_add(1)
                 .ok_or("Integer overflow: Too many votes for same candidate")?;
         }

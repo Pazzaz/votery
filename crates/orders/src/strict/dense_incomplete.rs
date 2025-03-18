@@ -30,10 +30,6 @@ impl StrictIDense {
         self.elements
     }
 
-    pub fn count(&self) -> usize {
-        self.order_end.len()
-    }
-
     /// Return true if it was a valid order.
     pub fn add_from_str(&mut self, s: &str) -> bool {
         let mut order = Vec::with_capacity(self.elements);
@@ -80,13 +76,6 @@ impl StrictIDense {
         true
     }
 
-    pub fn get(&self, i: usize) -> StrictIRef {
-        assert!(i < self.count());
-        let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
-        let end = start + self.order_end[i];
-        StrictIRef::new(self.elements, &self.orders[start..end])
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = StrictIRef> {
         (0..self.count()).map(|i| self.get(i))
     }
@@ -97,6 +86,20 @@ impl<'a> DenseOrders<'a> for StrictIDense {
 
     fn elements(&self) -> usize {
         self.elements
+    }
+
+    fn count(&self) -> usize {
+        self.order_end.len()
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<Self::Order> {
+        if i >= self.count() {
+            None
+        } else {
+            let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
+            let end = start + self.order_end[i];
+            Some(StrictIRef::new(self.elements, &self.orders[start..end]))
+        }
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {

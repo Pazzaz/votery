@@ -162,7 +162,15 @@ pub trait DenseOrders<'a> {
     /// Number of elements
     fn elements(&self) -> usize;
 
+    fn count(&self) -> usize;
+
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str>;
+
+    fn try_get(&'a self, i: usize) -> Option<Self::Order>;
+
+    fn get(&'a self, i: usize) -> Self::Order {
+        self.try_get(i).unwrap()
+    }
 
     /// Removes element from the orders, offsetting the other elements to
     /// take their place.

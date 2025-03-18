@@ -1,6 +1,7 @@
 use orders::{strict::{StrictI, StrictIDense}, tied::{TiedIDense, TiedI}};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
+use orders::DenseOrders;
 
 use super::{get_order, RandomVotingMethod};
 

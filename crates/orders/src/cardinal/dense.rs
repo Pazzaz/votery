@@ -39,10 +39,6 @@ impl CardinalDense {
         CardinalDense { orders: Vec::new(), elements, min, max }
     }
 
-    pub fn count(&self) -> usize {
-        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
-    }
-
     pub fn min(&self) -> usize {
         self.min
     }
@@ -53,17 +49,6 @@ impl CardinalDense {
 
     pub fn elements(&self) -> usize {
         self.elements
-    }
-
-    pub fn get(&self, i: usize) -> Option<CardinalRef> {
-        if i < self.count() {
-            let start = i * self.elements;
-            let end = (i + 1) * self.elements;
-            let s = &self.orders[start..end];
-            Some(CardinalRef::new(s))
-        } else {
-            None
-        }
     }
 
     pub(crate) fn valid(&self) -> bool {
@@ -210,7 +195,7 @@ impl CardinalDense {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = CardinalRef> {
-        (0..self.count()).map(|i| self.get(i).unwrap())
+        (0..self.count()).map(|i| self.get(i))
     }
 
     /// Fill the given preference matrix for the elements listed in `keep`.
@@ -283,19 +268,29 @@ impl Display for CardinalDense {
 }
 
 impl<'a> DenseOrders<'a> for CardinalDense {
-    type Order = &'a [usize];
+    type Order = CardinalRef<'a>;
     fn elements(&self) -> usize {
         self.elements
     }
 
+    fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<Self::Order> {
+        if i < self.count() {
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
+            let s = &self.orders[start..end];
+            Some(CardinalRef::new(s))
+        } else {
+            None
+        }
+    }
+
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
-        if v.len() != self.elements {
-            return Err("Order must contains all elements");
-        }
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        for c in v {
-            self.orders.push(*c);
-        }
+        self.orders.extend_from_slice(&v.values);
         Ok(())
     }
 

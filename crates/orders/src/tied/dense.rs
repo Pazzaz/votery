@@ -6,7 +6,7 @@ use rand::{
 use super::TiedDense;
 use crate::{
     DenseOrders,
-    cardinal::CardinalDense,
+    cardinal::{CardinalDense, CardinalRef},
     strict::StrictIDense,
     tied::{TiedI, TiedIRef},
 };
@@ -31,12 +31,7 @@ pub struct TiedIDense {
 
 impl TiedIDense {
     pub fn new(elements: usize) -> Self {
-        TiedIDense {
-            orders: Vec::new(),
-            ties: Vec::new(),
-            order_end: Vec::new(),
-            elements,
-        }
+        TiedIDense { orders: Vec::new(), ties: Vec::new(), order_end: Vec::new(), elements }
     }
 
     pub fn from_parts(
@@ -59,23 +54,8 @@ impl TiedIDense {
         self.elements
     }
 
-    pub fn get(&self, i: usize) -> TiedIRef {
-        assert!(i < self.count());
-        let start = if i == 0 { 0 } else { self.order_end[i - 1] };
-        let end = self.order_end[i];
-        TiedIRef::new(
-            self.elements,
-            &self.orders[start..end],
-            &self.ties[(start - i)..(end - i - 1)],
-        )
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
         (0..self.count()).map(|i| self.get(i))
-    }
-
-    pub fn count(&self) -> usize {
-        self.order_end.len()
     }
 
     /// Add a single order from a string. Return true if it was a valid order.
@@ -254,7 +234,7 @@ impl TiedIDense {
             v.copy_from(order);
             v.make_complete(false);
             v.as_ref().cardinal_high(&mut cardinal_rank, 0, max);
-            cardinal_orders.add(&cardinal_rank)?;
+            cardinal_orders.add(CardinalRef::new(&cardinal_rank))?;
             cardinal_rank.fill(0);
         }
         Ok(cardinal_orders)
@@ -266,6 +246,24 @@ impl<'a> DenseOrders<'a> for TiedIDense {
     /// List the number of elements
     fn elements(&self) -> usize {
         self.elements
+    }
+
+    fn count(&self) -> usize {
+        self.order_end.len()
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<TiedIRef<'a>> {
+        if i >= self.count() {
+            None
+        } else {
+            let start = if i == 0 { 0 } else { self.order_end[i - 1] };
+            let end = self.order_end[i];
+            Some(TiedIRef::new(
+                self.elements,
+                &self.orders[start..end],
+                &self.ties[(start - i)..(end - i - 1)],
+            ))
+        }
     }
 
     fn add(&mut self, order: TiedIRef) -> Result<(), &'static str> {

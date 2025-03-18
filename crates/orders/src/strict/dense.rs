@@ -41,18 +41,6 @@ impl StrictDense {
         }
     }
 
-    pub fn count(&self) -> usize {
-        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
-    }
-
-    pub fn get(&self, i: usize) -> StrictRef {
-        let start = i * self.elements;
-        let end = (i + 1) * self.elements;
-        let s = &self.orders[start..end];
-        // TODO: Use unsafe?
-        StrictRef::new(s)
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = StrictRef> {
         (0..self.count()).map(|i| self.get(i))
     }
@@ -152,19 +140,30 @@ impl Display for StrictDense {
 }
 
 impl<'a> DenseOrders<'a> for StrictDense {
-    type Order = &'a [usize];
+    type Order = StrictRef<'a>;
     fn elements(&self) -> usize {
         self.elements
     }
 
+    fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<StrictRef<'a>> {
+        if i >= self.count() {
+            None
+        } else {
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
+            let s = &self.orders[start..end];
+            // TODO: Use unsafe?
+            Some(StrictRef::new(s))
+        }
+    }
+
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
-        if v.len() != self.elements {
-            return Err("Order must contains all elements");
-        }
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        for c in v {
-            self.orders.push(*c);
-        }
+        self.orders.extend_from_slice(&v.order);
         Ok(())
     }
 

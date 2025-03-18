@@ -4,8 +4,7 @@ use rand::{
 };
 
 use crate::{
-    cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete,
-    tied::TiedIRef,
+    cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete, tied::TiedIRef,
 };
 
 /// TOC - Orders with Ties - Complete List
@@ -40,11 +39,7 @@ impl TiedDense {
         assert!(i < self.count());
         let start = i * self.elements;
         let end = (i + 1) * self.elements;
-        TiedIRef::new(
-            self.elements,
-            &self.orders[start..end],
-            &self.ties[(start - i)..(end - i)],
-        )
+        TiedIRef::new(self.elements, &self.orders[start..end], &self.ties[(start - i)..(end - i)])
     }
 
     pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {

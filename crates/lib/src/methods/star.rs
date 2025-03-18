@@ -192,17 +192,17 @@ impl Star {
 
 #[cfg(test)]
 mod tests {
-    use orders::DenseOrders;
+    use orders::{cardinal::CardinalRef, DenseOrders};
 
     use super::*;
 
     #[test]
     fn simple_example() {
         let mut votes = CardinalDense::new(4,0..=4);
-        votes.add(&[1, 3, 2, 4]).unwrap();
-        votes.add(&[3, 1, 1, 3]).unwrap();
-        votes.add(&[0, 2, 1, 2]).unwrap();
-        votes.add(&[2, 4, 2, 2]).unwrap();
+        votes.add(CardinalRef::new(&[1, 3, 2, 4])).unwrap();
+        votes.add(CardinalRef::new(&[3, 1, 1, 3])).unwrap();
+        votes.add(CardinalRef::new(&[0, 2, 1, 2])).unwrap();
+        votes.add(CardinalRef::new(&[2, 4, 2, 2])).unwrap();
         // Scoring round should have 1 and 3 as the candidates.
         // Then 3 is preferred on two ballots, tied on one and not preferred on one, so it should win.
         let res = Star::count(&votes).unwrap().as_vote();

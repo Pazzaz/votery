@@ -23,8 +23,8 @@ impl SpecificDense {
         self.elements
     }
 
-    pub fn orders_count(&self) -> &[usize] {
-        &self.orders
+    pub fn iter(&self) -> impl Iterator<Item = usize> {
+        self.orders.iter().copied()
     }
 
     pub fn majority(&self) -> Option<usize> {
@@ -100,6 +100,14 @@ impl DenseOrders<'_> for SpecificDense {
     type Order = usize;
     fn elements(&self) -> usize {
         self.elements
+    }
+
+    fn count(&self) -> usize {
+        self.orders.len()
+    }
+
+    fn try_get(&self, i: usize) -> Option<Self::Order> {
+        self.orders.get(i).copied()
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
