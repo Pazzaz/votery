@@ -1,8 +1,7 @@
 use std::cmp;
 
-use crate::{Order, OrderOwned};
-
 use super::{strict_incomplete::StrictI, strict_ref::StrictRef};
+use crate::{Order, OrderOwned};
 
 #[derive(Debug)]
 pub struct Strict {

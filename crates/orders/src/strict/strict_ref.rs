@@ -1,10 +1,7 @@
 use std::fmt::{self, Display};
 
+use super::{strict::Strict, strict_incomplete_ref::StrictIRef, strict_valid};
 use crate::OrderRef;
-
-use super::strict_valid;
-
-use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
 
 #[derive(Debug, Clone, Copy)]
 pub struct StrictRef<'a> {
