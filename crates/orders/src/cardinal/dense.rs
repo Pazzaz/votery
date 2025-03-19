@@ -1,14 +1,9 @@
-use std::{
-    cmp::Ordering,
-    fmt::{self, Display},
-    io::BufRead,
-    ops::RangeBounds,
-};
+use std::{cmp::Ordering, ops::RangeBounds};
 
 use rand::distr::{Distribution, Uniform};
 
 use super::CardinalRef;
-use crate::{DenseOrders, binary::BinaryDense, pairwise_lt, remove_newline};
+use crate::{DenseOrders, binary::BinaryDense, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CardinalDense {
@@ -51,6 +46,7 @@ impl CardinalDense {
         self.elements
     }
 
+    #[cfg(test)]
     pub(crate) fn valid(&self) -> bool {
         if self.elements == 0 {
             self.orders.is_empty()
@@ -114,41 +110,6 @@ impl CardinalDense {
         }
         self.min = new_min;
         self.max = new_max;
-        Ok(())
-    }
-
-    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
-        if self.elements == 0 {
-            return Ok(());
-        }
-        // The smallest each order can be is all '0' seperated by ','
-        let mut buf = String::with_capacity(self.elements * 2);
-        loop {
-            buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
-            if bytes == 0 {
-                break;
-            }
-            remove_newline(&mut buf);
-
-            let mut count = 0;
-            for s in buf.split(',') {
-                count += 1;
-                let v: usize = s.parse().or(Err("Order is not a number"))?;
-                if v > self.max {
-                    return Err("Cardinal order is larger than max value");
-                } else if v < self.min {
-                    return Err("Cardinal order is smaller than min value");
-                }
-                self.orders.push(v);
-            }
-            match count.cmp(&self.elements) {
-                Ordering::Greater => return Err("Too many elements listed in order"),
-                Ordering::Less => return Err("Too few elements listed in order"),
-                Ordering::Equal => {}
-            }
-        }
-        debug_assert!(self.valid());
         Ok(())
     }
 
@@ -250,20 +211,6 @@ impl CardinalDense {
             }
         }
         a_v.cmp(&b_v)
-    }
-}
-
-impl Display for CardinalDense {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.count() {
-            for j in 0..(self.elements - 1) {
-                let v = self.orders[i * self.elements + j];
-                write!(f, "{},", v)?;
-            }
-            let v_last = self.orders[i * self.elements + (self.elements - 1)];
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
     }
 }
 

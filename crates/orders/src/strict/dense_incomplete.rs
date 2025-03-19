@@ -4,10 +4,7 @@ use rand::{
 };
 
 use super::StrictDense;
-use crate::{
-    DenseOrders, OrderOwned,
-    strict::{StrictI, StrictIRef},
-};
+use crate::{DenseOrders, strict::StrictIRef};
 
 /// SOI - Strict Orders - Incomplete List
 ///
@@ -28,27 +25,6 @@ impl StrictIDense {
 
     pub fn elements(&self) -> usize {
         self.elements
-    }
-
-    /// Return true if it was a valid order.
-    pub fn add_from_str(&mut self, s: &str) -> bool {
-        let mut order = Vec::with_capacity(self.elements);
-        let mut seen = vec![false; self.elements];
-        for number in s.split(',') {
-            let i: usize = match number.parse() {
-                Ok(n) => n,
-                Err(_) => return false,
-            };
-            if i >= self.elements || seen[i] {
-                return false;
-            }
-            seen[i] = true;
-            order.push(i);
-        }
-        let order = StrictI::new(self.elements, order);
-        self.add(order.as_ref()).unwrap();
-        debug_assert!(self.valid());
-        true
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.

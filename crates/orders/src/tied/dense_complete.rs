@@ -68,44 +68,6 @@ impl TiedDense {
         self.orders.len() / self.elements
     }
 
-    /// Add a single order from a string. Return true if it was a valid order.
-    pub fn add_from_str(&mut self, s: &str) -> bool {
-        let mut order: Vec<usize> = Vec::with_capacity(self.elements);
-        let mut tie: Vec<bool> = Vec::with_capacity(self.elements);
-        let mut grouped = false;
-        for part in s.split(',') {
-            let number: &str = if grouped {
-                part.strip_suffix('}').map_or(part, |s| {
-                    grouped = !grouped;
-                    s
-                })
-            } else {
-                part.strip_prefix('{').map_or(part, |s| {
-                    grouped = !grouped;
-                    s
-                })
-            };
-            let n: usize = match number.parse() {
-                Ok(n) => n,
-                Err(_) => return false,
-            };
-            if n >= self.elements {
-                return false;
-            }
-            order.push(n);
-            tie.push(grouped);
-        }
-        // The last one will never be tied, so we'll ignore it.
-        tie.pop();
-
-        // We didn't end our group or we didn't list all elements
-        if grouped || order.len() != self.elements {
-            return false;
-        }
-        self.add(TiedRef::new(&order, &tie));
-        true
-    }
-
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
         if self.orders.len() != self.orders() * self.elements

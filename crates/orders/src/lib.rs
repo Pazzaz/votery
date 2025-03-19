@@ -163,16 +163,6 @@ pub trait DenseOrders<'a> {
     fn generate_uniform<R: Rng>(&mut self, rng: &mut R, new_orders: usize);
 }
 
-// Utility functions
-fn remove_newline(buf: &mut String) {
-    if buf.ends_with('\n') {
-        buf.pop();
-        if buf.ends_with('\r') {
-            buf.pop();
-        }
-    }
-}
-
 fn unique_and_bounded(elements: usize, order: &[usize]) -> bool {
     for (i, &a) in order.iter().enumerate() {
         if a >= elements {

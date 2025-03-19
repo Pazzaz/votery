@@ -1,5 +1,3 @@
-use std::fmt::{self, Write};
-
 use super::{groups::GroupIterator, split_ref::SplitRef, tied_incomplete::TiedI};
 use crate::unique_and_bounded;
 
@@ -9,31 +7,6 @@ pub struct TiedIRef<'a> {
     /// not actually be part of the ranking.
     pub(crate) elements: usize,
     order_tied: SplitRef<'a>,
-}
-
-impl fmt::Display for TiedIRef<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut left = self.len();
-        for group in self.iter_groups() {
-            left -= group.len();
-            let grouped = group.len() > 1;
-            let (last, aa) = group.split_last().unwrap();
-            if grouped {
-                f.write_char('{')?;
-            }
-            for a in aa {
-                write!(f, "{},", a)?;
-            }
-            write!(f, "{}", last)?;
-            if grouped {
-                f.write_char('}')?;
-            }
-            if left != 0 {
-                f.write_char(',')?;
-            }
-        }
-        Ok(())
-    }
 }
 
 impl<'a> TiedIRef<'a> {

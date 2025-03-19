@@ -110,27 +110,6 @@ impl PartialOrder {
         }
     }
 
-    pub fn orderings(&self) -> String {
-        let mut parts = Vec::new();
-        for i in 0..self.elements() {
-            for j in i..self.elements() {
-                if i == j {
-                    continue;
-                }
-                let ij = self.le(i, j);
-                let ji = self.le(j, i);
-                if ij && ji {
-                    parts.push(format!("({}={}) ", i, j));
-                } else if ij {
-                    parts.push(format!("({}<{}) ", i, j));
-                } else if ji {
-                    parts.push(format!("({}>{}) ", i, j));
-                }
-            }
-        }
-        parts.into_iter().collect()
-    }
-
     pub fn set_ord(&mut self, i: usize, j: usize, o: Ordering) {
         assert!(i < self.elements() && j < self.elements());
         match o {

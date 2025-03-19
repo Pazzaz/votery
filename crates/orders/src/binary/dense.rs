@@ -1,15 +1,10 @@
-use std::{
-    fmt::{self, Display},
-    io::BufRead,
-};
-
 use rand::{
     Rng,
     distr::{Bernoulli, Distribution},
 };
 
 use super::BinaryRef;
-use crate::{DenseOrders, cardinal::CardinalDense, pairwise_lt, remove_newline};
+use crate::{DenseOrders, cardinal::CardinalDense, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BinaryDense {
@@ -56,43 +51,6 @@ impl BinaryDense {
             }
         }
     }
-
-    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
-        if self.elements == 0 {
-            return Ok(());
-        }
-
-        // Should fit each line, including "\r\n"
-        let mut buf = String::with_capacity(self.elements * 2 + 1);
-        loop {
-            buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
-            if bytes == 0 {
-                break;
-            }
-            remove_newline(&mut buf);
-
-            let bbuf = buf.as_bytes();
-            // Each order has a value for each element and a comma after every
-            // element, except for the last element.
-            // => len = element + element - 1
-            if bbuf.len() == (self.elements * 2 - 1) {
-                for i in 0..self.elements {
-                    match bbuf[i * 2] {
-                        b'0' => self.orders.push(false),
-                        b'1' => self.orders.push(true),
-                        _ => return Err("Invalid order"),
-                    }
-                    if i != self.elements - 1 && bbuf[i * 2 + 1] != b',' {
-                        return Err("Invalid order");
-                    }
-                }
-            } else {
-                return Err("Invalid order");
-            }
-        }
-        Ok(())
-    }
 }
 
 impl TryFrom<&BinaryDense> for CardinalDense {
@@ -107,22 +65,6 @@ impl TryFrom<&BinaryDense> for CardinalDense {
         orders.try_reserve_exact(value.elements * value.count()).or(Err("Could not allocate"))?;
         orders.extend(value.orders.iter().map(|x| if *x { 1 } else { 0 }));
         Ok(CardinalDense { orders, elements: value.elements, min: 0, max: 1 })
-    }
-}
-
-impl Display for BinaryDense {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.count() {
-            for j in 0..(self.elements - 1) {
-                let b = self.orders[i * self.elements + j];
-                let v = if b { '1' } else { '0' };
-                write!(f, "{},", v)?;
-            }
-            let b_last = self.orders[i * self.elements + (self.elements - 1)];
-            let v_last = if b_last { '1' } else { '0' };
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
     }
 }
 

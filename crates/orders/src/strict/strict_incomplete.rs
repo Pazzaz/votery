@@ -51,22 +51,6 @@ impl StrictI {
         StrictI { elements, order }
     }
 
-    pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
-        let mut order: Vec<usize> = Vec::with_capacity(elements);
-        for number in s.split(',') {
-            let n: usize = match number.parse() {
-                Ok(n) => n,
-                Err(_) => return None,
-            };
-            if n >= elements {
-                return None;
-            }
-            order.push(n);
-        }
-
-        Some(StrictI::new(elements, order))
-    }
-
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> StrictI {
         if elements == 0 {
             StrictI { order: Vec::new(), elements }

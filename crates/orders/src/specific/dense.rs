@@ -1,11 +1,9 @@
-use std::{fmt, fmt::Display, io::BufRead};
-
 use rand::{
     Rng,
     distr::{Distribution, Uniform},
 };
 
-use crate::{DenseOrders, pairwise_lt, remove_newline};
+use crate::{DenseOrders, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SpecificDense {
@@ -53,46 +51,10 @@ impl SpecificDense {
         true
     }
 
-    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
-        if self.elements == 0 {
-            return Ok(());
-        }
-
-        // Now we start parsing the actual orders, consisting of a
-        // number < elements. We don't use `std::io::Lines`, because we want to
-        // reuse `buf` for performance reasons.
-        let mut buf = String::with_capacity(20);
-        loop {
-            buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
-            if bytes == 0 {
-                break;
-            }
-            remove_newline(&mut buf);
-
-            let order: usize = buf.parse().or(Err("Order is not a number"))?;
-            if order >= self.elements {
-                return Err("Order assigned to non-existing candidate");
-            }
-            self.orders.push(order);
-        }
-        debug_assert!(self.valid());
-        Ok(())
-    }
-
     /// Set the number of elements to a larger amount
     pub fn set_elements(&mut self, elements: usize) {
         debug_assert!(self.elements <= elements);
         self.elements = elements;
-    }
-}
-
-impl Display for SpecificDense {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for v in &self.orders {
-            writeln!(f, "{}", v)?;
-        }
-        Ok(())
     }
 }
 

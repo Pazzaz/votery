@@ -1,14 +1,9 @@
-use std::{
-    fmt::{self, Display},
-    io::BufRead,
-};
-
 // TODO: A lot of implementation details are shared between PartialRanking and
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
 use super::StrictRef;
-use crate::{DenseOrders, get_order, pairwise_lt, remove_newline};
+use crate::{DenseOrders, get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StrictDense {
@@ -48,6 +43,7 @@ impl StrictDense {
     // Check if a given total ranking is valid, i.e.
     // 1. len(orders) % elements == 0
     // 2. Every ranking is total
+    #[cfg(test)]
     fn valid(&self) -> bool {
         if self.elements == 0 {
             self.orders.is_empty()
@@ -75,67 +71,6 @@ impl StrictDense {
             }
             true
         }
-    }
-
-    pub fn parse_add<T: BufRead>(&mut self, f: &mut T) -> Result<(), &'static str> {
-        if self.elements == 0 {
-            return Ok(());
-        }
-        let mut buf = String::with_capacity(self.elements * 2);
-
-        // Used to find gaps in a ranking
-        let seen: &mut [bool] = &mut vec![false; self.elements];
-        loop {
-            buf.clear();
-            let bytes = f.read_line(&mut buf).or(Err("Failed to read line of order"))?;
-            if bytes == 0 {
-                break;
-            }
-            remove_newline(&mut buf);
-
-            seen.fill(false);
-            let mut count = 0;
-            for s in buf.split(',') {
-                count += 1;
-                let v: usize = s.parse().or(Err("Order is not a number"))?;
-                if v >= self.elements {
-                    return Err("Ranking of element larger than or equal to number of elements");
-                }
-                if seen[v] {
-                    return Err("Not a total ranking");
-                }
-                seen[v] = true;
-                self.orders.push(v);
-            }
-            match count.cmp(&self.elements) {
-                std::cmp::Ordering::Greater => return Err("Too many elements listed in order"),
-                std::cmp::Ordering::Less => return Err("Too few elements listed in order"),
-                std::cmp::Ordering::Equal => {}
-            }
-            for &s in &*seen {
-                if !s {
-                    return Err("Invalid order, gap in ranking");
-                }
-            }
-        }
-        debug_assert!(self.valid());
-        Ok(())
-    }
-}
-
-impl Display for StrictDense {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let end = self.count();
-        write!(f, "[")?;
-        for (i, v) in self.iter().enumerate() {
-            if i == end.saturating_sub(1) {
-                write!(f, "({})", v)?;
-            } else {
-                write!(f, "({}), ", v)?;
-            }
-        }
-        write!(f, "]")?;
-        Ok(())
     }
 }
 

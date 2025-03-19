@@ -102,73 +102,6 @@ impl<'a> TiedI {
         self.elements = elements;
     }
 
-    /// Try to parse a ranking of `elements` from `s`. Returns None if `s` is
-    /// not a valid ranking.
-    ///
-    /// ```
-    /// use orders::tied::TiedI;
-    ///
-    /// let order_str = "2,{0,1},4";
-    /// let order = TiedI::parse_order(5, order_str).expect("Parse failed");
-    /// assert_eq!(format!("{}", order.as_ref()), order_str);
-    /// ```
-    ///
-    /// There can be multiple string representations for the same ranking, This
-    /// means that `f`, the function from valid string representations of
-    /// rankings to actual rankings, is not injective. Example:
-    /// ```
-    /// use orders::tied::TiedI;
-    ///
-    /// let rank = TiedI::parse_order(5, "0,{1}").unwrap();
-    /// assert!(rank.as_ref().to_string() == "0,1");
-    /// ```
-    pub fn parse_order(elements: usize, s: &str) -> Option<Self> {
-        if s.is_empty() {
-            let mut rank = TiedI::new_zero();
-            rank.increase_elements(elements);
-            return Some(rank);
-        }
-        let l = (s.len() / 2).min(elements);
-        let mut order: Vec<usize> = Vec::with_capacity(l);
-        let mut tied: Vec<bool> = Vec::with_capacity(l);
-        let mut grouped = false;
-        for mut part in s.split(',') {
-            // Are we starting a group?
-            if !grouped {
-                part = part.strip_prefix('{').map_or(part, |s| {
-                    grouped = true;
-                    s
-                });
-            }
-
-            // Are we ending a group? We check both cases as this part may be a group with
-            // only one element.
-            if grouped {
-                part = part.strip_suffix('}').map_or(part, |s| {
-                    grouped = !grouped;
-                    s
-                })
-            }
-            let n: usize = match part.parse() {
-                Ok(n) => n,
-                Err(_) => return None,
-            };
-            if n >= elements {
-                return None;
-            }
-            order.push(n);
-            tied.push(grouped);
-        }
-        // The last one will never be tied, so we'll ignore it.
-        tied.pop();
-
-        // We didn't end our group
-        if grouped {
-            return None;
-        }
-        Some(TiedI::new(elements, order, tied))
-    }
-
     pub fn single(elements: usize, n: usize) -> TiedI {
         debug_assert!(n < elements);
         let order = vec![n];
@@ -303,8 +236,8 @@ impl<'a> TiedI {
     /// ```
     /// use orders::tied::TiedI;
     ///
-    /// let a = TiedI::parse_order(3, "{0,1,2}").unwrap();
-    /// let mut b = TiedI::parse_order(3, "{2,1,0}").unwrap();
+    /// let a = TiedI::new(3, vec![0, 1, 2], vec![true, true]);
+    /// let mut b = TiedI::new(3, vec![2, 1, 0], vec![true, true]);
     /// assert!(a != b);
     /// b.normalize();
     /// assert!(a == b);
@@ -443,35 +376,6 @@ mod tests {
         rank.len() == rank.elements
     }
 
-    // We have that rank.to_str.to_rank == rank.
-    #[quickcheck]
-    fn parse_random(rank: TiedI) -> bool {
-        let new_rank_o = TiedI::parse_order(rank.elements, &format!("{}", rank.as_ref()));
-        match new_rank_o {
-            Some(new_rank) => rank == new_rank,
-            None => false,
-        }
-    }
-
-    #[test]
-    fn top_exact_four() {
-        let elements = 5;
-        let x = 4;
-        let examples = [
-            "0,1,2,3,4",
-            "{0,1},2,3,4",
-            "0,{1,2},3,4",
-            "0,1,{2,3},4",
-            "{0,1,2},3,4",
-            "0,{1,2,3},4",
-            "{0,1,2,3},4",
-        ];
-        for s in examples {
-            let rank = TiedI::parse_order(elements, s).expect("Could not parse");
-            assert!(rank.as_ref().top(x).len() == x);
-        }
-    }
-
     #[test]
     fn tied_remove_last() {
         let mut r = TiedI::new_tied(20);
@@ -520,39 +424,5 @@ mod tests {
         rank.keep_top(n);
         let l2 = rank.len();
         n <= l2 && l2 <= l1
-    }
-
-    #[test]
-    fn parse_rank_tied_examples() {
-        // Arbitrary
-        let elements = 10;
-
-        let examples = [
-            ("", true),
-            ("1", true),
-            ("{1}", true),
-            ("{0},{1}", true),
-            ("{0},{1}", true),
-            (",", false),
-            (",,", false),
-            (",1", false),
-            ("1,", false),
-            ("{1", false),
-            ("1}", false),
-            ("{0,1,{2,3}", false),
-            ("{{0}}", false),
-            ("{0}}", false),
-            ("{0},}", false),
-            ("{,{0},}", false),
-            (" 1", false),
-        ];
-        for (s, some) in examples {
-            let order_o = TiedI::parse_order(elements, s);
-            match (order_o, some) {
-                (Some(_), true) | (None, false) => {}
-                (None, true) => panic!("`{}` could not be parsed", s),
-                (Some(order), false) => panic!("`{}` was parsed to `{}`", s, order.as_ref()),
-            }
-        }
     }
 }

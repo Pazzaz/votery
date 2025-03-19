@@ -58,26 +58,6 @@ impl TiedIDense {
         (0..self.count()).map(|i| self.get(i))
     }
 
-    /// Add a single order from a string. Return true if it was a valid order.
-    pub fn add_from_str(&mut self, s: &str) -> bool {
-        self.add_from_str_i(s, 1)
-    }
-
-    /// Add a order from a string, `i` times. Return true if it was a valid
-    /// order.
-    pub fn add_from_str_i(&mut self, s: &str, i: usize) -> bool {
-        debug_assert!(i != 0);
-        match TiedI::parse_order(self.elements, s) {
-            Some(order) => {
-                for _ in 0..i {
-                    self.add(order.as_ref()).unwrap();
-                }
-                true
-            }
-            None => false,
-        }
-    }
-
     /// Returns true if this struct is in a valid state, used for debugging.
     #[cfg(test)]
     pub(crate) fn valid(&self) -> bool {
@@ -406,16 +386,5 @@ mod tests {
     #[quickcheck]
     fn arbitrary(orders: TiedIDense) -> bool {
         orders.valid()
-    }
-
-    #[quickcheck]
-    fn clone_remove(orders: TiedIDense, i: usize) -> bool {
-        let mut orders = orders.clone();
-        let c = orders.elements;
-        if c == 0 {
-            return true;
-        }
-        orders.add_clone(i % c);
-        orders.remove_element(c).is_ok()
     }
 }

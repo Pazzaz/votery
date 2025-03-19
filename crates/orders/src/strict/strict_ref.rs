@@ -1,5 +1,3 @@
-use std::fmt::{self, Display};
-
 use super::{strict::Strict, strict_incomplete_ref::StrictIRef, strict_valid};
 use crate::OrderRef;
 
@@ -39,20 +37,5 @@ impl OrderRef for StrictRef<'_> {
 
     fn to_owned(self) -> Self::Owned {
         Strict { order: self.order.to_vec() }
-    }
-}
-
-impl Display for StrictRef<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let o = &self.order;
-        if !o.is_empty() {
-            for i in 0..(o.len() - 1) {
-                let v = o[i];
-                write!(f, "{}, ", v)?;
-            }
-            let v_last = o.last().unwrap();
-            writeln!(f, "{}", v_last)?;
-        }
-        Ok(())
     }
 }
