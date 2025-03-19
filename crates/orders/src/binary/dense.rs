@@ -93,18 +93,20 @@ impl BinaryDense {
         }
         Ok(())
     }
+}
+
+impl TryFrom<&BinaryDense> for CardinalDense {
+    type Error = &'static str;
 
     /// Convert each order to a cardinal order, with an approval being 1 and
     /// disapproval 0.
     ///
-    /// Returns `Err` if it failed to allocate
-    pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
+    /// Returns `Err` if it failed to allocate.
+    fn try_from(value: &BinaryDense) -> Result<Self, Self::Error> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(self.elements * self.count()).or(Err("Could not allocate"))?;
-        orders.extend(self.orders.iter().map(|x| if *x { 1 } else { 0 }));
-        let v = CardinalDense { orders, elements: self.elements, min: 0, max: 1 };
-        debug_assert!(v.valid());
-        Ok(v)
+        orders.try_reserve_exact(value.elements * value.count()).or(Err("Could not allocate"))?;
+        orders.extend(value.orders.iter().map(|x| if *x { 1 } else { 0 }));
+        Ok(CardinalDense { orders, elements: value.elements, min: 0, max: 1 })
     }
 }
 
@@ -212,7 +214,8 @@ mod tests {
 
     #[quickcheck]
     fn to_cardinal(orders: BinaryDense) -> bool {
-        let around: BinaryDense = orders.to_cardinal().unwrap().to_binary_cutoff(1).unwrap();
+        let cardinal: CardinalDense = (&orders).try_into().unwrap();
+        let around: BinaryDense = cardinal.to_binary_cutoff(1).unwrap();
         around == orders
     }
 }
