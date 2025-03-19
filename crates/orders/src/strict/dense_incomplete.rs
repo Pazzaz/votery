@@ -28,6 +28,7 @@ impl StrictIDense {
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
+    #[cfg(test)]
     fn valid(&self) -> bool {
         let mut seen = vec![false; self.elements];
         for v in self.iter() {
@@ -40,12 +41,12 @@ impl StrictIDense {
             }
         }
         for &o in &self.order_end {
-            if o >= self.orders.len() {
+            if o > self.orders.len() {
                 return false;
             }
         }
         for o in self.order_end.windows(2) {
-            if o[0] >= o[1] {
+            if o[0] > o[1] {
                 return false;
             }
         }
@@ -73,7 +74,7 @@ impl<'a> DenseOrders<'a> for StrictIDense {
             None
         } else {
             let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
-            let end = start + self.order_end[i];
+            let end = self.order_end[i];
             Some(StrictIRef::new(self.elements, &self.orders[start..end]))
         }
     }
@@ -107,7 +108,6 @@ impl<'a> DenseOrders<'a> for StrictIDense {
             let start = self.order_end.last().unwrap_or(&0);
             self.order_end.push(*start + elements);
         }
-        debug_assert!(self.valid());
     }
 }
 
@@ -116,5 +116,46 @@ impl From<StrictDense> for StrictIDense {
         let orders: usize = value.count();
         let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
         StrictIDense { orders: value.orders, order_end, elements: value.elements }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use quickcheck::{Arbitrary, Gen};
+
+    use super::*;
+    use crate::{OrderOwned, OrderRef, strict::StrictI, tests::std_rng};
+
+    impl Arbitrary for StrictIDense {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
+
+            // `Arbitrary` for numbers will generate "problematic" examples such as
+            // `usize::max_value()` and `usize::min_value()` but we'll use them to
+            // allocate vectors so we'll limit them.
+            orders_count = orders_count % g.size();
+            elements = elements % g.size();
+
+            let mut orders = StrictIDense::new(elements);
+            orders.generate_uniform(&mut std_rng(g), orders_count);
+            orders
+        }
+    }
+
+    #[quickcheck]
+    fn arbitrary(orders: StrictIDense) -> bool {
+        orders.valid()
+    }
+
+    #[quickcheck]
+    fn iter_collect(orders: StrictIDense) -> bool {
+        let orig = orders.clone();
+        let parts: Vec<StrictI> = orders.iter().map(|x| x.to_owned()).collect();
+        for i in 0..orders.count() {
+            if parts[i].as_ref() != orig.get(i) {
+                return false;
+            }
+        }
+        true
     }
 }
