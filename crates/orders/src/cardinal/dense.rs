@@ -53,7 +53,7 @@ impl CardinalDense {
 
     pub(crate) fn valid(&self) -> bool {
         if self.elements == 0 {
-            self.orders.len() == 0
+            self.orders.is_empty()
         } else if self.orders.len() % self.elements != 0 {
             false
         } else {
@@ -290,7 +290,7 @@ impl<'a> DenseOrders<'a> for CardinalDense {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        self.orders.extend_from_slice(&v.values);
+        self.orders.extend_from_slice(v.values);
         Ok(())
     }
 

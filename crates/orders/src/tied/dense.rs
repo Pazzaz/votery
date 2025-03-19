@@ -338,13 +338,12 @@ impl<'a> DenseOrders<'a> for TiedIDense {
 impl From<StrictIDense> for TiedIDense {
     fn from(value: StrictIDense) -> Self {
         let orders: usize = value.count();
-        let s = TiedIDense::from_parts(
+        TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],
             value.order_end,
             value.elements,
-        );
-        s
+        )
     }
 }
 
@@ -352,13 +351,12 @@ impl From<TiedDense> for TiedIDense {
     fn from(value: TiedDense) -> Self {
         let orders: usize = value.orders();
         let order_end = (0..value.count()).map(|i| (i + 1) * value.elements()).collect();
-        let s = TiedIDense::from_parts(
+        TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],
             order_end,
             value.elements,
-        );
-        s
+        )
     }
 }
 

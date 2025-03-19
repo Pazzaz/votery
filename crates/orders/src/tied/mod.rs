@@ -25,7 +25,7 @@ impl Tied {
     }
 
     pub fn try_new(order: Vec<usize>, tied: Vec<bool>) -> Option<Self> {
-        let correct_len = order.len() == 0 && tied.len() == 0 || tied.len() + 1 == order.len();
+        let correct_len = order.is_empty() && tied.is_empty() || tied.len() + 1 == order.len();
         if correct_len && unique_and_bounded(order.len(), &order) {
             Some(Tied { order, tied })
         } else {
@@ -84,7 +84,7 @@ impl<'a> TiedRef<'a> {
     }
 
     pub fn try_new(order: &'a [usize], tied: &'a [bool]) -> Option<Self> {
-        let correct_len = order.len() == 0 && tied.len() == 0 || tied.len() + 1 == order.len();
+        let correct_len = order.is_empty() && tied.is_empty() || tied.len() + 1 == order.len();
         if correct_len && unique_and_bounded(order.len(), order) {
             Some(TiedRef { order_tied: SplitRef::new(order, tied) })
         } else {

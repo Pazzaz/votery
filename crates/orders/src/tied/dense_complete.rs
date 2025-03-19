@@ -193,11 +193,10 @@ impl TryFrom<TiedDense> for CardinalDense {
 impl From<StrictDense> for TiedDense {
     fn from(value: StrictDense) -> Self {
         let orders: usize = value.count();
-        let s = TiedDense {
+        TiedDense {
             orders: value.orders,
             ties: vec![false; (value.elements - 1) * orders],
             elements: value.elements,
-        };
-        s
+        }
     }
 }

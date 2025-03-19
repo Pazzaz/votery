@@ -139,7 +139,6 @@ impl From<StrictDense> for StrictIDense {
     fn from(value: StrictDense) -> Self {
         let orders: usize = value.count();
         let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
-        let s = StrictIDense { orders: value.orders, order_end, elements: value.elements };
-        s
+        StrictIDense { orders: value.orders, order_end, elements: value.elements }
     }
 }

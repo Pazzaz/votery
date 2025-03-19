@@ -23,7 +23,7 @@ impl BinaryDense {
     }
 
     pub fn new_from_parts(orders: Vec<bool>, elements: usize) -> BinaryDense {
-        assert!(orders.len() == 0 && elements == 0 || orders.len() % elements == 0);
+        assert!(orders.is_empty() && elements == 0 || orders.len() % elements == 0);
         BinaryDense { orders, elements }
     }
 
@@ -37,7 +37,7 @@ impl BinaryDense {
 
     #[cfg(test)]
     pub(crate) fn valid(&self) -> bool {
-        self.elements == 0 && self.orders.len() == 0 || self.orders.len() % self.elements == 0
+        self.elements == 0 && self.orders.is_empty() || self.orders.len() % self.elements == 0
     }
 
     /// Sample and add `new_orders` new orders, where each elements has a
@@ -152,7 +152,7 @@ impl<'a> DenseOrders<'a> for BinaryDense {
             return Err("Order must contains all elements");
         }
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        self.orders.extend_from_slice(&v.values);
+        self.orders.extend_from_slice(v.values);
         Ok(())
     }
 

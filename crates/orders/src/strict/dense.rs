@@ -33,10 +33,10 @@ impl StrictDense {
     pub fn add(&mut self, v: StrictRef) -> Result<(), AddError> {
         if v.elements() != self.elements {
             Err(AddError::Elements)
-        } else if let Err(_) = self.orders.try_reserve(self.elements) {
+        } else if self.orders.try_reserve(self.elements).is_err() {
             Err(AddError::Alloc)
         } else {
-            self.orders.extend_from_slice(&v.order);
+            self.orders.extend_from_slice(v.order);
             Ok(())
         }
     }
@@ -50,7 +50,7 @@ impl StrictDense {
     // 2. Every ranking is total
     fn valid(&self) -> bool {
         if self.elements == 0 {
-            self.orders.len() == 0
+            self.orders.is_empty()
         } else if self.orders.len() % self.elements != 0 {
             false
         } else {
@@ -163,7 +163,7 @@ impl<'a> DenseOrders<'a> for StrictDense {
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
         self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        self.orders.extend_from_slice(&v.order);
+        self.orders.extend_from_slice(v.order);
         Ok(())
     }
 

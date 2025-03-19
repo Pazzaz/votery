@@ -90,7 +90,7 @@ impl Order for Cardinal {
                 if e1 == e2 {
                     continue;
                 }
-                tmp.set_ord(i, j, e1.cmp(&e2));
+                tmp.set_ord(i, j, e1.cmp(e2));
             }
         }
         tmp.finish()
