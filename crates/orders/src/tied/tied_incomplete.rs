@@ -43,6 +43,25 @@ impl<'a> TiedI {
         TiedI::new(elements, order.to_vec(), tied)
     }
 
+    /// Create a `TiedI`, from groups of equal elements.
+    pub fn from_slices(elements: usize, groups: &[&[usize]]) -> Self {
+        let mut orders = Vec::with_capacity(groups.len());
+        let mut tied = Vec::with_capacity(groups.len() - 1);
+        let mut first = true;
+        for group in groups {
+            orders.extend_from_slice(group);
+            if !first {
+                tied.push(false);
+            } else {
+                first = false;
+            }
+            for _ in 1..group.len() {
+                tied.push(true);
+            }
+        }
+        TiedI::new(elements, orders, tied)
+    }
+
     pub fn as_ref(&'a self) -> TiedIRef<'a> {
         TiedIRef::new(self.elements, &self.order[..], &self.tied[..])
     }

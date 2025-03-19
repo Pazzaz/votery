@@ -110,10 +110,10 @@ impl<'a> TiedIRef<'a> {
     /// highest elements.
     ///
     /// ```
-    /// use orders::tied::TiedIRef;
+    /// use orders::tied::TiedI;
     ///
-    /// let order = TiedIRef::new(7, &[4, 2, 3, 0, 1], &[true, true, false, true]);
-    /// let firsts: Vec<usize> = order.iter_groups().map(|x| x[0]).collect();
+    /// let order = TiedI::from_slices(7, &[&[4, 2, 3], &[0, 1]]);
+    /// let firsts: Vec<usize> = order.as_ref().iter_groups().map(|x| x[0]).collect();
     /// assert_eq!(firsts, [4, 0]);
     /// ```
     pub fn iter_groups(&self) -> GroupIterator<'a> {
