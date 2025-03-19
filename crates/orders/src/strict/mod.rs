@@ -5,7 +5,7 @@ mod strict_incomplete;
 mod strict_incomplete_ref;
 mod strict_ref;
 
-pub use dense::{StrictDense, StrictOrdersComplete, StrictOrdersCompleteIterator};
+pub use dense::*;
 pub use dense_incomplete::*;
 pub use strict::*;
 pub use strict_incomplete::*;

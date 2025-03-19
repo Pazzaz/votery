@@ -3,7 +3,7 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::dense::StrictOrdersComplete;
+use super::StrictDense;
 use crate::{
     DenseOrders, OrderOwned,
     strict::{StrictI, StrictIRef},
@@ -135,12 +135,11 @@ impl<'a> DenseOrders<'a> for StrictIDense {
     }
 }
 
-impl From<StrictOrdersComplete> for StrictIDense {
-    fn from(value: StrictOrdersComplete) -> Self {
-        let orders: usize = value.orders();
+impl From<StrictDense> for StrictIDense {
+    fn from(value: StrictDense) -> Self {
+        let orders: usize = value.count();
         let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
         let s = StrictIDense { orders: value.orders, order_end, elements: value.elements };
-        debug_assert!(s.valid());
         s
     }
 }

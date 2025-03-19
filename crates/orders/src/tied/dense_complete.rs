@@ -4,7 +4,8 @@ use rand::{
 };
 
 use crate::{
-    cardinal::CardinalDense, specific::SpecificDense, strict::StrictOrdersComplete, tied::TiedIRef,
+    DenseOrders, cardinal::CardinalDense, specific::SpecificDense, strict::StrictDense,
+    tied::TiedIRef,
 };
 
 /// TOC - Orders with Ties - Complete List
@@ -190,9 +191,9 @@ impl TiedDense {
     }
 }
 
-impl From<StrictOrdersComplete> for TiedDense {
-    fn from(value: StrictOrdersComplete) -> Self {
-        let orders: usize = value.orders();
+impl From<StrictDense> for TiedDense {
+    fn from(value: StrictDense) -> Self {
+        let orders: usize = value.count();
         let s = TiedDense {
             orders: value.orders,
             ties: vec![false; (value.elements - 1) * orders],
