@@ -1,28 +1,11 @@
 use super::strict_ref::StrictRef;
-use crate::tied::TiedIRef;
+use crate::{tied::TiedIRef, unique_and_bounded};
 
 /// A possibly incomplete order without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct StrictIRef<'a> {
     pub(crate) elements: usize,
     pub(crate) order: &'a [usize],
-}
-
-fn valid_slice(elements: usize, order: &[usize]) -> bool {
-    for (i, &a) in order.iter().enumerate() {
-        if a >= elements {
-            return false;
-        }
-        for (j, &b) in order.iter().enumerate() {
-            if i == j {
-                continue;
-            }
-            if a == b {
-                return false;
-            }
-        }
-    }
-    true
 }
 
 impl<'a> StrictIRef<'a> {
@@ -42,7 +25,11 @@ impl<'a> StrictIRef<'a> {
     /// Elements in `order` have to be less than `elements`, without duplicates;
     /// otherwise it returns None.
     pub fn try_new(elements: usize, order: &'a [usize]) -> Option<Self> {
-        if valid_slice(elements, order) { Some(StrictIRef { elements, order }) } else { None }
+        if unique_and_bounded(elements, order) {
+            Some(StrictIRef { elements, order })
+        } else {
+            None
+        }
     }
 
     /// Create a reference to a strictly ordered (possible incomplete) order.
@@ -83,12 +70,9 @@ impl<'a> StrictIRef<'a> {
 impl<'a> TryFrom<StrictIRef<'a>> for StrictRef<'a> {
     type Error = ();
 
-    /// Convert to complete order, returns `Err(())` if the order isn't actually complete.
+    /// Convert to complete order, returns `Err(())` if the order isn't actually
+    /// complete.
     fn try_from(StrictIRef { elements, order }: StrictIRef<'a>) -> Result<Self, Self::Error> {
-        if elements == order.len() {
-            Ok(StrictRef { order })
-        } else {
-            Err(())
-        }
+        if elements == order.len() { Ok(StrictRef { order }) } else { Err(()) }
     }
 }

@@ -17,7 +17,7 @@ use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
 use crate::{
     Order, OrderOwned, OrderRef,
     partial_order::{PartialOrder, PartialOrderManual},
-    unique,
+    unique_and_bounded,
 };
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
@@ -40,7 +40,14 @@ impl Clone for StrictI {
 
 impl StrictI {
     pub fn new(elements: usize, order: Vec<usize>) -> Self {
-        debug_assert!(unique(&order));
+        Self::try_new(elements, order).unwrap()
+    }
+
+    pub fn try_new(elements: usize, order: Vec<usize>) -> Option<Self> {
+        if unique_and_bounded(elements, &order) { Some(StrictI { elements, order }) } else { None }
+    }
+
+    pub unsafe fn new_unchecked(elements: usize, order: Vec<usize>) -> Self {
         StrictI { elements, order }
     }
 
@@ -60,13 +67,6 @@ impl StrictI {
         Some(StrictI::new(elements, order))
     }
 
-    /// Converts to complete ranking. Panics if not all elements are ranked.
-    pub fn to_complete(self) -> Strict {
-        let StrictI { elements, order } = self;
-        assert!(elements == order.len());
-        Strict { order }
-    }
-
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> StrictI {
         if elements == 0 {
             StrictI { order: Vec::new(), elements }
@@ -77,6 +77,15 @@ impl StrictI {
             order.shuffle(rng);
             StrictI { order, elements }
         }
+    }
+}
+
+impl TryFrom<StrictI> for Strict {
+    type Error = ();
+
+    /// Converts to complete ranking. Panics if not all elements are ranked.
+    fn try_from(StrictI { elements, order }: StrictI) -> Result<Self, Self::Error> {
+        if elements == order.len() { Ok(Strict { order }) } else { Err(()) }
     }
 }
 

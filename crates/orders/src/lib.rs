@@ -92,24 +92,6 @@ mod tests {
     }
 }
 
-// Returns true iff all elements in `l` are different
-pub(crate) fn unique<T>(l: &[T]) -> bool
-where
-    T: std::cmp::PartialEq,
-{
-    for i in 0..l.len() {
-        for j in 0..l.len() {
-            if i == j {
-                break;
-            }
-            if l[i] == l[j] {
-                return false;
-            }
-        }
-    }
-    true
-}
-
 // Sort two arrays, sorted according to the values in `b`.
 // Uses insertion sort
 pub(crate) fn sort_using<A, B>(a: &mut [A], b: &mut [B])
@@ -189,4 +171,21 @@ fn remove_newline(buf: &mut String) {
             buf.pop();
         }
     }
+}
+
+fn unique_and_bounded(elements: usize, order: &[usize]) -> bool {
+    for (i, &a) in order.iter().enumerate() {
+        if a >= elements {
+            return false;
+        }
+        for (j, &b) in order.iter().enumerate() {
+            if i == j {
+                continue;
+            }
+            if a == b {
+                return false;
+            }
+        }
+    }
+    true
 }

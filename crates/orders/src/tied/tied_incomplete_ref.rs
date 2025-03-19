@@ -1,7 +1,7 @@
 use std::fmt::{self, Write};
 
 use super::{groups::GroupIterator, split_ref::SplitRef, tied_incomplete::TiedI};
-use crate::unique;
+use crate::unique_and_bounded;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct TiedIRef<'a> {
@@ -39,10 +39,7 @@ impl fmt::Display for TiedIRef<'_> {
 impl<'a> TiedIRef<'a> {
     pub fn new(elements: usize, order: &'a [usize], tied: &'a [bool]) -> Self {
         assert!(tied.len() + 1 == order.len() || order.is_empty() && tied.is_empty());
-        assert!(unique(order));
-        for i in order {
-            assert!(*i < elements);
-        }
+        assert!(unique_and_bounded(elements, order));
         let order_tied = SplitRef::new(order, tied);
         TiedIRef { elements, order_tied }
     }
@@ -104,7 +101,7 @@ impl<'a> TiedIRef<'a> {
     }
 
     /// Return an empty ranking of the same `elements` as `self`.
-    pub fn zeroed(self: &TiedIRef<'a>) -> TiedIRef<'a> {
+    pub fn zeroed(&self) -> Self {
         TiedIRef::new(self.elements, &[], &[])
     }
 
@@ -112,7 +109,7 @@ impl<'a> TiedIRef<'a> {
     /// than `n` if ties prevent us from saying which ones are ranked
     /// higher.
     #[must_use]
-    pub fn top(self: &TiedIRef<'a>, n: usize) -> TiedIRef<'a> {
+    pub fn top(&self, n: usize) -> Self {
         if n == 0 {
             return self.zeroed();
         }
@@ -151,14 +148,14 @@ impl<'a> TiedIRef<'a> {
             if self.order()[i] == c {
                 return Some(group);
             }
-            if i != self.len() && !self.tied()[i] {
+            if !self.tied()[i] {
                 group += 1;
             }
         }
         None
     }
 
-    pub fn winners(self: &TiedIRef<'a>) -> &'a [usize] {
+    pub fn winners(&self) -> &'a [usize] {
         let i = self.tied().iter().take_while(|x| **x).count();
         &self.order()[0..=i]
     }
@@ -169,7 +166,7 @@ impl<'a> TiedIRef<'a> {
 
     /// Returns a list of all elements with the top rank, and a ranking of the
     /// rest
-    pub fn split_winner_group(self: &TiedIRef<'a>) -> (&'a [usize], TiedIRef<'a>) {
+    pub fn split_winner_group(&self) -> (&'a [usize], TiedIRef<'a>) {
         if self.is_empty() {
             return (&[], *self);
         }
