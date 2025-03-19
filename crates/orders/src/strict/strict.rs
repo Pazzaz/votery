@@ -1,7 +1,7 @@
 use std::cmp;
 
 use super::{strict_incomplete::StrictI, strict_ref::StrictRef};
-use crate::{Order, OrderOwned};
+use crate::{unique_and_bounded, Order, OrderOwned};
 
 #[derive(Debug)]
 pub struct Strict {
@@ -18,28 +18,9 @@ impl Clone for Strict {
     }
 }
 
-// Every value is less than `s.len()` and unique, i.e. the slice is a
-// permutation of `0..s.len()`.
-pub(super) fn strict_valid(s: &[usize]) -> bool {
-    for (i, &a) in s.iter().enumerate() {
-        if a < s.len() {
-            return false;
-        }
-        for (j, &b) in s.iter().enumerate() {
-            if i == j {
-                continue;
-            }
-            if a == b {
-                return false;
-            }
-        }
-    }
-    true
-}
-
 impl Strict {
     pub fn new(v: Vec<usize>) -> Self {
-        assert!(strict_valid(&v));
+        assert!(unique_and_bounded(v.len(), &v));
         Self { order: v }
     }
 

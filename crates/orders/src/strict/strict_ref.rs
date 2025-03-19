@@ -1,5 +1,5 @@
-use super::{strict::Strict, strict_incomplete_ref::StrictIRef, strict_valid};
-use crate::OrderRef;
+use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
+use crate::{unique_and_bounded, OrderRef};
 
 #[derive(Debug, Clone, Copy)]
 pub struct StrictRef<'a> {
@@ -9,7 +9,7 @@ pub struct StrictRef<'a> {
 impl<'a> StrictRef<'a> {
     /// Create a new `StrictRef` from a permutation of `0..s.len()`.
     pub fn new(v: &'a [usize]) -> Self {
-        assert!(strict_valid(v));
+        assert!(unique_and_bounded(v.len(), v));
         StrictRef { order: v }
     }
 
