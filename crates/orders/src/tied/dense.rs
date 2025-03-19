@@ -329,7 +329,7 @@ impl From<StrictIDense> for TiedIDense {
 
 impl From<TiedDense> for TiedIDense {
     fn from(value: TiedDense) -> Self {
-        let orders: usize = value.orders();
+        let orders: usize = value.count();
         let order_end = (0..value.count()).map(|i| (i + 1) * value.elements()).collect();
         TiedIDense::from_parts(
             value.orders,
@@ -349,6 +349,7 @@ impl<'a> FromIterator<TiedIRef<'a>> for TiedIDense {
         if let Some(first_v) = ii.next() {
             let elements = first_v.elements();
             let mut new = TiedIDense::new(elements);
+            new.add(first_v).unwrap();
             for v in ii {
                 assert!(v.elements() == elements);
                 new.add(v).unwrap();

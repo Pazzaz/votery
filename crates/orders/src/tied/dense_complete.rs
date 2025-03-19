@@ -30,7 +30,7 @@ impl TiedDense {
     }
 
     pub fn count(&self) -> usize {
-        if self.elements == 0 { 0 } else { self.orders() / self.elements }
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     // TODO: Use `TiedRef`
@@ -48,30 +48,19 @@ impl TiedDense {
     pub fn add(&mut self, v: TiedRef) {
         let order = v.order();
         let tie = v.tied();
-        debug_assert!(order.len() == self.elements);
-        debug_assert!(!order.is_empty());
-        debug_assert!(tie.len() + 1 == order.len());
+        assert!(order.len() == self.elements && self.elements != 0);
+
         self.orders.reserve(order.len() * self.elements);
         self.ties.reserve(tie.len() * (self.elements - 1));
-        let mut seen = vec![false; self.elements];
-        for &i in order {
-            debug_assert!(i < self.elements || !seen[i]);
-            seen[i] = true;
-            self.orders.push(i);
-        }
-        self.ties.extend(tie);
-        debug_assert!(self.valid());
-    }
 
-    pub fn orders(&self) -> usize {
-        debug_assert!(self.orders.len() % self.elements == 0);
-        self.orders.len() / self.elements
+        self.orders.extend_from_slice(order);
+        self.ties.extend_from_slice(tie);
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
     fn valid(&self) -> bool {
-        if self.orders.len() != self.orders() * self.elements
-            || self.ties.len() != self.orders() * (self.elements - 1)
+        if self.orders.len() != self.count() * self.elements
+            || self.ties.len() != self.count() * (self.elements - 1)
         {
             return false;
         }
@@ -110,7 +99,6 @@ impl TiedDense {
                 self.ties.push(b);
             }
         }
-        debug_assert!(self.valid());
     }
 
     /// Pick a winning element from each ordering, randomly from their highest
@@ -134,7 +122,7 @@ impl TryFrom<TiedDense> for CardinalDense {
     /// Returns `Err` if it failed to allocate.
     fn try_from(value: TiedDense) -> Result<Self, Self::Error> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(value.elements * value.orders()).or(Err("Could not allocate"))?;
+        orders.try_reserve_exact(value.elements * value.count()).or(Err("Could not allocate"))?;
         let max = value.elements - 1;
         let mut new_order = vec![0; value.elements];
         for order in value.iter() {
@@ -159,6 +147,25 @@ impl From<StrictDense> for TiedDense {
             orders: value.orders,
             ties: vec![false; (value.elements - 1) * orders],
             elements: value.elements,
+        }
+    }
+}
+
+impl<'a> FromIterator<TiedRef<'a>> for TiedDense {
+    /// Panics if any orders have a different number of elements.
+    fn from_iter<T: IntoIterator<Item = TiedRef<'a>>>(iter: T) -> Self {
+        let mut ii = iter.into_iter();
+        if let Some(first_value) = ii.next() {
+            let elements = first_value.elements();
+            let mut out = TiedDense::new(elements);
+            out.add(first_value);
+            for v in ii {
+                assert!(v.elements() == elements);
+                out.add(v);
+            }
+            out
+        } else {
+            TiedDense::new(0)
         }
     }
 }
