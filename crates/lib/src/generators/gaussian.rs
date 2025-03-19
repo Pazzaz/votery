@@ -2,7 +2,7 @@
 //! some space, and voters vote for nearby candidates.
 use std::slice::{ChunksExact, ChunksExactMut};
 
-use orders::tied::{TiedDense, TiedI};
+use orders::{tied::{Tied, TiedDense}, OrderOwned};
 use rand_distr::{Distribution, Normal};
 
 pub struct Gaussian {
@@ -74,13 +74,13 @@ fn are_fuzzy(w0: f64, w1: f64, fuzzy: FuzzyType) -> bool {
     }
 }
 
-fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> TiedI {
+fn score_to_vote(scores: &[f64], fuzzy: FuzzyType) -> Tied {
     let mut list: Vec<(usize, f64)> = scores.iter().cloned().enumerate().collect();
     list.sort_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap());
     // TODO: We assume self.dimension = 2 here
     let tied: Vec<bool> = list.windows(2).map(|w| are_fuzzy(w[0].1, w[1].1, fuzzy)).collect();
     let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
-    TiedI::new(scores.len(), order, tied)
+    Tied::new(order, tied)
 }
 
 fn generate_point<R: rand::Rng>(len: usize, mean: &[f64], variance: f64, rng: &mut R) -> Vec<f64> {

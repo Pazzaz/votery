@@ -3,10 +3,8 @@ use rand::{
     seq::{IndexedRandom, SliceRandom},
 };
 
-use crate::{
-    DenseOrders, cardinal::CardinalDense, specific::SpecificDense, strict::StrictDense,
-    tied::TiedIRef,
-};
+use super::TiedRef;
+use crate::{DenseOrders, cardinal::CardinalDense, specific::SpecificDense, strict::StrictDense};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -36,18 +34,18 @@ impl TiedDense {
     }
 
     // TODO: Use `TiedRef`
-    pub fn get(&self, i: usize) -> TiedIRef {
+    pub fn get(&self, i: usize) -> TiedRef {
         assert!(i < self.count());
         let start = i * self.elements;
         let end = (i + 1) * self.elements;
-        TiedIRef::new(self.elements, &self.orders[start..end], &self.ties[(start - i)..(end - i)])
+        TiedRef::new(&self.orders[start..end], &self.ties[(start - i)..(end - i)])
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TiedRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 
-    pub fn add(&mut self, v: TiedIRef) {
+    pub fn add(&mut self, v: TiedRef) {
         let order = v.order();
         let tie = v.tied();
         debug_assert!(order.len() == self.elements);
@@ -104,8 +102,7 @@ impl TiedDense {
         if grouped || order.len() != self.elements {
             return false;
         }
-        self.add(TiedIRef::new(self.elements, &order, &tie));
-        debug_assert!(self.valid());
+        self.add(TiedRef::new(&order, &tie));
         true
     }
 
