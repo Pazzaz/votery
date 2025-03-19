@@ -45,7 +45,7 @@ impl Cardinal {
 }
 
 pub struct CardinalRef<'a> {
-    pub values: &'a [usize],
+    values: &'a [usize],
 }
 
 impl<'a> CardinalRef<'a> {
@@ -60,6 +60,10 @@ impl<'a> CardinalRef<'a> {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn values(&self) -> &'a [usize] {
+        &self.values
     }
 
     /// Convert to binary order, where any value less than `cutoff` becomes

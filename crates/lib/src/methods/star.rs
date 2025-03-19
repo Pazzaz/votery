@@ -57,7 +57,7 @@ fn rank_by_specific(v: &[usize], data: &CardinalDense, rating: usize) -> TiedI {
     for vote in data.iter() {
         for i in 0..v.len() {
             let e = v[i];
-            if vote.values[e] == rating {
+            if vote.values()[e] == rating {
                 count[i] += 1;
             }
         }
@@ -129,7 +129,7 @@ fn score_ranking(data: &CardinalDense) -> TiedI {
     let mut sum = vec![0; data.elements()];
     for vote in data.iter() {
         for i in 0..data.elements() {
-            sum[i] += vote.values[i];
+            sum[i] += vote.values()[i];
         }
     }
     TiedI::from_scores(data.elements(), &sum)

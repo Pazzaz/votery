@@ -30,6 +30,10 @@ impl Binary {
         let values = rng.sample_iter(StandardUniform).take(elements).collect();
         Binary { values }
     }
+
+    pub fn into_inner(self) -> Vec<bool> {
+        self.values
+    }
 }
 
 pub struct BinaryRef<'a> {
@@ -40,12 +44,17 @@ impl<'a> BinaryRef<'a> {
     pub fn new(v: &'a [bool]) -> Self {
         BinaryRef { values: v }
     }
+
     pub fn len(&self) -> usize {
         self.values.len()
     }
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
+    }
+
+    pub fn values(&self) -> &'a [bool] {
+        &self.values
     }
 }
 
