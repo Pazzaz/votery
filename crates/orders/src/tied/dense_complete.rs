@@ -164,17 +164,21 @@ impl TiedDense {
         orders.set_elements(elements);
         orders
     }
+}
+
+impl TryFrom<TiedDense> for CardinalDense {
+    type Error = &'static str;
 
     /// Convert each ordering to a cardinal order, with the highest rank
     /// elements receiving a score of `self.elements`.
     ///
-    /// Returns `Err` if it failed to allocate
-    pub fn to_cardinal(&self) -> Result<CardinalDense, &'static str> {
+    /// Returns `Err` if it failed to allocate.
+    fn try_from(value: TiedDense) -> Result<Self, Self::Error> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(self.elements * self.orders()).or(Err("Could not allocate"))?;
-        let max = self.elements - 1;
-        let mut new_order = vec![0; self.elements];
-        for order in self.iter() {
+        orders.try_reserve_exact(value.elements * value.orders()).or(Err("Could not allocate"))?;
+        let max = value.elements - 1;
+        let mut new_order = vec![0; value.elements];
+        for order in value.iter() {
             for (i, group) in order.iter_groups().enumerate() {
                 for &c in group {
                     debug_assert!(max >= i);
@@ -185,9 +189,7 @@ impl TiedDense {
             // between iterations.
             orders.extend(&new_order);
         }
-        let v = CardinalDense { orders, elements: self.elements, min: 0, max };
-        debug_assert!(v.valid());
-        Ok(v)
+        Ok(CardinalDense { orders, elements: value.elements, min: 0, max })
     }
 }
 

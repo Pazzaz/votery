@@ -362,6 +362,26 @@ impl From<TiedDense> for TiedIDense {
     }
 }
 
+impl<'a> FromIterator<TiedIRef<'a>> for TiedIDense {
+    /// # Panics
+    ///
+    /// Panics if any orders have different numbers of elements.
+    fn from_iter<T: IntoIterator<Item = TiedIRef<'a>>>(iter: T) -> Self {
+        let mut ii = iter.into_iter();
+        if let Some(first_v) = ii.next() {
+            let elements = first_v.elements();
+            let mut new = TiedIDense::new(elements);
+            for v in ii {
+                assert!(v.elements() == elements);
+                new.add(v).unwrap();
+            }
+            new
+        } else {
+            TiedIDense::new(0)
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use quickcheck::{Arbitrary, Gen};
