@@ -1,5 +1,5 @@
 use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
-use crate::{unique_and_bounded, OrderRef};
+use crate::{OrderRef, unique_and_bounded};
 
 #[derive(Debug, Clone, Copy)]
 pub struct StrictRef<'a> {

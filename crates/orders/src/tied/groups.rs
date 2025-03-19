@@ -1,6 +1,8 @@
 use super::tied_incomplete_ref::TiedIRef;
 
-// Splits an order up into its rankings
+/// An iterator over groups of a tied order.
+///
+/// See [`TiedIRef::iter_groups`] for more information.
 pub struct GroupIterator<'a> {
     pub(crate) order: TiedIRef<'a>,
 }

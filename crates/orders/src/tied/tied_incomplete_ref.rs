@@ -106,20 +106,37 @@ impl<'a> TiedIRef<'a> {
         TiedI::new(self.elements, self.order().to_vec(), self.tied().to_vec())
     }
 
+    /// Iterate over the groups of tied elements in the order, starting with the
+    /// highest elements.
+    ///
+    /// ```
+    /// use orders::tied::TiedIRef;
+    ///
+    /// let order = TiedIRef::new(7, &[4, 2, 3, 0, 1], &[true, true, false, true]);
+    /// let firsts: Vec<usize> = order.iter_groups().map(|x| x[0]).collect();
+    /// assert_eq!(firsts, [4, 0]);
+    /// ```
     pub fn iter_groups(&self) -> GroupIterator<'a> {
         GroupIterator { order: *self }
     }
 
-    pub fn group(&self, n: usize) -> Option<&[usize]> {
-        self.iter_groups().nth(n)
-    }
-
-    /// Returns group of element `c`. 0 is highest rank. Takes `O(n)` time
+    /// Returns group of element `c`. `0` is highest rank. Takes `O(n)` time.
+    ///
+    /// ```
+    /// use orders::tied::TiedIRef;
+    ///
+    /// let order = TiedIRef::new(7, &[4, 2, 3, 0, 1], &[true, true, false, true]);
+    /// assert_eq!(order.group_of(0), Some(1));
+    /// assert_eq!(order.group_of(6), None);
+    /// ```
     pub fn group_of(&self, c: usize) -> Option<usize> {
         let mut group = 0;
         for i in 0..self.len() {
             if self.order()[i] == c {
                 return Some(group);
+            }
+            if i == self.len() - 1 {
+                break;
             }
             if !self.tied()[i] {
                 group += 1;
