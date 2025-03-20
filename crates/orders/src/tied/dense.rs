@@ -55,7 +55,7 @@ impl TiedIDense {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
-        (0..self.count()).map(|i| self.get(i))
+        (0..self.len()).map(|i| self.get(i))
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
@@ -128,7 +128,7 @@ impl TiedIDense {
         firsts
             .into_iter()
             .enumerate()
-            .filter(|(_, score)| *score > self.count() / 2)
+            .filter(|(_, score)| *score > self.len() / 2)
             .map(|(i, _)| i)
             .collect()
     }
@@ -228,12 +228,12 @@ impl<'a> DenseOrders<'a> for TiedIDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         self.order_end.len()
     }
 
     fn try_get(&'a self, i: usize) -> Option<TiedIRef<'a>> {
-        if i >= self.count() {
+        if i >= self.len() {
             None
         } else {
             let start = if i == 0 { 0 } else { self.order_end[i - 1] };
@@ -317,7 +317,7 @@ impl<'a> DenseOrders<'a> for TiedIDense {
 
 impl From<ChainDense> for TiedIDense {
     fn from(value: ChainDense) -> Self {
-        let orders: usize = value.count();
+        let orders: usize = value.len();
         TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],
@@ -329,8 +329,8 @@ impl From<ChainDense> for TiedIDense {
 
 impl From<TiedDense> for TiedIDense {
     fn from(value: TiedDense) -> Self {
-        let orders: usize = value.count();
-        let order_end = (0..value.count()).map(|i| (i + 1) * value.elements()).collect();
+        let orders: usize = value.len();
+        let order_end = (0..value.len()).map(|i| (i + 1) * value.elements()).collect();
         TiedIDense::from_parts(
             value.orders,
             vec![false; orders * (value.elements - 1)],

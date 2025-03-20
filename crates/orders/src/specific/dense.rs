@@ -64,7 +64,7 @@ impl DenseOrders<'_> for SpecificDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         self.orders.len()
     }
 

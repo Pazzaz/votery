@@ -53,7 +53,7 @@ impl CardinalDense {
         } else if self.orders.len() % self.elements != 0 {
             false
         } else {
-            for i in 0..self.count() {
+            for i in 0..self.len() {
                 for j in 0..self.elements {
                     let v = self.orders[self.elements * i + j];
                     if v < self.min || v > self.max {
@@ -124,7 +124,7 @@ impl CardinalDense {
         let mut binary_orders: Vec<bool> = Vec::new();
         let orders_size = self
             .elements
-            .checked_mul(self.count())
+            .checked_mul(self.len())
             .ok_or("Number of orders would be too large")?
             .checked_mul(self.values() - 1)
             .ok_or("Number of orders would be too large")?;
@@ -149,14 +149,14 @@ impl CardinalDense {
         debug_assert!(self.min <= n && n <= self.max);
         let mut binary_orders: Vec<bool> = Vec::new();
         binary_orders
-            .try_reserve_exact(self.elements * self.count())
+            .try_reserve_exact(self.elements * self.len())
             .or(Err("Could not allocate"))?;
         binary_orders.extend(self.orders.iter().map(|x| *x >= n));
         Ok(BinaryDense::new_from_parts(binary_orders, self.elements))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = CardinalRef> {
-        (0..self.count()).map(|i| self.get(i))
+        (0..self.len()).map(|i| self.get(i))
     }
 
     /// Fill the given preference matrix for the elements listed in `keep`.
@@ -220,12 +220,12 @@ impl<'a> DenseOrders<'a> for CardinalDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i < self.count() {
+        if i < self.len() {
             let start = i * self.elements;
             let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
@@ -248,7 +248,7 @@ impl<'a> DenseOrders<'a> for CardinalDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.count() {
+        for i in 0..self.len() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -263,7 +263,7 @@ impl<'a> DenseOrders<'a> for CardinalDense {
                 }
             }
         }
-        self.orders.truncate(self.count() * new_elements);
+        self.orders.truncate(self.len() * new_elements);
         self.elements = new_elements;
         Ok(())
     }
@@ -317,7 +317,7 @@ mod tests {
     #[quickcheck]
     fn kp_tranform_orders(cv: CardinalDense) -> bool {
         match cv.kp_tranform() {
-            Ok(bv) => bv.count() == cv.count() * (cv.values() - 1),
+            Ok(bv) => bv.len() == cv.len() * (cv.values() - 1),
             Err(_) => true,
         }
     }

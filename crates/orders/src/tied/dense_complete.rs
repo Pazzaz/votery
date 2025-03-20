@@ -26,14 +26,14 @@ impl TiedDense {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = TiedRef> {
-        (0..self.count()).map(|i| self.get(i))
+        (0..self.len()).map(|i| self.get(i))
     }
 
     /// Returns true if this struct is in a valid state, used for debugging.
     #[cfg(test)]
     fn valid(&self) -> bool {
-        if self.orders.len() != self.count() * self.elements
-            || self.ties.len() != self.count() * (self.elements - 1)
+        if self.orders.len() != self.len() * self.elements
+            || self.ties.len() != self.len() * (self.elements - 1)
         {
             return false;
         }
@@ -77,7 +77,7 @@ impl<'a> DenseOrders<'a> for TiedDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
@@ -101,7 +101,7 @@ impl<'a> DenseOrders<'a> for TiedDense {
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i < self.count() {
+        if i < self.len() {
             let start = i * self.elements;
             let end = (i + 1) * self.elements;
             Some(TiedRef::new(&self.orders[start..end], &self.ties[(start - i)..(end - i - 1)]))
@@ -145,7 +145,7 @@ impl TryFrom<TiedDense> for CardinalDense {
     /// Returns `Err` if it failed to allocate.
     fn try_from(value: TiedDense) -> Result<Self, Self::Error> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(value.elements * value.count()).or(Err("Could not allocate"))?;
+        orders.try_reserve_exact(value.elements * value.len()).or(Err("Could not allocate"))?;
         let max = value.elements - 1;
         let mut new_order = vec![0; value.elements];
         for order in value.iter() {
@@ -165,7 +165,7 @@ impl TryFrom<TiedDense> for CardinalDense {
 
 impl From<TotalDense> for TiedDense {
     fn from(value: TotalDense) -> Self {
-        let orders: usize = value.count();
+        let orders: usize = value.len();
         TiedDense {
             orders: value.orders,
             ties: vec![false; (value.elements - 1) * orders],

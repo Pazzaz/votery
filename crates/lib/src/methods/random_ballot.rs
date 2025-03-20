@@ -24,11 +24,11 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         R: Rng,
         Self: Sized,
     {
-        debug_assert!(data.count() != 0);
+        debug_assert!(data.len() != 0);
         debug_assert!(positions <= data.elements());
         let mut left = positions;
         let mut order: Vec<usize> = Vec::new();
-        let mut values: Vec<usize> = (0..data.count()).collect();
+        let mut values: Vec<usize> = (0..data.len()).collect();
         values.shuffle(rng);
         'outer: for i in values {
             let vote = data.get(i);
@@ -70,7 +70,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
         Self: Sized,
     {
         let _ = positions;
-        let i: usize = rng.sample(Uniform::new(0, data.count()));
+        let i: usize = rng.sample(Uniform::new(0, data.len()));
         let vote = data.get(i);
         Ok(RandomBallotSingle { ranking: vote.owned() })
     }

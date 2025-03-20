@@ -22,7 +22,7 @@ impl TotalDense {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = TotalRef> {
-        (0..self.count()).map(|i| self.get(i))
+        (0..self.len()).map(|i| self.get(i))
     }
 
     // Check if a given total ranking is valid, i.e.
@@ -36,7 +36,7 @@ impl TotalDense {
             false
         } else {
             let seen: &mut [bool] = &mut vec![false; self.elements];
-            for i in 0..self.count() {
+            for i in 0..self.len() {
                 seen.fill(false);
                 for j in 0..self.elements {
                     let order = self.orders[i * self.elements + j];
@@ -65,12 +65,12 @@ impl<'a> DenseOrders<'a> for TotalDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i >= self.count() {
+        if i >= self.len() {
             None
         } else {
             let start = i * self.elements;
@@ -103,7 +103,7 @@ impl<'a> DenseOrders<'a> for TotalDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.count() {
+        for i in 0..self.len() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -122,7 +122,7 @@ impl<'a> DenseOrders<'a> for TotalDense {
             // TODO: Can we do this in place?
             new_order.clone_from_slice(&get_order(new_order, false));
         }
-        self.orders.truncate(self.count() * new_elements);
+        self.orders.truncate(self.len() * new_elements);
         self.elements = new_elements;
         Ok(())
     }

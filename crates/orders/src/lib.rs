@@ -144,7 +144,7 @@ pub trait DenseOrders<'a> {
     /// Number of elements
     fn elements(&self) -> usize;
 
-    fn count(&self) -> usize;
+    fn len(&self) -> usize;
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str>;
 

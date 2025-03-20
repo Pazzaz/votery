@@ -54,7 +54,7 @@ impl ChainDense {
     }
 
     pub fn iter(&self) -> impl Iterator<Item = ChainRef> {
-        (0..self.count()).map(|i| self.get(i))
+        (0..self.len()).map(|i| self.get(i))
     }
 }
 
@@ -65,12 +65,12 @@ impl<'a> DenseOrders<'a> for ChainDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         self.order_end.len()
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i >= self.count() {
+        if i >= self.len() {
             None
         } else {
             let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
@@ -113,7 +113,7 @@ impl<'a> DenseOrders<'a> for ChainDense {
 
 impl From<TotalDense> for ChainDense {
     fn from(value: TotalDense) -> Self {
-        let orders: usize = value.count();
+        let orders: usize = value.len();
         let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
         ChainDense { orders: value.orders, order_end, elements: value.elements }
     }
@@ -151,7 +151,7 @@ mod tests {
     fn iter_collect(orders: ChainDense) -> bool {
         let orig = orders.clone();
         let parts: Vec<Chain> = orders.iter().map(|x| x.to_owned()).collect();
-        for i in 0..orders.count() {
+        for i in 0..orders.len() {
             if parts[i].as_ref() != orig.get(i) {
                 return false;
             }

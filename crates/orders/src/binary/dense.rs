@@ -62,7 +62,7 @@ impl TryFrom<&BinaryDense> for CardinalDense {
     /// Returns `Err` if it failed to allocate.
     fn try_from(value: &BinaryDense) -> Result<Self, Self::Error> {
         let mut orders: Vec<usize> = Vec::new();
-        orders.try_reserve_exact(value.elements * value.count()).or(Err("Could not allocate"))?;
+        orders.try_reserve_exact(value.elements * value.len()).or(Err("Could not allocate"))?;
         orders.extend(value.orders.iter().map(|x| if *x { 1 } else { 0 }));
         Ok(CardinalDense { orders, elements: value.elements, min: 0, max: 1 })
     }
@@ -74,12 +74,12 @@ impl<'a> DenseOrders<'a> for BinaryDense {
         self.elements
     }
 
-    fn count(&self) -> usize {
+    fn len(&self) -> usize {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i < self.count() {
+        if i < self.len() {
             let start = i * self.elements;
             let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
@@ -105,7 +105,7 @@ impl<'a> DenseOrders<'a> for BinaryDense {
         }
         debug_assert!(pairwise_lt(targets));
         let new_elements = self.elements - targets.len();
-        for i in 0..self.count() {
+        for i in 0..self.len() {
             let mut t_i = 0;
             let mut offset = 0;
             for j in 0..self.elements {
@@ -120,7 +120,7 @@ impl<'a> DenseOrders<'a> for BinaryDense {
                 }
             }
         }
-        self.orders.truncate(self.count() * new_elements);
+        self.orders.truncate(self.len() * new_elements);
         self.elements = new_elements;
         Ok(())
     }
