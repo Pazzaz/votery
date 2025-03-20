@@ -146,6 +146,10 @@ pub trait DenseOrders<'a> {
 
     fn len(&self) -> usize;
 
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str>;
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order>;
