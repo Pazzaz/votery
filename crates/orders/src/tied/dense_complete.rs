@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use rand::{
     distr::{Bernoulli, Distribution},
     seq::{IndexedRandom, SliceRandom},
@@ -111,7 +113,63 @@ impl<'a> DenseOrders<'a> for TiedDense {
     }
 
     fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
-        todo!()
+        assert!(target < self.elements);
+        if self.elements == 1 {
+            self.orders.clear();
+            self.ties.clear();
+            self.elements = 0;
+        } else if self.len() == 0 {
+            self.elements -= 1;
+        } else {
+            // The len will not change
+            let len = self.len();
+            let elements_old = self.elements;
+            let elements_new = self.elements - 1;
+            for i in 0..self.len() {
+                let mut skipped = None;
+                for j in 0..elements_old {
+                    let el = self.orders[i * elements_old + j];
+                    let out = match target.cmp(&el) {
+                        Ordering::Less => el,
+                        Ordering::Equal => {
+                            debug_assert!(skipped.is_none());
+                            skipped = Some(j);
+                            continue;
+                        }
+                        Ordering::Greater => el - 1,
+                    };
+                    if skipped.is_none() {
+                        self.orders[i * elements_new + j] = out;
+                    } else {
+                        self.orders[i * elements_new + j - 1] = out;
+                    }
+                }
+                if let Some(removed) = skipped {
+                    let start_old = i * (elements_old - 1);
+                    let end_old = (i + 1) * (elements_old - 1);
+                    let start_new = i * (elements_new - 1);
+                    let end_new = (i + 1) * (elements_new - 1);
+                    if removed == 0 {
+                        self.ties.copy_within((start_old + 1)..end_old, start_new);
+                    } else if removed == (elements_old - 1) {
+                        self.ties.copy_within(start_old..(end_old - 1), start_new);
+                    } else {
+                        debug_assert!(0 < removed && removed < (elements_old - 1));
+                        let pre = self.ties[start_old..end_old][removed - 1];
+                        let next = self.ties[start_old..end_old][removed];
+                        self.ties.copy_within(start_old..(start_old + removed - 1), start_new);
+                        self.ties.copy_within((start_old + removed)..end_old, start_new);
+                        self.ties[start_new..end_new][removed - 1] = pre && next;
+                    }
+                } else {
+                    unreachable!();
+                }
+            }
+            self.orders.truncate(len * elements_new);
+            self.ties.truncate(len * (elements_new - 1));
+            self.elements = elements_new;
+        }
+        Ok(())
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
