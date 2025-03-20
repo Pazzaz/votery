@@ -70,12 +70,12 @@ impl<'a> DenseOrders<'a> for ChainDense {
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i >= self.len() {
-            None
-        } else {
+        if i < self.len() {
             let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
             let end = self.order_end[i];
             Some(ChainRef::new(self.elements, &self.orders[start..end]))
+        } else {
+            None
         }
     }
 

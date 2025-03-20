@@ -233,9 +233,7 @@ impl<'a> DenseOrders<'a> for TiedIDense {
     }
 
     fn try_get(&'a self, i: usize) -> Option<TiedIRef<'a>> {
-        if i >= self.len() {
-            None
-        } else {
+        if i < self.len() {
             let start = if i == 0 { 0 } else { self.order_end[i - 1] };
             let end = self.order_end[i];
             Some(TiedIRef::new(
@@ -243,6 +241,8 @@ impl<'a> DenseOrders<'a> for TiedIDense {
                 &self.orders[start..end],
                 &self.ties[(start - i)..(end - i - 1)],
             ))
+        } else {
+            None
         }
     }
 

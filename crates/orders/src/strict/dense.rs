@@ -70,14 +70,14 @@ impl<'a> DenseOrders<'a> for TotalDense {
     }
 
     fn try_get(&'a self, i: usize) -> Option<Self::Order> {
-        if i >= self.len() {
-            None
-        } else {
+        if i < self.len() {
             let start = i * self.elements;
             let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
             // TODO: Use unsafe?
             Some(TotalRef::new(s))
+        } else {
+            None
         }
     }
 
