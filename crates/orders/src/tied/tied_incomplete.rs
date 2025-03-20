@@ -1,3 +1,5 @@
+use std::iter::repeat_n;
+
 use rand::{
     Rng,
     distr::{Bernoulli, Uniform},
@@ -55,9 +57,7 @@ impl<'a> TiedI {
             } else {
                 first = false;
             }
-            for _ in 1..group.len() {
-                tied.push(true);
-            }
+            tied.extend(repeat_n(true, group.len().saturating_sub(1)));
         }
         TiedI::new(elements, orders, tied)
     }
