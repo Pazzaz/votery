@@ -25,39 +25,12 @@ impl TiedDense {
         TiedDense { orders: Vec::new(), ties: Vec::new(), elements }
     }
 
-    pub fn elements(&self) -> usize {
-        self.elements
-    }
-
-    pub fn count(&self) -> usize {
-        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
-    }
-
-    // TODO: Use `TiedRef`
-    pub fn get(&self, i: usize) -> TiedRef {
-        assert!(i < self.count());
-        let start = i * self.elements;
-        let end = (i + 1) * self.elements;
-        TiedRef::new(&self.orders[start..end], &self.ties[(start - i)..(end - i)])
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = TiedRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 
-    pub fn add(&mut self, v: TiedRef) {
-        let order = v.order();
-        let tie = v.tied();
-        assert!(order.len() == self.elements && self.elements != 0);
-
-        self.orders.reserve(order.len() * self.elements);
-        self.ties.reserve(tie.len() * (self.elements - 1));
-
-        self.orders.extend_from_slice(order);
-        self.ties.extend_from_slice(tie);
-    }
-
     /// Returns true if this struct is in a valid state, used for debugging.
+    #[cfg(test)]
     fn valid(&self) -> bool {
         if self.orders.len() != self.count() * self.elements
             || self.ties.len() != self.count() * (self.elements - 1)
@@ -80,7 +53,68 @@ impl TiedDense {
         true
     }
 
-    pub fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
+    /// Pick a winning element from each ordering, randomly from their highest
+    /// ranked (tied) elements.
+    pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> SpecificDense {
+        let elements = self.elements;
+        let mut orders: SpecificDense =
+            self.iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
+
+        orders.set_elements(elements);
+        orders
+    }
+}
+
+enum AddError {
+    Elements,
+    Alloc,
+}
+
+impl<'a> DenseOrders<'a> for TiedDense {
+    type Order = TiedRef<'a>;
+
+    fn elements(&self) -> usize {
+        self.elements
+    }
+
+    fn count(&self) -> usize {
+        if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
+    }
+
+    fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
+        // TODO: Make this into the function
+        fn inner<'a>(s: &mut TiedDense, v: TiedRef<'a>) -> Result<(), AddError> {
+            let order = v.order();
+            let tie = v.tied();
+            if order.len() != s.elements && s.elements != 0 {
+                return Err(AddError::Elements);
+            }
+
+            s.orders.try_reserve(order.len() * s.elements).map_err(|_| AddError::Alloc)?;
+            s.ties.try_reserve(tie.len() * (s.elements - 1)).map_err(|_| AddError::Alloc)?;
+
+            s.orders.extend_from_slice(order);
+            s.ties.extend_from_slice(tie);
+            Ok(())
+        }
+        inner(self, v).map_err(|_| "Could not add")
+    }
+
+    fn try_get(&'a self, i: usize) -> Option<Self::Order> {
+        if i < self.count() {
+            let start = i * self.elements;
+            let end = (i + 1) * self.elements;
+            Some(TiedRef::new(&self.orders[start..end], &self.ties[(start - i)..(end - i - 1)]))
+        } else {
+            None
+        }
+    }
+
+    fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
+        todo!()
+    }
+
+    fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
         if self.elements == 0 {
             return;
         }
@@ -99,17 +133,6 @@ impl TiedDense {
                 self.ties.push(b);
             }
         }
-    }
-
-    /// Pick a winning element from each ordering, randomly from their highest
-    /// ranked (tied) elements.
-    pub fn to_specific_using<R: rand::Rng>(self, rng: &mut R) -> SpecificDense {
-        let elements = self.elements;
-        let mut orders: SpecificDense =
-            self.iter().map(|v| *v.winners().choose(rng).unwrap()).collect();
-
-        orders.set_elements(elements);
-        orders
     }
 }
 
@@ -158,10 +181,10 @@ impl<'a> FromIterator<TiedRef<'a>> for TiedDense {
         if let Some(first_value) = ii.next() {
             let elements = first_value.elements();
             let mut out = TiedDense::new(elements);
-            out.add(first_value);
+            out.add(first_value).unwrap();
             for v in ii {
                 assert!(v.elements() == elements);
-                out.add(v);
+                out.add(v).unwrap();
             }
             out
         } else {

@@ -7,7 +7,7 @@ use crate::{DenseOrders, get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct TotalDense {
-    pub orders: Vec<usize>,
+    pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
 }
 
@@ -19,21 +19,6 @@ pub enum AddError {
 impl TotalDense {
     pub fn new(elements: usize) -> Self {
         TotalDense { orders: Vec::new(), elements }
-    }
-
-    pub fn elements(&self) -> usize {
-        self.elements
-    }
-
-    pub fn add(&mut self, v: TotalRef) -> Result<(), AddError> {
-        if v.elements() != self.elements {
-            Err(AddError::Elements)
-        } else if self.orders.try_reserve(self.elements).is_err() {
-            Err(AddError::Alloc)
-        } else {
-            self.orders.extend_from_slice(v.order);
-            Ok(())
-        }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = TotalRef> {
@@ -84,7 +69,7 @@ impl<'a> DenseOrders<'a> for TotalDense {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
-    fn try_get(&'a self, i: usize) -> Option<TotalRef<'a>> {
+    fn try_get(&'a self, i: usize) -> Option<Self::Order> {
         if i >= self.count() {
             None
         } else {
@@ -97,9 +82,18 @@ impl<'a> DenseOrders<'a> for TotalDense {
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
-        self.orders.try_reserve(self.elements).or(Err("Could not add order"))?;
-        self.orders.extend_from_slice(v.order);
-        Ok(())
+        // TODO: Make this the normal add
+        fn inner(a: &mut TotalDense, v: TotalRef) -> Result<(), AddError> {
+            if v.elements() != a.elements || a.elements == 0 {
+                Err(AddError::Elements)
+            } else if a.orders.try_reserve(a.elements).is_err() {
+                Err(AddError::Alloc)
+            } else {
+                a.orders.extend_from_slice(v.order);
+                Ok(())
+            }
+        }
+        inner(self, v).map_err(|_| "Could not add order")
     }
 
     fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {

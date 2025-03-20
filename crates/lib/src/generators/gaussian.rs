@@ -1,8 +1,7 @@
 //! A spatial model of voting behaviour, where every candidate is a point in
 //! some space, and voters vote for nearby candidates.
 use std::slice::{ChunksExact, ChunksExactMut};
-
-use orders::{tied::{Tied, TiedDense}, OrderOwned};
+use orders::{tied::{Tied, TiedDense}, OrderOwned, DenseOrders};
 use rand_distr::{Distribution, Normal};
 
 pub struct Gaussian {
@@ -56,7 +55,7 @@ impl Gaussian {
                 self.iter_candidates().map(|c| euclidean_dist(&point, c)).collect();
 
             let vote = score_to_vote(&candidate_score, self.fuzzy);
-            votes.add(vote.as_ref());
+            votes.add(vote.as_ref()).unwrap();
         }
 
         votes
