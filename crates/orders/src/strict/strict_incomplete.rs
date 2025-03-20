@@ -67,7 +67,7 @@ impl Chain {
 impl TryFrom<Chain> for Total {
     type Error = ();
 
-    /// Converts to complete ranking. Panics if not all elements are ranked.
+    /// Convert to total order. Returns `Err` if not all elements are ranked.
     fn try_from(Chain { elements, order }: Chain) -> Result<Self, Self::Error> {
         if elements == order.len() { Ok(Total { order }) } else { Err(()) }
     }
