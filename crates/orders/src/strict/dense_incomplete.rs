@@ -3,14 +3,14 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::StrictDense;
-use crate::{DenseOrders, strict::StrictIRef};
+use super::TotalDense;
+use crate::{DenseOrders, strict::ChainRef};
 
 /// SOI - Strict Orders - Incomplete List
 ///
 /// A packed list of (possibly incomplete) strict orders, with related methods.
 #[derive(Clone, Debug)]
-pub struct StrictIDense {
+pub struct ChainDense {
     pub(crate) orders: Vec<usize>,
 
     // End position of order
@@ -18,9 +18,9 @@ pub struct StrictIDense {
     pub(crate) elements: usize,
 }
 
-impl StrictIDense {
+impl ChainDense {
     pub fn new(elements: usize) -> Self {
-        StrictIDense { orders: Vec::new(), order_end: Vec::new(), elements }
+        ChainDense { orders: Vec::new(), order_end: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
@@ -53,13 +53,13 @@ impl StrictIDense {
         true
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = StrictIRef> {
+    pub fn iter(&self) -> impl Iterator<Item = ChainRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 }
 
-impl<'a> DenseOrders<'a> for StrictIDense {
-    type Order = StrictIRef<'a>;
+impl<'a> DenseOrders<'a> for ChainDense {
+    type Order = ChainRef<'a>;
 
     fn elements(&self) -> usize {
         self.elements
@@ -75,7 +75,7 @@ impl<'a> DenseOrders<'a> for StrictIDense {
         } else {
             let start: usize = if i == 0 { 0 } else { self.order_end[i - 1] };
             let end = self.order_end[i];
-            Some(StrictIRef::new(self.elements, &self.orders[start..end]))
+            Some(ChainRef::new(self.elements, &self.orders[start..end]))
         }
     }
 
@@ -111,11 +111,11 @@ impl<'a> DenseOrders<'a> for StrictIDense {
     }
 }
 
-impl From<StrictDense> for StrictIDense {
-    fn from(value: StrictDense) -> Self {
+impl From<TotalDense> for ChainDense {
+    fn from(value: TotalDense) -> Self {
         let orders: usize = value.count();
         let order_end = (0..orders).map(|i| (i + 1) * value.elements).collect();
-        StrictIDense { orders: value.orders, order_end, elements: value.elements }
+        ChainDense { orders: value.orders, order_end, elements: value.elements }
     }
 }
 
@@ -124,9 +124,9 @@ mod tests {
     use quickcheck::{Arbitrary, Gen};
 
     use super::*;
-    use crate::{OrderOwned, OrderRef, strict::StrictI, tests::std_rng};
+    use crate::{OrderOwned, OrderRef, strict::Chain, tests::std_rng};
 
-    impl Arbitrary for StrictIDense {
+    impl Arbitrary for ChainDense {
         fn arbitrary(g: &mut Gen) -> Self {
             let (mut orders_count, mut elements): (usize, usize) = Arbitrary::arbitrary(g);
 
@@ -136,21 +136,21 @@ mod tests {
             orders_count = orders_count % g.size();
             elements = elements % g.size();
 
-            let mut orders = StrictIDense::new(elements);
+            let mut orders = ChainDense::new(elements);
             orders.generate_uniform(&mut std_rng(g), orders_count);
             orders
         }
     }
 
     #[quickcheck]
-    fn arbitrary(orders: StrictIDense) -> bool {
+    fn arbitrary(orders: ChainDense) -> bool {
         orders.valid()
     }
 
     #[quickcheck]
-    fn iter_collect(orders: StrictIDense) -> bool {
+    fn iter_collect(orders: ChainDense) -> bool {
         let orig = orders.clone();
-        let parts: Vec<StrictI> = orders.iter().map(|x| x.to_owned()).collect();
+        let parts: Vec<Chain> = orders.iter().map(|x| x.to_owned()).collect();
         for i in 0..orders.count() {
             if parts[i].as_ref() != orig.get(i) {
                 return false;

@@ -1,4 +1,4 @@
-use orders::{strict::{StrictI, StrictIDense}, tied::{TiedIDense, TiedI}};
+use orders::{strict::{Chain, ChainDense}, tied::{TiedIDense, TiedI}};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
 use orders::DenseOrders;
@@ -11,13 +11,13 @@ use super::{get_order, RandomVotingMethod};
 /// continue drawing random votes to rank the remaining unranked candidates,
 /// until it has a total order of the top `positions`.
 pub struct RandomBallot {
-    ranking: StrictI,
+    ranking: Chain,
 }
 
 impl<'a> RandomVotingMethod<'a> for RandomBallot {
     // TODO: Could this be extended to allow ties? It would be a lot more
     // complicated.
-    type Format = StrictIDense;
+    type Format = ChainDense;
 
     fn count<R>(data: &Self::Format, rng: &mut R, positions: usize) -> Result<Self, &'static str>
     where
@@ -44,7 +44,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
                 }
             }
         }
-        Ok(RandomBallot { ranking: StrictI::new(data.elements(), order) })
+        Ok(RandomBallot { ranking: Chain::new(data.elements(), order) })
     }
 
     fn get_score(&self) -> &Vec<usize> {

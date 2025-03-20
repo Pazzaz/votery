@@ -1,20 +1,20 @@
-use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
+use super::{strict::Total, strict_incomplete_ref::ChainRef};
 use crate::{OrderRef, unique_and_bounded};
 
 #[derive(Debug, Clone, Copy)]
-pub struct StrictRef<'a> {
+pub struct TotalRef<'a> {
     pub(crate) order: &'a [usize],
 }
 
-impl<'a> StrictRef<'a> {
+impl<'a> TotalRef<'a> {
     /// Create a new `StrictRef` from a permutation of `0..s.len()`.
     pub fn new(v: &'a [usize]) -> Self {
         assert!(unique_and_bounded(v.len(), v));
-        StrictRef { order: v }
+        TotalRef { order: v }
     }
 
     pub unsafe fn new_unchecked(v: &'a [usize]) -> Self {
-        StrictRef { order: v }
+        TotalRef { order: v }
     }
 
     pub fn elements(&self) -> usize {
@@ -25,17 +25,17 @@ impl<'a> StrictRef<'a> {
         &self.order[..n]
     }
 
-    pub fn to_incomplete(self) -> StrictIRef<'a> {
+    pub fn to_incomplete(self) -> ChainRef<'a> {
         let Self { order } = self;
         let elements = order.len();
-        StrictIRef { elements, order }
+        ChainRef { elements, order }
     }
 }
 
-impl OrderRef for StrictRef<'_> {
-    type Owned = Strict;
+impl OrderRef for TotalRef<'_> {
+    type Owned = Total;
 
     fn to_owned(self) -> Self::Owned {
-        Strict { order: self.order.to_vec() }
+        Total { order: self.order.to_vec() }
     }
 }

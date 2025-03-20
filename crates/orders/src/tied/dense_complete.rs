@@ -4,7 +4,7 @@ use rand::{
 };
 
 use super::TiedRef;
-use crate::{DenseOrders, cardinal::CardinalDense, specific::SpecificDense, strict::StrictDense};
+use crate::{DenseOrders, cardinal::CardinalDense, specific::SpecificDense, strict::TotalDense};
 
 /// TOC - Orders with Ties - Complete List
 ///
@@ -140,8 +140,8 @@ impl TryFrom<TiedDense> for CardinalDense {
     }
 }
 
-impl From<StrictDense> for TiedDense {
-    fn from(value: StrictDense) -> Self {
+impl From<TotalDense> for TiedDense {
+    fn from(value: TotalDense) -> Self {
         let orders: usize = value.count();
         TiedDense {
             orders: value.orders,

@@ -1,14 +1,14 @@
 use std::cmp;
 
-use super::{strict_incomplete::StrictI, strict_ref::StrictRef};
+use super::{strict_incomplete::Chain, strict_ref::TotalRef};
 use crate::{Order, OrderOwned, unique_and_bounded};
 
 #[derive(Debug)]
-pub struct Strict {
+pub struct Total {
     pub(crate) order: Vec<usize>,
 }
 
-impl Clone for Strict {
+impl Clone for Total {
     fn clone(&self) -> Self {
         Self { order: self.order.clone() }
     }
@@ -18,7 +18,7 @@ impl Clone for Strict {
     }
 }
 
-impl Strict {
+impl Total {
     pub fn new(v: Vec<usize>) -> Self {
         assert!(unique_and_bounded(v.len(), &v));
         Self { order: v }
@@ -29,7 +29,7 @@ impl Strict {
     }
 
     pub fn new_default(n: usize) -> Self {
-        Strict { order: (0..n).collect() }
+        Total { order: (0..n).collect() }
     }
 
     pub fn get_inner(self) -> Vec<usize> {
@@ -60,19 +60,19 @@ impl Strict {
         self.order.sort_by(f);
     }
 
-    pub fn copy_from_ref(&mut self, other: StrictRef) {
+    pub fn copy_from_ref(&mut self, other: TotalRef) {
         self.order.clear();
         self.order.extend_from_slice(other.order);
     }
 
-    pub fn to_incomplete(self) -> StrictI {
+    pub fn to_incomplete(self) -> Chain {
         let Self { order } = self;
         let elements = order.len();
-        StrictI { elements, order }
+        Chain { elements, order }
     }
 }
 
-impl Order for Strict {
+impl Order for Total {
     fn elements(&self) -> usize {
         self.order.len()
     }
@@ -86,10 +86,10 @@ impl Order for Strict {
     }
 }
 
-impl<'a> OrderOwned<'a> for Strict {
-    type Ref = StrictRef<'a>;
+impl<'a> OrderOwned<'a> for Total {
+    type Ref = TotalRef<'a>;
 
     fn as_ref(&'a self) -> Self::Ref {
-        StrictRef { order: &self.order }
+        TotalRef { order: &self.order }
     }
 }

@@ -1,14 +1,14 @@
-use super::strict_ref::StrictRef;
+use super::strict_ref::TotalRef;
 use crate::{tied::TiedIRef, unique_and_bounded};
 
 /// A possibly incomplete order without any ties
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct StrictIRef<'a> {
+pub struct ChainRef<'a> {
     pub(crate) elements: usize,
     pub(crate) order: &'a [usize],
 }
 
-impl<'a> StrictIRef<'a> {
+impl<'a> ChainRef<'a> {
     /// Create a reference to a strictly ordered (possible incomplete) order.
     ///
     /// # Panics
@@ -25,11 +25,7 @@ impl<'a> StrictIRef<'a> {
     /// Elements in `order` have to be less than `elements`, without duplicates;
     /// otherwise it returns None.
     pub fn try_new(elements: usize, order: &'a [usize]) -> Option<Self> {
-        if unique_and_bounded(elements, order) {
-            Some(StrictIRef { elements, order })
-        } else {
-            None
-        }
+        if unique_and_bounded(elements, order) { Some(ChainRef { elements, order }) } else { None }
     }
 
     /// Create a reference to a strictly ordered (possible incomplete) order.
@@ -38,7 +34,7 @@ impl<'a> StrictIRef<'a> {
     ///
     /// Elements in `order` have to be less than `elements`, without duplicates.
     pub unsafe fn new_unchecked(elements: usize, order: &'a [usize]) -> Self {
-        StrictIRef { elements, order }
+        ChainRef { elements, order }
     }
 
     pub fn order(&self) -> &[usize] {
@@ -54,7 +50,7 @@ impl<'a> StrictIRef<'a> {
     }
 
     pub fn top(&self, n: usize) -> Self {
-        StrictIRef::new(self.elements, &self.order[0..n])
+        ChainRef::new(self.elements, &self.order[0..n])
     }
 
     pub fn winner(&self) -> usize {
@@ -67,12 +63,12 @@ impl<'a> StrictIRef<'a> {
     }
 }
 
-impl<'a> TryFrom<StrictIRef<'a>> for StrictRef<'a> {
+impl<'a> TryFrom<ChainRef<'a>> for TotalRef<'a> {
     type Error = ();
 
     /// Convert to complete order, returns `Err(())` if the order isn't actually
     /// complete.
-    fn try_from(StrictIRef { elements, order }: StrictIRef<'a>) -> Result<Self, Self::Error> {
-        if elements == order.len() { Ok(StrictRef { order }) } else { Err(()) }
+    fn try_from(ChainRef { elements, order }: ChainRef<'a>) -> Result<Self, Self::Error> {
+        if elements == order.len() { Ok(TotalRef { order }) } else { Err(()) }
     }
 }

@@ -2,11 +2,11 @@
 // TotalRanking. Should they be combined somehow?
 use rand::seq::SliceRandom;
 
-use super::StrictRef;
+use super::TotalRef;
 use crate::{DenseOrders, get_order, pairwise_lt};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct StrictDense {
+pub struct TotalDense {
     pub orders: Vec<usize>,
     pub(crate) elements: usize,
 }
@@ -16,16 +16,16 @@ pub enum AddError {
     Elements,
 }
 
-impl StrictDense {
+impl TotalDense {
     pub fn new(elements: usize) -> Self {
-        StrictDense { orders: Vec::new(), elements }
+        TotalDense { orders: Vec::new(), elements }
     }
 
     pub fn elements(&self) -> usize {
         self.elements
     }
 
-    pub fn add(&mut self, v: StrictRef) -> Result<(), AddError> {
+    pub fn add(&mut self, v: TotalRef) -> Result<(), AddError> {
         if v.elements() != self.elements {
             Err(AddError::Elements)
         } else if self.orders.try_reserve(self.elements).is_err() {
@@ -36,7 +36,7 @@ impl StrictDense {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = StrictRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TotalRef> {
         (0..self.count()).map(|i| self.get(i))
     }
 
@@ -74,8 +74,8 @@ impl StrictDense {
     }
 }
 
-impl<'a> DenseOrders<'a> for StrictDense {
-    type Order = StrictRef<'a>;
+impl<'a> DenseOrders<'a> for TotalDense {
+    type Order = TotalRef<'a>;
     fn elements(&self) -> usize {
         self.elements
     }
@@ -84,7 +84,7 @@ impl<'a> DenseOrders<'a> for StrictDense {
         if self.elements == 0 { 0 } else { self.orders.len() / self.elements }
     }
 
-    fn try_get(&'a self, i: usize) -> Option<StrictRef<'a>> {
+    fn try_get(&'a self, i: usize) -> Option<TotalRef<'a>> {
         if i >= self.count() {
             None
         } else {
@@ -92,7 +92,7 @@ impl<'a> DenseOrders<'a> for StrictDense {
             let end = (i + 1) * self.elements;
             let s = &self.orders[start..end];
             // TODO: Use unsafe?
-            Some(StrictRef::new(s))
+            Some(TotalRef::new(s))
         }
     }
 

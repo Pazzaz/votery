@@ -13,7 +13,7 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
 };
 
-use super::{strict::Strict, strict_incomplete_ref::StrictIRef};
+use super::{strict::Total, strict_incomplete_ref::ChainRef};
 use crate::{
     Order, OrderOwned, OrderRef,
     partial_order::{PartialOrder, PartialOrderManual},
@@ -22,12 +22,12 @@ use crate::{
 
 /// A possibly incomplete order without any ties, owned version of [`RankRef`]
 #[derive(Debug, PartialEq, Eq)]
-pub struct StrictI {
+pub struct Chain {
     pub(crate) elements: usize,
     pub(crate) order: Vec<usize>,
 }
 
-impl Clone for StrictI {
+impl Clone for Chain {
     fn clone(&self) -> Self {
         Self { elements: self.elements, order: self.order.clone() }
     }
@@ -38,42 +38,42 @@ impl Clone for StrictI {
     }
 }
 
-impl StrictI {
+impl Chain {
     pub fn new(elements: usize, order: Vec<usize>) -> Self {
         Self::try_new(elements, order).unwrap()
     }
 
     pub fn try_new(elements: usize, order: Vec<usize>) -> Option<Self> {
-        if unique_and_bounded(elements, &order) { Some(StrictI { elements, order }) } else { None }
+        if unique_and_bounded(elements, &order) { Some(Chain { elements, order }) } else { None }
     }
 
     pub unsafe fn new_unchecked(elements: usize, order: Vec<usize>) -> Self {
-        StrictI { elements, order }
+        Chain { elements, order }
     }
 
-    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> StrictI {
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Chain {
         if elements == 0 {
-            StrictI { order: Vec::new(), elements }
+            Chain { order: Vec::new(), elements }
         } else {
             let len = rng.random_range(0..elements);
 
             let mut order = (0..elements).choose_multiple(rng, len);
             order.shuffle(rng);
-            StrictI { order, elements }
+            Chain { order, elements }
         }
     }
 }
 
-impl TryFrom<StrictI> for Strict {
+impl TryFrom<Chain> for Total {
     type Error = ();
 
     /// Converts to complete ranking. Panics if not all elements are ranked.
-    fn try_from(StrictI { elements, order }: StrictI) -> Result<Self, Self::Error> {
-        if elements == order.len() { Ok(Strict { order }) } else { Err(()) }
+    fn try_from(Chain { elements, order }: Chain) -> Result<Self, Self::Error> {
+        if elements == order.len() { Ok(Total { order }) } else { Err(()) }
     }
 }
 
-impl Order for StrictI {
+impl Order for Chain {
     fn elements(&self) -> usize {
         self.elements
     }
@@ -112,19 +112,19 @@ impl Order for StrictI {
     }
 }
 
-impl<'a> OrderOwned<'a> for StrictI {
-    type Ref = StrictIRef<'a>;
+impl<'a> OrderOwned<'a> for Chain {
+    type Ref = ChainRef<'a>;
 
     fn as_ref(&'a self) -> Self::Ref {
-        StrictIRef { elements: self.elements, order: &self.order }
+        ChainRef { elements: self.elements, order: &self.order }
     }
 }
 
-impl OrderRef for StrictIRef<'_> {
-    type Owned = StrictI;
+impl OrderRef for ChainRef<'_> {
+    type Owned = Chain;
 
     fn to_owned(self) -> Self::Owned {
-        StrictI::new(self.elements, self.order.to_vec())
+        Chain::new(self.elements, self.order.to_vec())
     }
 }
 
@@ -135,30 +135,30 @@ mod tests {
     use super::*;
     use crate::tests::std_rng;
 
-    impl Arbitrary for StrictI {
+    impl Arbitrary for Chain {
         fn arbitrary(g: &mut Gen) -> Self {
             // Modulo to avoid problematic values
             let elements = <usize as Arbitrary>::arbitrary(g) % g.size();
-            StrictI::random(&mut std_rng(g), elements)
+            Chain::random(&mut std_rng(g), elements)
         }
 
         fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
             let x = self.clone();
             let iter = (0..(x.len().saturating_sub(1)))
                 .rev()
-                .map(move |i| StrictI::new(x.elements, x.order[0..i].to_vec()));
+                .map(move |i| Chain::new(x.elements, x.order[0..i].to_vec()));
             Box::new(iter)
         }
     }
 
     #[quickcheck]
-    fn as_partial(b: StrictI) -> bool {
+    fn as_partial(b: Chain) -> bool {
         let po = b.to_partial();
         po.valid()
     }
 
     #[quickcheck]
-    fn as_partial_correct(b: StrictI) -> bool {
+    fn as_partial_correct(b: Chain) -> bool {
         let po = b.clone().to_partial();
         for (i, vi) in b.order.iter().enumerate() {
             for (j, vj) in b.order.iter().enumerate() {
@@ -198,7 +198,7 @@ mod tests {
     }
 
     #[quickcheck]
-    fn len(b: StrictI) -> bool {
+    fn len(b: Chain) -> bool {
         b.len() <= b.elements()
     }
 }

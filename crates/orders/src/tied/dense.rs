@@ -7,7 +7,7 @@ use super::TiedDense;
 use crate::{
     DenseOrders,
     cardinal::{CardinalDense, CardinalRef},
-    strict::StrictIDense,
+    strict::ChainDense,
     tied::{TiedI, TiedIRef},
 };
 
@@ -315,8 +315,8 @@ impl<'a> DenseOrders<'a> for TiedIDense {
     }
 }
 
-impl From<StrictIDense> for TiedIDense {
-    fn from(value: StrictIDense) -> Self {
+impl From<ChainDense> for TiedIDense {
+    fn from(value: ChainDense) -> Self {
         let orders: usize = value.count();
         TiedIDense::from_parts(
             value.orders,
