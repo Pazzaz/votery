@@ -95,8 +95,8 @@ fn tiebreak_scoring_official(ranking: &mut TiedI, goal_len: usize, data: &Cardin
 
         // TODO: We shouldn't need to copy over things, we should just be able to modify
         // them directly.
-        order_slice.copy_from_slice(&tiebreak_rank.order);
-        tied_slice.copy_from_slice(&tiebreak_rank.tied);
+        order_slice.copy_from_slice(&tiebreak_rank.order());
+        tied_slice.copy_from_slice(&tiebreak_rank.tied());
 
         let before_len = ranking.len();
 
@@ -164,8 +164,8 @@ impl<'a> VotingMethod<'a> for Star {
             v.make_complete(false);
             return Ok(Star { score: v });
         }
-        let a = v.order[0];
-        let b = v.order[1];
+        let a = v.order()[0];
+        let b = v.order()[1];
 
         // The Runoff Round
         let mut rank = match runoff_round(a, b, data) {
@@ -178,9 +178,9 @@ impl<'a> VotingMethod<'a> for Star {
         Ok(Star { score: rank })
     }
 
-    fn get_score(&self) -> &Vec<usize> {
+    fn get_score(&self) -> &[usize] {
         // TODO: fix
-        &self.score.order
+        self.score.order()
     }
 }
 

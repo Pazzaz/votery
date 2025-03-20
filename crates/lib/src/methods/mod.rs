@@ -13,7 +13,7 @@ pub trait VotingMethod<'a> {
     /// like first-past-the-post, but may not make sense for all methods.
     /// Return value should be able to be used by `get_order` to get the
     /// result of the voting method. Larger values are higher rank.
-    fn get_score(&self) -> &Vec<usize>;
+    fn get_score(&self) -> &[usize];
 
     /// Gets a partial order of the candidates
     fn get_order(&self) -> Vec<usize> {
@@ -40,7 +40,7 @@ pub trait RandomVotingMethod<'a> {
     /// like first-past-the-post, but may not make sense for all methods.
     /// Return value should be able to be used by `get_order` to get the
     /// result of the voting method. Larger values are higher rank.
-    fn get_score(&self) -> &Vec<usize>;
+    fn get_score(&self) -> &[usize];
 
     /// Gets a partial order of the candidates
     fn get_order(&self) -> Vec<usize> {

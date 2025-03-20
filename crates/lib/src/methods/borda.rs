@@ -35,7 +35,7 @@ impl<'a> VotingMethod<'a> for Borda {
         Ok(Borda { score })
     }
 
-    fn get_score(&self) -> &Vec<usize> {
+    fn get_score(&self) -> &[usize] {
         &self.score
     }
 }

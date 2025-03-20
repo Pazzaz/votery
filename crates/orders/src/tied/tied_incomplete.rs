@@ -13,8 +13,8 @@ use crate::sort_using;
 #[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
 pub struct TiedI {
     pub(crate) elements: usize,
-    pub order: Vec<usize>,
-    pub tied: Vec<bool>,
+    pub(crate) order: Vec<usize>,
+    pub(crate) tied: Vec<bool>,
 }
 
 impl Clone for TiedI {
@@ -43,6 +43,14 @@ impl<'a> TiedI {
         let tie_len = order.len().saturating_sub(1);
         let tied = vec![true; tie_len];
         TiedI::new(elements, order.to_vec(), tied)
+    }
+
+    pub fn order(&self) -> &[usize] {
+        &self.order
+    }
+
+    pub fn tied(&self) -> &[bool] {
+        &self.tied
     }
 
     /// Create a `TiedI`, from groups of equal elements.

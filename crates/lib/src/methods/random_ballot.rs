@@ -47,7 +47,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallot {
         Ok(RandomBallot { ranking: Chain::new(data.elements(), order) })
     }
 
-    fn get_score(&self) -> &Vec<usize> {
+    fn get_score(&self) -> &[usize] {
         unimplemented!()
     }
 
@@ -75,7 +75,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
         Ok(RandomBallotSingle { ranking: vote.owned() })
     }
 
-    fn get_score(&self) -> &Vec<usize> {
+    fn get_score(&self) -> &[usize] {
         unimplemented!();
     }
 

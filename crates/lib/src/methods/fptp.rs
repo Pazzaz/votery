@@ -20,7 +20,7 @@ impl<'a> VotingMethod<'a> for Fptp {
         Ok(Fptp { score })
     }
 
-    fn get_score(&self) -> &Vec<usize> {
+    fn get_score(&self) -> &[usize] {
         &self.score
     }
 }
