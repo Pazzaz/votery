@@ -84,31 +84,15 @@ impl Order for Chain {
 
     fn to_partial(self) -> PartialOrder {
         let mut manual = PartialOrderManual::new(self.elements());
-        let seen: &mut [bool] = &mut vec![false; self.elements()];
         for (i1, e1) in self.order.iter().enumerate() {
-            seen[*e1] = true;
             for e2 in &self.order[(i1 + 1)..] {
                 manual.set(*e2, *e1);
             }
         }
-        let rest: Vec<usize> = (*seen)
-            .iter()
-            .enumerate()
-            .filter_map(|(i, b)| if !b { Some(i) } else { None })
-            .collect();
-
-        for &upper in &self.order {
-            for &lower in &rest {
-                manual.set(lower, upper);
-            }
-        }
-
-        // SAFETY: We set the relations in `self.order`, including transitive relations,
-        // and every element in `self.order` is larger than the rest. The
-        // elements in `rest` have no relations with eachother.
-        let out = unsafe { manual.finish_unchecked() };
-        debug_assert!(out.valid());
-        out
+        // SAFETY: We set the relations in `self.order`, including transitive relations.
+        // The elements in `rest` have no relations with eachother, or the
+        // non-ordered elements.
+        unsafe { manual.finish_unchecked() }
     }
 }
 
@@ -160,6 +144,9 @@ mod tests {
     #[quickcheck]
     fn as_partial_correct(b: Chain) -> bool {
         let po = b.clone().to_partial();
+        if !po.valid() {
+            return false;
+        }
         for (i, vi) in b.order.iter().enumerate() {
             for (j, vj) in b.order.iter().enumerate() {
                 let index_cmp = j.cmp(&i);
@@ -178,7 +165,7 @@ mod tests {
             (0..b.elements).filter(|x| !values.binary_search(x).is_ok()).collect();
         for &p in &values {
             for &q in &rest {
-                if !po.le(q, p) {
+                if po.le(q, p) || po.le(p, q) {
                     return false;
                 }
             }
