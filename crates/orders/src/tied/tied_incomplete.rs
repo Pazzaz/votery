@@ -6,7 +6,7 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
 };
 
-use super::tied_incomplete_ref::TiedIRef;
+use super::{Tied, tied_incomplete_ref::TiedIRef};
 use crate::sort_using;
 
 /// An order with possible ties.
@@ -150,28 +150,29 @@ impl<'a> TiedI {
     /// Make the order into a ranking which ranks all `elements`. Use
     /// `tied_last` to decide if the newly added elements should be tied
     /// with the last ranking element in the order.
-    pub fn make_complete(&mut self, tied_last: bool) {
+    #[must_use]
+    pub fn make_complete(mut self, tied_last: bool) -> Tied {
         let empty_first = self.is_empty();
-        if self.order.len() == self.elements {
-            // It's already complete
-            return;
-        }
-        self.order.reserve_exact(self.elements);
-        self.tied.reserve_exact(self.elements - 1);
-        let seen: &mut [bool] = &mut vec![false; self.elements];
-        for &i in &self.order {
-            debug_assert!(!seen[i]);
-            seen[i] = true;
-        }
-        for (i, el) in seen.iter().enumerate() {
-            if !el {
-                self.order.push(i);
+        if self.order.len() != self.elements {
+            self.order.reserve_exact(self.elements);
+            self.tied.reserve_exact(self.elements - 1);
+            let seen: &mut [bool] = &mut vec![false; self.elements];
+            for &i in &self.order {
+                debug_assert!(!seen[i]);
+                seen[i] = true;
             }
+            for (i, el) in seen.iter().enumerate() {
+                if !el {
+                    self.order.push(i);
+                }
+            }
+            if !empty_first {
+                self.tied.push(tied_last);
+            }
+            self.tied.resize(self.elements - 1, true);
+            debug_assert!(self.order.len() == self.elements);
         }
-        if !empty_first {
-            self.tied.push(tied_last);
-        }
-        self.tied.resize(self.elements - 1, true)
+        Tied::new(self.order, self.tied)
     }
 
     pub fn from_score(elements: usize, mut order: Vec<usize>, score: &mut [usize]) -> TiedI {
@@ -342,7 +343,7 @@ mod tests {
     use quickcheck::{Arbitrary, Gen};
 
     use super::*;
-    use crate::tests::std_rng;
+    use crate::{Order, tests::std_rng};
 
     impl Arbitrary for TiedI {
         fn arbitrary(g: &mut Gen) -> Self {
@@ -398,9 +399,10 @@ mod tests {
     }
 
     #[quickcheck]
-    fn make_complete_len(mut rank: TiedI, tied_last: bool) -> bool {
-        rank.make_complete(tied_last);
-        rank.len() == rank.elements
+    fn make_complete_len(rank: TiedI, tied_last: bool) -> bool {
+        let els = rank.elements;
+        let rank = rank.make_complete(tied_last);
+        rank.len() == els
     }
 
     #[test]
@@ -420,16 +422,16 @@ mod tests {
 
     #[quickcheck]
     fn remove_last_complete(rank: TiedI) -> bool {
-        let mut before = rank.clone();
-        before.make_complete(true);
-        let mut after = before.clone();
+        let before = rank.clone();
+        let mut comp1: TiedI = before.make_complete(true).into();
+        let mut after = comp1.clone();
         after.remove_last();
-        after.make_complete(false);
+        let mut comp2: TiedI = after.make_complete(false).into();
 
-        after.normalize();
-        before.normalize();
+        comp1.normalize();
+        comp2.normalize();
 
-        after == before
+        comp1 == comp2
     }
 
     #[quickcheck]

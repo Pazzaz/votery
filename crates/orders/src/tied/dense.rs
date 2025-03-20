@@ -212,7 +212,7 @@ impl TiedIDense {
         let mut cardinal_orders = CardinalDense::new(self.elements, 0..=max);
         for order in self.iter() {
             v.copy_from(order);
-            v.make_complete(false);
+            v = v.make_complete(false).into();
             v.as_ref().cardinal_high(&mut cardinal_rank, 0, max);
             cardinal_orders.add(CardinalRef::new(&cardinal_rank))?;
             cardinal_rank.fill(0);

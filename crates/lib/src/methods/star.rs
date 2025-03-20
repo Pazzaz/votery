@@ -161,21 +161,21 @@ impl<'a> VotingMethod<'a> for Star {
 
         // We return if the scoring round didn't find top 2.
         if !found_top_two {
-            v.make_complete(false);
-            return Ok(Star { score: v });
+            let rank = v.make_complete(false);
+            return Ok(Star { score: rank.into() });
         }
         let a = v.order()[0];
         let b = v.order()[1];
 
         // The Runoff Round
-        let mut rank = match runoff_round(a, b, data) {
+        let rank = match runoff_round(a, b, data) {
             Ordering::Less => TiedI::new(data.elements(), vec![b, a], vec![false]),
             Ordering::Equal => TiedI::new(data.elements(), vec![a, b], vec![true]),
             Ordering::Greater => TiedI::new(data.elements(), vec![a, b], vec![false]),
-        };
-        rank.make_complete(false);
-
-        Ok(Star { score: rank })
+        }.make_complete(false);
+        
+        // TODO: store Tied?
+        Ok(Star { score: rank.into() })
     }
 
     fn get_score(&self) -> &[usize] {
