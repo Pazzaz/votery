@@ -1,3 +1,5 @@
+//! # Total orders, allowing ties
+
 mod dense;
 mod dense_complete;
 mod groups;
