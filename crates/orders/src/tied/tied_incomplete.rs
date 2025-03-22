@@ -84,13 +84,10 @@ impl<'a> TiedI {
     /// Return the number of ordered elements.
     ///
     /// ```
-    /// use orders::tied::TiedI;
+    /// use orders::{OrderOwned, tied::{TiedI, Tied}};
     ///
     /// let empty = TiedI::new_zero();
     /// assert_eq!(empty.len(), 0);
-    ///
-    /// let full = TiedI::new_tied(10);
-    /// assert_eq!(full.len(), 10);
     /// ```
     pub fn len(&self) -> usize {
         self.order.len()

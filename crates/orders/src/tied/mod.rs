@@ -68,7 +68,7 @@ impl Tied {
     /// Create a new ranking of `elements`, where every element is tied.
     ///
     /// ```
-    /// use orders::tied::Tied;
+    /// use orders::{OrderOwned, tied::Tied};
     ///
     /// let c = 10;
     /// let rank = Tied::new_tied(c);
