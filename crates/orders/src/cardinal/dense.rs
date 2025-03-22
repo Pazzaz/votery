@@ -5,12 +5,25 @@ use rand::distr::{Distribution, Uniform};
 use super::CardinalRef;
 use crate::{DenseOrders, binary::BinaryDense, pairwise_lt};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CardinalDense {
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
     pub(crate) min: usize,
     pub(crate) max: usize,
+}
+
+impl Clone for CardinalDense {
+    fn clone(&self) -> Self {
+        Self { orders: self.orders.clone(), elements: self.elements, min: self.min, max: self.max }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.elements = source.elements;
+        self.min = source.min;
+        self.max = source.max;
+    }
 }
 
 pub enum MapError {

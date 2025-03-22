@@ -5,10 +5,21 @@ use rand::seq::SliceRandom;
 use super::TotalRef;
 use crate::{DenseOrders, get_order, pairwise_lt};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TotalDense {
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
+}
+
+impl Clone for TotalDense {
+    fn clone(&self) -> Self {
+        Self { orders: self.orders.clone(), elements: self.elements }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.elements = source.elements;
+    }
 }
 
 pub enum AddError {

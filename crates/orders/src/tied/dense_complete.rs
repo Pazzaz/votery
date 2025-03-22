@@ -11,7 +11,7 @@ use crate::{DenseOrders, cardinal::CardinalDense, specific::SpecificDense, stric
 /// TOC - Orders with Ties - Complete List
 ///
 /// A packed list of complete orders with ties, with related methods.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct TiedDense {
     // Has length orders_count * elements
     pub(crate) orders: Vec<usize>,
@@ -20,6 +20,18 @@ pub struct TiedDense {
     // Has length orders_count * (elements - 1)
     pub(crate) ties: Vec<bool>,
     pub(crate) elements: usize,
+}
+
+impl Clone for TiedDense {
+    fn clone(&self) -> Self {
+        Self { orders: self.orders.clone(), ties: self.ties.clone(), elements: self.elements }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.ties.clone_from(&source.ties);
+        self.elements = source.elements;
+    }
 }
 
 impl TiedDense {

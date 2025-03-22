@@ -6,10 +6,21 @@ use rand::{
 use super::BinaryRef;
 use crate::{DenseOrders, cardinal::CardinalDense, pairwise_lt};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BinaryDense {
     pub orders: Vec<bool>,
     pub(crate) elements: usize,
+}
+
+impl Clone for BinaryDense {
+    fn clone(&self) -> Self {
+        Self { orders: self.orders.clone(), elements: self.elements }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.elements = source.elements;
+    }
 }
 
 impl BinaryDense {
@@ -24,10 +35,6 @@ impl BinaryDense {
 
     pub unsafe fn new_from_parts_unchecked(orders: Vec<bool>, elements: usize) -> BinaryDense {
         BinaryDense { orders, elements }
-    }
-
-    pub fn elements(&self) -> usize {
-        self.elements
     }
 
     #[cfg(test)]

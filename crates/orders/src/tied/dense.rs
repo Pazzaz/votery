@@ -15,7 +15,7 @@ use crate::{
 ///
 /// A packed list of (possibly incomplete) orders with ties, with related
 /// methods. One can see it as a `Vec<TiedRank>`, but more efficient.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TiedIDense {
     // Has length count * elements
     pub(crate) orders: Vec<usize>,
@@ -27,6 +27,24 @@ pub struct TiedIDense {
     // Where each order ends
     pub(crate) order_end: Vec<usize>,
     pub(crate) elements: usize,
+}
+
+impl Clone for TiedIDense {
+    fn clone(&self) -> Self {
+        Self {
+            orders: self.orders.clone(),
+            ties: self.ties.clone(),
+            order_end: self.order_end.clone(),
+            elements: self.elements,
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.ties.clone_from(&source.ties);
+        self.order_end.clone_from(&source.order_end);
+        self.elements = source.elements;
+    }
 }
 
 impl TiedIDense {

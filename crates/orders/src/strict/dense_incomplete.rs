@@ -9,13 +9,29 @@ use crate::{DenseOrders, strict::ChainRef};
 /// SOI - Strict Orders - Incomplete List
 ///
 /// A packed list of (possibly incomplete) strict orders, with related methods.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct ChainDense {
     pub(crate) orders: Vec<usize>,
 
     // End position of order
     pub(crate) order_end: Vec<usize>,
     pub(crate) elements: usize,
+}
+
+impl Clone for ChainDense {
+    fn clone(&self) -> Self {
+        Self {
+            orders: self.orders.clone(),
+            order_end: self.order_end.clone(),
+            elements: self.elements,
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.order_end.clone_from(&source.order_end);
+        self.elements = source.elements;
+    }
 }
 
 impl ChainDense {
