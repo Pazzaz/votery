@@ -229,7 +229,7 @@ impl TiedIDense {
         let max = self.elements - 1;
         let mut cardinal_orders = CardinalDense::new(self.elements, 0..=max);
         for order in self.iter() {
-            v.copy_from(order);
+            v.clone_from_ref(order);
             v = v.make_complete(false).into();
             v.as_ref().cardinal_high(&mut cardinal_rank, 0, max);
             cardinal_orders.add(CardinalRef::new(&cardinal_rank))?;

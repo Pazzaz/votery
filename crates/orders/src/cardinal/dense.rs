@@ -2,7 +2,7 @@ use std::{cmp::Ordering, ops::RangeBounds};
 
 use rand::distr::{Distribution, Uniform};
 
-use super::CardinalRef;
+use super::{Cardinal, CardinalRef};
 use crate::{DenseOrders, binary::BinaryDense, pairwise_lt};
 
 #[derive(Debug, PartialEq, Eq)]
@@ -225,6 +225,45 @@ impl CardinalDense {
         }
         a_v.cmp(&b_v)
     }
+
+    pub fn sum(&self) -> Result<Cardinal, SumError> {
+        let mut out: Vec<usize> = Vec::new();
+        if out.try_reserve(self.elements).is_err() {
+            return Err(SumError::Alloc);
+        }
+        for _ in 0..self.elements {
+            out.push(0);
+        }
+        if self.max.checked_mul(self.len()).is_none() {
+            // If there's a chance that we overflow we'll have to check for it every
+            // iteration.
+            for order in self.iter() {
+                debug_assert!(order.len() == self.elements);
+                for (i, &v) in order.values().iter().enumerate() {
+                    if let Some(res) = out[i].checked_add(v) {
+                        out[i] = res;
+                    } else {
+                        return Err(SumError::Overflow);
+                    }
+                }
+            }
+        } else {
+            for order in self.iter() {
+                debug_assert!(order.len() == self.elements);
+                for (i, &v) in order.values().iter().enumerate() {
+                    out[i] += v;
+                }
+            }
+        }
+
+        Ok(Cardinal::new(out))
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum SumError {
+    Alloc,
+    Overflow,
 }
 
 impl<'a> DenseOrders<'a> for CardinalDense {

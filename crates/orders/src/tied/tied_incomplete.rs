@@ -7,7 +7,7 @@ use rand::{
 };
 
 use super::{Tied, tied_incomplete_ref::TiedIRef};
-use crate::sort_using;
+use crate::{cardinal::CardinalRef, sort_using};
 
 /// An order with possible ties.
 #[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -81,16 +81,16 @@ impl<'a> TiedI {
         TiedIRef::new(self.elements, &self.order[..], &self.tied[..])
     }
 
-    /// Return the number of ranked elements.
+    /// Return the number of ordered elements.
     ///
     /// ```
     /// use orders::tied::TiedI;
     ///
     /// let empty = TiedI::new_zero();
-    /// assert!(empty.len() == 0);
+    /// assert_eq!(empty.len(), 0);
     ///
     /// let full = TiedI::new_tied(10);
-    /// assert!(full.len() == 10);
+    /// assert_eq!(full.len(), 10);
     /// ```
     pub fn len(&self) -> usize {
         self.order.len()
@@ -100,16 +100,6 @@ impl<'a> TiedI {
         self.len() == 0
     }
 
-    /// Become a copy of `rank`, useful to reuse allocations.
-    pub fn copy_from(&mut self, rank: TiedIRef) {
-        self.order.clear();
-        self.order.extend_from_slice(rank.order());
-        self.tied.clear();
-        self.tied.extend_from_slice(rank.tied());
-        // TODO: Do we really want to do this?
-        self.elements = rank.elements;
-    }
-
     /// Create a new ranking of `elements`, where every element is tied.
     ///
     /// ```
@@ -117,7 +107,7 @@ impl<'a> TiedI {
     ///
     /// let c = 10;
     /// let rank = TiedI::new_tied(c);
-    /// assert!(rank.as_ref().winners().len() == c);
+    /// assert_eq!(rank.as_ref().winners().len(), c);
     /// ```
     pub fn new_tied(elements: usize) -> Self {
         if elements == 0 {
@@ -132,7 +122,7 @@ impl<'a> TiedI {
     }
 
     pub fn increase_elements(&mut self, elements: usize) {
-        debug_assert!(self.elements <= elements);
+        assert!(self.elements <= elements);
         self.elements = elements;
     }
 
@@ -140,17 +130,6 @@ impl<'a> TiedI {
         debug_assert!(n < elements);
         let order = vec![n];
         let tied = Vec::new();
-        TiedI::new(elements, order, tied)
-    }
-
-    /// Given a score to every element, create a new TiedRank of those
-    /// elements. Higher score is better.
-    pub fn from_scores(elements: usize, v: &[usize]) -> TiedI {
-        debug_assert!(v.len() == elements);
-        let mut list: Vec<(usize, usize)> = v.iter().cloned().enumerate().collect();
-        list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
-        let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
-        let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
         TiedI::new(elements, order, tied)
     }
 
@@ -342,6 +321,16 @@ impl<'a> TiedI {
         let tied_len = v.len().saturating_sub(1);
         let tied = vec![false; tied_len];
         TiedI::new(elements, v, tied)
+    }
+}
+
+impl<'a> From<CardinalRef<'a>> for TiedI {
+    fn from(value: CardinalRef) -> Self {
+        let mut list: Vec<(usize, usize)> = value.values().iter().copied().enumerate().collect();
+        list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
+        let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
+        let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
+        TiedI::new(value.len(), order, tied)
     }
 }
 

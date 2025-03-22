@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use orders::{cardinal::CardinalDense, tied::TiedI};
+use orders::{cardinal::CardinalDense, tied::TiedI, OrderOwned};
 
 use super::VotingMethod;
 
@@ -126,13 +126,7 @@ fn score_ranking(data: &CardinalDense) -> TiedI {
     if data.elements() < 2 {
         return TiedI::new_tied(data.elements());
     }
-    let mut sum = vec![0; data.elements()];
-    for vote in data.iter() {
-        for i in 0..data.elements() {
-            sum[i] += vote.values()[i];
-        }
-    }
-    TiedI::from_scores(data.elements(), &sum)
+    data.sum().unwrap().as_ref().into()
 }
 
 // Return a comparison between `a` and `b`, a "greater" result means `a` has a
