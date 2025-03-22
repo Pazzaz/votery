@@ -5,11 +5,35 @@ use rand::{
 
 use crate::{DenseOrders, pairwise_lt};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+/// A collection of elements.
+///
+/// Collection of orders where every order is a specific element. Some would say
+/// that this isn't an order at all, but it's useful to model a collection of
+/// votes in voting theory.
+///
+/// ```
+/// use orders::{DenseOrders, specific::SpecificDense};
+///
+/// let mut orders = SpecificDense::from_vec(5, vec![4, 3, 4, 2, 4]);
+///
+/// assert_eq!(orders.majority(), Some(4));
+/// ```
+#[derive(Debug, PartialEq, Eq)]
 pub struct SpecificDense {
     // number of orders = orders.len()
     pub(crate) orders: Vec<usize>,
     pub(crate) elements: usize,
+}
+
+impl Clone for SpecificDense {
+    fn clone(&self) -> Self {
+        Self { orders: self.orders.clone(), elements: self.elements }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.orders.clone_from(&source.orders);
+        self.elements = source.elements;
+    }
 }
 
 impl SpecificDense {
@@ -17,14 +41,27 @@ impl SpecificDense {
         SpecificDense { orders: Vec::new(), elements }
     }
 
-    pub fn elements(&self) -> usize {
-        self.elements
+    /// Create a `SpecificDense` from a list of elements.
+    ///
+    /// # Panics
+    ///
+    /// Panics if any of the elements is not a valid.
+    pub fn from_vec(elements: usize, orders: Vec<usize>) -> Self {
+        Self::try_from_vec(elements, orders).unwrap()
+    }
+
+    /// Create a `SpecificDense` from a list of elements. Returns `None` if any
+    /// of the elements is not valid.
+    pub fn try_from_vec(elements: usize, orders: Vec<usize>) -> Option<Self> {
+        if orders.iter().all(|&x| x < elements) { Some(Self { orders, elements }) } else { None }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = usize> {
         self.orders.iter().copied()
     }
 
+    /// Return the element that the majority of orders consists of. Returns
+    /// `None` if no element is the majority.
     pub fn majority(&self) -> Option<usize> {
         if self.elements == 1 {
             return Some(0);
@@ -51,9 +88,9 @@ impl SpecificDense {
         true
     }
 
-    /// Set the number of elements to a larger amount
+    /// Set the number of elements to a larger amount.
     pub fn set_elements(&mut self, elements: usize) {
-        debug_assert!(self.elements <= elements);
+        assert!(self.elements <= elements);
         self.elements = elements;
     }
 }
@@ -73,10 +110,13 @@ impl DenseOrders<'_> for SpecificDense {
     }
 
     fn add(&mut self, v: Self::Order) -> Result<(), &'static str> {
-        // TODO: check
-        self.orders.try_reserve(1).or(Err("Could not add order"))?;
-        self.orders.push(v);
-        Ok(())
+        if v < self.elements {
+            self.orders.try_reserve(1).or(Err("Could not add order"))?;
+            self.orders.push(v);
+            Ok(())
+        } else {
+            Err("Invalid element")
+        }
     }
 
     fn remove_element(&mut self, target: usize) -> Result<(), &'static str> {
@@ -153,20 +193,6 @@ mod tests {
             debug_assert!(orders.valid());
             orders
         }
-
-        // We shrink both the number of elements, and the votes.
-        // fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
-        //     let c = self.elements;
-        //     let elements: Vec<usize> = (0..c).collect();
-        //     Box::new(self.votes.shrink().zip(elements.shrink()).map(
-        //         move |(shrink_votes, shrink_elements)| {
-        //             let mut new_votes = Specific { votes: shrink_votes, elements: c
-        // };
-        // new_votes.remove_elements(&shrink_elements).unwrap();
-        // debug_assert!(new_votes.valid());             new_votes
-        //         },
-        //     ))
-        // }
     }
 
     #[quickcheck]

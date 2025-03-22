@@ -1,5 +1,4 @@
-use orders::{specific::SpecificDense, tied::TiedI};
-
+use orders::{DenseOrders, specific::SpecificDense, tied::TiedI};
 use super::VotingMethod;
 
 pub struct Fptp {
