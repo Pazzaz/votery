@@ -14,11 +14,23 @@ use split_ref::SplitRef;
 pub use tied_incomplete::*;
 pub use tied_incomplete_ref::*;
 
-use crate::{Order, OrderOwned, OrderRef, unique_and_bounded};
+use crate::{Order, OrderOwned, OrderRef, cardinal::CardinalRef, unique_and_bounded};
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Tied {
     order: Vec<usize>,
     tied: Vec<bool>,
+}
+
+impl Clone for Tied {
+    fn clone(&self) -> Self {
+        Self { order: self.order.clone(), tied: self.tied.clone() }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.order.clone_from(&source.order);
+        self.tied.clone_from(&source.tied);
+    }
 }
 
 impl Tied {
@@ -51,6 +63,37 @@ impl Tied {
     pub fn clone_from_ref(&mut self, source: TiedRef) {
         self.order.clone_from_slice(source.order());
         self.tied.clone_from_slice(source.tied());
+    }
+
+    /// Create a new ranking of `elements`, where every element is tied.
+    ///
+    /// ```
+    /// use orders::tied::Tied;
+    ///
+    /// let c = 10;
+    /// let rank = Tied::new_tied(c);
+    /// assert_eq!(rank.as_ref().winners().len(), c);
+    /// ```
+    pub fn new_tied(elements: usize) -> Self {
+        if elements == 0 {
+            return Tied::new(Vec::new(), Vec::new());
+        }
+        let mut order = Vec::with_capacity(elements);
+        for i in 0..elements {
+            order.push(i);
+        }
+        let tied = vec![true; elements - 1];
+        Tied::new(order, tied)
+    }
+}
+
+impl<'a> From<CardinalRef<'a>> for Tied {
+    fn from(value: CardinalRef) -> Self {
+        let mut list: Vec<(usize, usize)> = value.values().iter().copied().enumerate().collect();
+        list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
+        let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
+        let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
+        Tied::new(order, tied)
     }
 }
 

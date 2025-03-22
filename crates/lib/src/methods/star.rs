@@ -1,13 +1,13 @@
 use std::cmp::Ordering;
 
-use orders::{cardinal::CardinalDense, tied::TiedI, OrderOwned};
+use orders::{cardinal::CardinalDense, tied::{Tied, TiedI}, OrderOwned};
 
 use super::VotingMethod;
 
 /// STAR (Score Then Automatic Runoff) voting is a single winner protocol.
 /// Ties are resolved according to the "Official Tiebreaker Protocol" described at https://www.starvoting.org/ties
 pub struct Star {
-    score: TiedI,
+    score: Tied,
 }
 
 // We can break ties by...
@@ -122,9 +122,9 @@ fn tiebreak_scoring_official(ranking: &mut TiedI, goal_len: usize, data: &Cardin
 }
 
 // Get a ranking of the candidates sorted by their total score
-fn score_ranking(data: &CardinalDense) -> TiedI {
+fn score_ranking(data: &CardinalDense) -> Tied {
     if data.elements() < 2 {
-        return TiedI::new_tied(data.elements());
+        return Tied::new_tied(data.elements());
     }
     data.sum().unwrap().as_ref().into()
 }
@@ -146,11 +146,11 @@ impl<'a> VotingMethod<'a> for Star {
 
     fn count(data: &CardinalDense) -> Result<Self, &'static str> {
         if data.elements() < 2 {
-            return Ok(Star { score: TiedI::new_tied(data.elements()) });
+            return Ok(Star { score: Tied::new_tied(data.elements()) });
         }
 
         // The Scoring Round
-        let mut v = score_ranking(data);
+        let mut v: TiedI = score_ranking(data).into();
         let found_top_two = tiebreak_scoring_official(&mut v, 2, data);
 
         // We return if the scoring round didn't find top 2.
@@ -168,8 +168,7 @@ impl<'a> VotingMethod<'a> for Star {
             Ordering::Greater => TiedI::new(data.elements(), vec![a, b], vec![false]),
         }.make_complete(false);
         
-        // TODO: store Tied?
-        Ok(Star { score: rank.into() })
+        Ok(Star { score: rank })
     }
 
     fn get_score(&self) -> &[usize] {
@@ -179,7 +178,7 @@ impl<'a> VotingMethod<'a> for Star {
 }
 
 impl Star {
-    pub fn as_vote(&self) -> TiedI {
+    pub fn as_vote(&self) -> Tied {
         self.score.clone()
     }
 }

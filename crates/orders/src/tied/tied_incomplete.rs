@@ -7,7 +7,7 @@ use rand::{
 };
 
 use super::{Tied, tied_incomplete_ref::TiedIRef};
-use crate::{cardinal::CardinalRef, sort_using};
+use crate::sort_using;
 
 /// An order with possible ties.
 #[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -98,27 +98,6 @@ impl<'a> TiedI {
 
     pub fn is_empty(&self) -> bool {
         self.len() == 0
-    }
-
-    /// Create a new ranking of `elements`, where every element is tied.
-    ///
-    /// ```
-    /// use orders::tied::TiedI;
-    ///
-    /// let c = 10;
-    /// let rank = TiedI::new_tied(c);
-    /// assert_eq!(rank.as_ref().winners().len(), c);
-    /// ```
-    pub fn new_tied(elements: usize) -> Self {
-        if elements == 0 {
-            return TiedI::new(0, Vec::new(), Vec::new());
-        }
-        let mut order = Vec::with_capacity(elements);
-        for i in 0..elements {
-            order.push(i);
-        }
-        let tied = vec![true; elements - 1];
-        TiedI::new(elements, order, tied)
     }
 
     pub fn increase_elements(&mut self, elements: usize) {
@@ -324,16 +303,6 @@ impl<'a> TiedI {
     }
 }
 
-impl<'a> From<CardinalRef<'a>> for TiedI {
-    fn from(value: CardinalRef) -> Self {
-        let mut list: Vec<(usize, usize)> = value.values().iter().copied().enumerate().collect();
-        list.sort_by(|(_, a), (_, b)| a.cmp(b).reverse());
-        let tied: Vec<bool> = list.windows(2).map(|w| w[0].1 == w[1].1).collect();
-        let order: Vec<usize> = list.into_iter().map(|(i, _)| i).collect();
-        TiedI::new(value.len(), order, tied)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use quickcheck::{Arbitrary, Gen};
@@ -403,7 +372,7 @@ mod tests {
 
     #[test]
     fn tied_remove_last() {
-        let mut r = TiedI::new_tied(20);
+        let mut r: TiedI = Tied::new_tied(20).into();
         r.remove_last();
         assert!(r.len() == 0);
     }

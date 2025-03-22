@@ -3,7 +3,7 @@ use rand::{
     seq::SliceRandom,
 };
 
-use super::TiedDense;
+use super::{Tied, TiedDense};
 use crate::{
     DenseOrders,
     cardinal::{CardinalDense, CardinalRef},
@@ -224,7 +224,7 @@ impl TiedIDense {
     }
 
     pub fn to_cardinal(self) -> Result<CardinalDense, &'static str> {
-        let mut v = TiedI::new_tied(self.elements);
+        let mut v: TiedI = Tied::new_tied(self.elements).into();
         let mut cardinal_rank = vec![0; self.elements];
         let max = self.elements - 1;
         let mut cardinal_orders = CardinalDense::new(self.elements, 0..=max);
