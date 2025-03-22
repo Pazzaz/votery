@@ -26,6 +26,11 @@ impl Binary {
         Binary { values: v }
     }
 
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: BinaryRef) {
+        self.values.clone_from_slice(source.values);
+    }
+
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Binary {
         let values = rng.sample_iter(StandardUniform).take(elements).collect();
         Binary { values }

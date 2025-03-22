@@ -51,6 +51,12 @@ impl Chain {
         Chain { elements, order }
     }
 
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: ChainRef) {
+        self.order.clone_from_slice(source.order);
+        self.elements = source.elements;
+    }
+
     pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Chain {
         if elements == 0 {
             Chain { order: Vec::new(), elements }

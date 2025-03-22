@@ -36,6 +36,11 @@ impl Cardinal {
         self.values.remove(n);
     }
 
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: CardinalRef) {
+        self.values.clone_from_slice(source.values);
+    }
+
     pub fn random<R: Rng>(rng: &mut R, elements: usize, min: usize, max: usize) -> Cardinal {
         assert!(min <= max);
         let dist = Uniform::new_inclusive(min, max).unwrap();

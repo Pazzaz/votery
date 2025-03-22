@@ -53,6 +53,11 @@ impl Total {
         Total { order: (0..n).collect() }
     }
 
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: TotalRef) {
+        self.order.clone_from_slice(source.order);
+    }
+
     /// Get the order as a `Vec`.
     pub fn into_inner(self) -> Vec<usize> {
         let Self { order } = self;

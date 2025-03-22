@@ -53,6 +53,13 @@ impl<'a> TiedI {
         &self.tied
     }
 
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: TiedIRef) {
+        self.order.clone_from_slice(source.order());
+        self.tied.clone_from_slice(source.tied());
+        self.elements = source.elements;
+    }
+
     /// Create a `TiedI`, from groups of equal elements.
     pub fn from_slices(elements: usize, groups: &[&[usize]]) -> Self {
         let mut orders = Vec::with_capacity(groups.len());

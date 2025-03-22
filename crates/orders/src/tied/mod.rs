@@ -46,6 +46,12 @@ impl Tied {
     pub fn tied(&self) -> &[bool] {
         &self.tied
     }
+
+    /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
+    pub fn clone_from_ref(&mut self, source: TiedRef) {
+        self.order.clone_from_slice(source.order());
+        self.tied.clone_from_slice(source.tied());
+    }
 }
 
 impl Order for Tied {
