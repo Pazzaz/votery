@@ -22,6 +22,9 @@
 //! `Vec`. By using custom containers it's possible to store them in a more
 //! compact form and avoid nested containers.
 
+#![feature(test)]
+extern crate test;
+
 #[cfg(test)]
 extern crate quickcheck;
 #[cfg(test)]
@@ -119,7 +122,10 @@ pub trait OrderRef {
     fn to_owned(self) -> Self::Owned;
 }
 
-use rand::Rng;
+use rand::{
+    Rng,
+    distr::{Distribution, StandardUniform},
+};
 
 // Lifetime needed because `Order` may be a reference which then needs a
 // lifetime
@@ -168,14 +174,18 @@ fn unique_and_bounded(elements: usize, order: &[usize]) -> bool {
     true
 }
 
+pub(crate) fn add_bool<R: Rng>(rng: &mut R, v: &mut Vec<bool>, n: usize) {
+    v.extend(<_ as Distribution<bool>>::sample_iter::<&mut R>(StandardUniform, rng).take(n));
+}
+
 #[cfg(test)]
 mod tests {
     use std::mem;
 
     use quickcheck::{Arbitrary, Gen};
+    use rand::{SeedableRng, rngs::StdRng};
 
     use super::*;
-    use rand::{SeedableRng, rngs::StdRng};
 
     // `Gen` contains a rng, but it's a private member so this method is used to get
     // a standard rng generated from `Gen`

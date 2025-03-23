@@ -1,11 +1,11 @@
 use rand::{
-    distr::{Bernoulli, Distribution, Uniform},
+    distr::{Distribution, Uniform},
     seq::SliceRandom,
 };
 
 use super::{Tied, TiedDense};
 use crate::{
-    DenseOrders,
+    DenseOrders, add_bool,
     cardinal::{CardinalDense, CardinalRef},
     strict::ChainDense,
     tied::{TiedI, TiedIRef},
@@ -310,26 +310,26 @@ impl<'a> DenseOrders<'a> for TiedIDense {
     }
 
     fn generate_uniform<R: rand::Rng>(&mut self, rng: &mut R, new_orders: usize) {
-        if self.elements == 0 {
+        assert!(self.elements != 0 || new_orders == 0);
+        if self.elements == 0 || new_orders == 0 {
             return;
         }
         let v: &mut [usize] = &mut (0..self.elements).collect::<Vec<usize>>();
         self.orders.reserve(new_orders * self.elements);
         self.ties.reserve(new_orders * (self.elements - 1));
-        let dist = Bernoulli::new(0.5).unwrap();
+        self.order_end.reserve(new_orders);
         let range = Uniform::new(0, self.elements).unwrap();
         let mut new_end = 0;
         for _ in 0..new_orders {
             let elements = range.sample(rng) + 1;
             v.shuffle(rng);
             self.orders.extend_from_slice(&v[..elements]);
-            for _ in 0..(elements - 1) {
-                self.ties.push(dist.sample(rng));
-            }
 
             new_end += elements;
             self.order_end.push(new_end);
         }
+        let tied_count = new_end - new_orders;
+        add_bool(rng, &mut self.ties, tied_count);
     }
 }
 
@@ -382,6 +382,9 @@ impl<'a> FromIterator<TiedIRef<'a>> for TiedIDense {
 #[cfg(test)]
 mod tests {
     use quickcheck::{Arbitrary, Gen};
+    use rand::SeedableRng;
+    use rand_chacha::ChaCha12Rng;
+    use test::Bencher;
 
     use super::*;
     use crate::tests::std_rng;
@@ -393,8 +396,8 @@ mod tests {
             // `Arbitrary` for numbers will generate "problematic" examples such as
             // `usize::max_value()` and `usize::min_value()` but we'll use them to
             // allocate vectors so we'll limit them.
-            orders_count = orders_count % g.size();
             elements = elements % g.size();
+            orders_count = if elements != 0 { orders_count % g.size() } else { 0 };
 
             let mut orders = TiedIDense::new(elements);
             orders.generate_uniform(&mut std_rng(g), orders_count);
@@ -405,5 +408,53 @@ mod tests {
     #[quickcheck]
     fn arbitrary(orders: TiedIDense) -> bool {
         orders.valid()
+    }
+
+    // These three benches compare different ways to do "generate_uniform".
+    #[bench]
+    fn bench_add_random(b: &mut Bencher) {
+        let rng = ChaCha12Rng::from_seed([1; 32]);
+        b.iter(|| {
+            let mut rng = rng.clone();
+            let mut d = TiedIDense::new(10);
+            d.generate_uniform(&mut rng, 1000);
+        });
+    }
+
+    // See above
+    #[bench]
+    fn bench_add_random_iter(b: &mut Bencher) {
+        const ELEMENTS: usize = 10;
+        let rng = ChaCha12Rng::from_seed([1; 32]);
+        b.iter(|| {
+            let mut rng = rng.clone();
+            let mut d = TiedIDense::new(ELEMENTS);
+            for _ in 0..1000 {
+                let t: TiedI = TiedI::random(&mut rng, ELEMENTS);
+                if t.is_empty() {
+                    continue;
+                }
+                d.add(t.as_ref()).unwrap();
+            }
+        });
+    }
+
+    // See above
+    #[bench]
+    fn bench_add_random_iter_2(b: &mut Bencher) {
+        const ELEMENTS: usize = 10;
+        let rng = ChaCha12Rng::from_seed([1; 32]);
+        b.iter(|| {
+            let mut rng = rng.clone();
+            let mut d = TiedIDense::new(ELEMENTS);
+            let mut tmp = TiedI::new_zero();
+            for _ in 0..1000 {
+                tmp.into_random(&mut rng, ELEMENTS);
+                if tmp.is_empty() {
+                    continue;
+                }
+                d.add(tmp.as_ref()).unwrap();
+            }
+        });
     }
 }

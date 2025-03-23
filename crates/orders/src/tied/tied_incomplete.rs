@@ -7,7 +7,7 @@ use rand::{
 };
 
 use super::{Tied, tied_incomplete_ref::TiedIRef};
-use crate::sort_using;
+use crate::{add_bool, sort_using};
 
 /// An order with possible ties.
 #[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
@@ -214,6 +214,28 @@ impl<'a> TiedI {
             tied.push(rng.sample(d));
         }
         TiedI::new(elements, order, tied)
+    }
+
+    /// Turn a tied order into a random tied order, reusing allocations.
+    pub fn into_random<R: Rng>(&mut self, rng: &mut R, elements: usize) {
+        self.order.clear();
+        self.tied.clear();
+        if elements != 0 {
+            let order_len = rng.sample(Uniform::new(0, elements).unwrap());
+            for i in 0..elements {
+                self.order.push(i);
+            }
+            // Surely this can be done more effectively
+            self.order.shuffle(rng);
+            self.order.drain(order_len..);
+
+            let tied_len = order_len.saturating_sub(1);
+            if let Some(more_els) = tied_len.checked_sub(self.tied.capacity()) {
+                self.tied.reserve(more_els);
+            }
+            add_bool(rng, &mut self.tied, tied_len);
+        }
+        self.elements = elements;
     }
 
     /// Normalize the inner representation of `self`, i.e. sorting the tied
