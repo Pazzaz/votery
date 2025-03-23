@@ -55,8 +55,10 @@ impl<'a> TiedI {
 
     /// Clones from `source` to `self`, similar to [`Clone::clone_from`].
     pub fn clone_from_ref(&mut self, source: TiedIRef) {
-        self.order.clone_from_slice(source.order());
-        self.tied.clone_from_slice(source.tied());
+        self.order.clear();
+        self.order.extend(source.order());
+        self.tied.clear();
+        self.tied.extend(source.tied());
         self.elements = source.elements;
     }
 
@@ -307,6 +309,46 @@ impl<'a> TiedI {
             }
         }
         (&mut self.order[(n - 1)..i], &mut self.tied[(n - 1)..(i - 1)])
+    }
+
+    pub fn remove(mut self, n: usize) -> Self {
+        assert!(n < self.elements);
+        if self.elements == 1 {
+            self.order.clear();
+            self.tied.clear();
+            self.elements = 0;
+            return self;
+        }
+        let mut skipped = false;
+        for i in 0..self.len() {
+            if skipped {
+                let res = match self.order[i].cmp(&n) {
+                    std::cmp::Ordering::Less => self.order[i],
+                    std::cmp::Ordering::Equal => {
+                        unreachable!();
+                    },
+                    std::cmp::Ordering::Greater => self.order[i] - 1,
+                };
+                self.order[i-1] = res;
+            } else {
+                let res = match self.order[i].cmp(&n) {
+                    std::cmp::Ordering::Less => self.order[i],
+                    std::cmp::Ordering::Equal => {
+                        skipped = true;
+                        continue;
+                    },
+                    std::cmp::Ordering::Greater => self.order[i] - 1,
+                };
+                self.order[i] = res;
+            }
+        }
+        if skipped {
+            self.order.pop();
+            self.tied.clear();
+            self.tied.extend(self.order.windows(2).map(|w| w[0] == w[1]));
+        }
+        self.elements -= 1;
+        self
     }
 
     pub fn random_total<R: Rng>(rng: &mut R, elements: usize, order: &[usize]) -> TiedI {

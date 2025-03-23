@@ -167,6 +167,7 @@ impl<'a> DenseOrders<'a> for TiedDense {
                         self.ties.copy_within(start_old..(end_old - 1), start_new);
                     } else {
                         debug_assert!(0 < removed && removed < (elements_old - 1));
+                        // TODO: This may be wrong...
                         let pre = self.ties[start_old..end_old][removed - 1];
                         let next = self.ties[start_old..end_old][removed];
                         self.ties.copy_within(start_old..(start_old + removed - 1), start_new);

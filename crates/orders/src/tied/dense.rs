@@ -283,27 +283,14 @@ impl<'a> DenseOrders<'a> for TiedIDense {
     fn remove_element(&mut self, n: usize) -> Result<(), &'static str> {
         let new_elements = self.elements - 1;
         let mut new = TiedIDense::new(new_elements);
+        let mut tmp = TiedI::new_zero();
         for order in self.iter() {
-            let mut new_order: Vec<usize> = Vec::with_capacity(order.order().len() - 1);
-            let mut new_tied: Vec<bool> = Vec::with_capacity(order.tied().len().saturating_sub(1));
-            for i in 0..new_order.len() {
-                let mut v = new_order[i];
-                if v == n {
-                    continue;
-                }
-                if v > n {
-                    v -= 1;
-                }
-                new_order.push(v);
-                if i != new_tied.len() {
-                    new_tied.push(new_tied[i]);
-                }
+            tmp.clone_from_ref(order);
+
+            tmp = tmp.remove(n);
+            if !tmp.is_empty() {
+                new.add(tmp.as_ref())?;
             }
-            if new_order.is_empty() {
-                continue;
-            }
-            let out = TiedI::new(new_elements, new_order, new_tied);
-            new.add(out.as_ref())?;
         }
         *self = new;
         Ok(())
@@ -408,6 +395,21 @@ mod tests {
     #[quickcheck]
     fn arbitrary(orders: TiedIDense) -> bool {
         orders.valid()
+    }
+
+    #[quickcheck]
+    fn remove(orders: TiedIDense, n: usize) -> bool {
+        let old_elements = orders.elements();
+        if old_elements == 0 {
+            return true;
+        }
+        let n = n % old_elements;
+        let mut a = orders;
+        let b: Vec<TiedI> = a.iter().map(|x| x.owned().remove(n)).collect();
+        a.remove_element(n).unwrap();
+        let mut res: TiedIDense = b.iter().filter_map(|x| if x.is_empty() {None} else {Some(x.as_ref())}).collect();
+        res.set_elements(old_elements - 1);
+        a == res
     }
 
     // These three benches compare different ways to do "generate_uniform".
