@@ -10,6 +10,7 @@ mod tied_incomplete_ref;
 pub use dense::*;
 pub use dense_complete::*;
 pub use groups::*;
+use rand::{Rng, distr::Bernoulli, seq::SliceRandom};
 use split_ref::SplitRef;
 pub use tied_incomplete::*;
 pub use tied_incomplete_ref::*;
@@ -83,6 +84,22 @@ impl Tied {
             order.push(i);
         }
         let tied = vec![true; elements - 1];
+        Tied::new(order, tied)
+    }
+
+    /// Generate a random tied ranking of `elements`.
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Self {
+        if elements == 0 {
+            return Tied::new(Vec::new(), Vec::new());
+        }
+        let mut order: Vec<usize> = (0..elements).collect();
+        order.shuffle(rng);
+        let tied_len = elements - 1;
+        let mut tied = Vec::with_capacity(tied_len);
+        let d = Bernoulli::new(0.5).unwrap();
+        for _ in 0..tied_len {
+            tied.push(rng.sample(d));
+        }
         Tied::new(order, tied)
     }
 }

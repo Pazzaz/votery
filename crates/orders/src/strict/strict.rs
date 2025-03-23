@@ -1,5 +1,7 @@
 use std::cmp;
 
+use rand::{Rng, prelude::SliceRandom};
+
 use super::{strict_incomplete::Chain, strict_ref::TotalRef};
 use crate::{Order, OrderOwned, partial_order::PartialOrder, unique_and_bounded};
 
@@ -87,6 +89,12 @@ impl Total {
     /// [`[usize]::sort_by`](slice::sort_by).
     pub fn sort_by<F: Fn(&usize, &usize) -> cmp::Ordering>(&mut self, f: F) {
         self.order.sort_by(f);
+    }
+
+    pub fn random<R: Rng>(rng: &mut R, elements: usize) -> Total {
+        let mut order: Vec<usize> = (0..elements).collect();
+        order.shuffle(rng);
+        Total { order }
     }
 
     /// Lossless conversion to `Chain`.
