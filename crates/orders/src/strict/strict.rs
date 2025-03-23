@@ -89,12 +89,6 @@ impl Total {
         self.order.sort_by(f);
     }
 
-    /// Replace `self` with the contents of `TotalRef`.
-    pub fn copy_from_ref(&mut self, other: TotalRef) {
-        self.order.clear();
-        self.order.extend_from_slice(other.order);
-    }
-
     /// Lossless conversion to `Chain`.
     pub fn to_incomplete(self) -> Chain {
         let Self { order } = self;
