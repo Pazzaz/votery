@@ -138,12 +138,11 @@ impl<'a> TiedI {
     }
 
     pub fn from_score(elements: usize, mut order: Vec<usize>, score: &mut [usize]) -> TiedI {
-        let l = order.len();
-        debug_assert!(l != 0);
+        assert!(order.len() == score.len());
         sort_using(&mut order, score);
-        let mut tied = Vec::with_capacity(l - 1);
-        for i in 0..(l - 1) {
-            tied.push(order[i] == order[i + 1]);
+        let mut tied = Vec::with_capacity(order.len() - 1);
+        for w in score.windows(2) {
+            tied.push(w[0] == w[1]);
         }
         TiedI::new(elements, order, tied)
     }

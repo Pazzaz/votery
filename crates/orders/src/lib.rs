@@ -76,29 +76,13 @@ fn get_order<T: Ord>(v: &[T], reverse: bool) -> Vec<usize> {
     out
 }
 
-#[cfg(test)]
-mod tests {
-    use quickcheck::{Arbitrary, Gen};
-    use rand::{SeedableRng, rngs::StdRng};
-
-    // `Gen` contains a rng, but it's a private member so this method is used to get
-    // a standard rng generated from `Gen`
-    pub fn std_rng(g: &mut Gen) -> StdRng {
-        let mut seed = [0u8; 32];
-        for i in 0..32 {
-            seed[i] = Arbitrary::arbitrary(g);
-        }
-        StdRng::from_seed(seed)
-    }
-}
-
 // Sort two arrays, sorted according to the values in `b`.
 // Uses insertion sort
 pub(crate) fn sort_using<A, B>(a: &mut [A], b: &mut [B])
 where
     B: PartialOrd,
 {
-    debug_assert!(a.len() == b.len());
+    assert!(a.len() == b.len());
     let mut i: usize = 1;
     while i < b.len() {
         let mut j = i;
@@ -182,4 +166,65 @@ fn unique_and_bounded(elements: usize, order: &[usize]) -> bool {
         }
     }
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use std::mem;
+
+    use quickcheck::{Arbitrary, Gen};
+
+    use super::*;
+    use rand::{SeedableRng, rngs::StdRng};
+
+    // `Gen` contains a rng, but it's a private member so this method is used to get
+    // a standard rng generated from `Gen`
+    pub fn std_rng(g: &mut Gen) -> StdRng {
+        let mut seed = [0u8; 32];
+        for i in 0..32 {
+            seed[i] = Arbitrary::arbitrary(g);
+        }
+        StdRng::from_seed(seed)
+    }
+
+    #[quickcheck]
+    fn sort_using_arbitrary(a: Vec<usize>, b: Vec<usize>) -> bool {
+        let mut aa = a;
+        let mut bb = b;
+        if bb.len() < aa.len() {
+            mem::swap(&mut aa, &mut bb);
+        }
+        let bbb = &mut bb[..aa.len()];
+        sort_using(&mut aa, bbb);
+        bbb.is_sorted()
+    }
+
+    #[test]
+    fn sort_using_empty() {
+        sort_using::<usize, usize>(&mut [], &mut []);
+    }
+
+    #[test]
+    #[should_panic]
+    fn sort_using_wrong0() {
+        sort_using::<usize, usize>(&mut [], &mut [5]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn sort_using_wrong1() {
+        sort_using::<usize, usize>(&mut [1, 0], &mut [5]);
+    }
+
+    #[test]
+    #[should_panic]
+    fn sort_using_wrong2() {
+        sort_using::<usize, usize>(&mut [6], &mut []);
+    }
+
+    #[test]
+    #[should_panic]
+    fn sort_using_wrong3() {
+        sort_using::<usize, usize>(&mut [5], &mut [5, 0]);
+    }
 }
