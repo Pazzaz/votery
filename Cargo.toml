@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
   "crates/lib",
+  "crates/yee",
   "crates/yee-diagram",
 ]
 
