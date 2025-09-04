@@ -1,7 +1,11 @@
 //! A spatial model of voting behaviour, where every candidate is a point in
 //! some space, and voters vote for nearby candidates.
 use std::slice::{ChunksExact, ChunksExactMut};
-use orders::{tied::{Tied, TiedDense}, OrderOwned, DenseOrders};
+
+use orders::{
+    tied::{Tied, TiedDense},
+    DenseOrders, OrderOwned,
+};
 use rand_distr::{Distribution, Normal};
 
 pub struct Gaussian {

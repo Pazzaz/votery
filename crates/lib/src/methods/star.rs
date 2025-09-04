@@ -1,6 +1,10 @@
 use std::cmp::Ordering;
 
-use orders::{cardinal::CardinalDense, tied::{Tied, TiedI}, OrderOwned};
+use orders::{
+    cardinal::CardinalDense,
+    tied::{Tied, TiedI},
+    OrderOwned,
+};
 
 use super::VotingMethod;
 
@@ -166,8 +170,9 @@ impl<'a> VotingMethod<'a> for Star {
             Ordering::Less => TiedI::new(data.elements(), vec![b, a], vec![false]),
             Ordering::Equal => TiedI::new(data.elements(), vec![a, b], vec![true]),
             Ordering::Greater => TiedI::new(data.elements(), vec![a, b], vec![false]),
-        }.make_complete(false);
-        
+        }
+        .make_complete(false);
+
         Ok(Star { score: rank })
     }
 
@@ -191,13 +196,14 @@ mod tests {
 
     #[test]
     fn simple_example() {
-        let mut votes = CardinalDense::new(4,0..=4);
+        let mut votes = CardinalDense::new(4, 0..=4);
         votes.add(CardinalRef::new(&[1, 3, 2, 4])).unwrap();
         votes.add(CardinalRef::new(&[3, 1, 1, 3])).unwrap();
         votes.add(CardinalRef::new(&[0, 2, 1, 2])).unwrap();
         votes.add(CardinalRef::new(&[2, 4, 2, 2])).unwrap();
         // Scoring round should have 1 and 3 as the candidates.
-        // Then 3 is preferred on two ballots, tied on one and not preferred on one, so it should win.
+        // Then 3 is preferred on two ballots, tied on one and not preferred on one, so
+        // it should win.
         let res = Star::count(&votes).unwrap().as_vote();
         let correct_winner = match res.as_ref().winners() {
             &[win] => win == 3,

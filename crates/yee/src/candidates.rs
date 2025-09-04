@@ -1,4 +1,4 @@
-use rand::{distributions::Uniform, prelude::Distribution, Rng};
+use rand::{Rng, distributions::Uniform, prelude::Distribution};
 use votery::orders::tied::TiedIRef;
 
 use crate::{MAX, MIN, vector::Vector};

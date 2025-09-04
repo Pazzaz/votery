@@ -407,7 +407,8 @@ mod tests {
         let mut a = orders;
         let b: Vec<TiedI> = a.iter().map(|x| x.owned().remove(n)).collect();
         a.remove_element(n).unwrap();
-        let mut res: TiedIDense = b.iter().filter_map(|x| if x.is_empty() {None} else {Some(x.as_ref())}).collect();
+        let mut res: TiedIDense =
+            b.iter().filter_map(|x| if x.is_empty() { None } else { Some(x.as_ref()) }).collect();
         res.set_elements(old_elements - 1);
         a == res
     }

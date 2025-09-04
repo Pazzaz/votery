@@ -1,7 +1,10 @@
-use orders::{strict::{Chain, ChainDense}, tied::{TiedIDense, TiedI}};
+use orders::{
+    strict::{Chain, ChainDense},
+    tied::{TiedI, TiedIDense},
+    DenseOrders,
+};
 use rand::{prelude::SliceRandom, Rng};
 use rand_distr::Uniform;
-use orders::DenseOrders;
 
 use super::{get_order, RandomVotingMethod};
 

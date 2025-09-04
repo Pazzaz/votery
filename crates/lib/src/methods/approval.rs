@@ -1,5 +1,4 @@
-use orders::binary::BinaryDense;
-use orders::DenseOrders;
+use orders::{binary::BinaryDense, DenseOrders};
 
 use super::VotingMethod;
 

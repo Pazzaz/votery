@@ -1,8 +1,6 @@
-use color::{Color};
-use rand::{thread_rng};
-
-use yee::{random_candidates, render_animation, ImageConfig};
-use yee::color;
+use color::Color;
+use rand::thread_rng;
+use yee::{color, random_candidates, render_animation, ImageConfig};
 
 fn main() {
     let config = ImageConfig::default();
@@ -15,4 +13,3 @@ fn main() {
         (0..candidates.len()).into_iter().map(|i| Color::dutch_field(i)).collect();
     render_animation(candidates, directions, &colors, &config);
 }
-

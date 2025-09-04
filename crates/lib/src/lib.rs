@@ -28,7 +28,6 @@ extern crate quickcheck_macros;
 pub mod generators;
 pub mod methods;
 
-
 pub enum Winner {
     Solo(usize),
     Ties(Vec<usize>),

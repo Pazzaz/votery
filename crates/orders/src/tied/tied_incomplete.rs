@@ -326,17 +326,17 @@ impl<'a> TiedI {
                     std::cmp::Ordering::Less => self.order[i],
                     std::cmp::Ordering::Equal => {
                         unreachable!();
-                    },
+                    }
                     std::cmp::Ordering::Greater => self.order[i] - 1,
                 };
-                self.order[i-1] = res;
+                self.order[i - 1] = res;
             } else {
                 let res = match self.order[i].cmp(&n) {
                     std::cmp::Ordering::Less => self.order[i],
                     std::cmp::Ordering::Equal => {
                         skipped = true;
                         continue;
-                    },
+                    }
                     std::cmp::Ordering::Greater => self.order[i] - 1,
                 };
                 self.order[i] = res;

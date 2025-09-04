@@ -1,15 +1,21 @@
 use std::{fs::File, io::BufWriter, path::Path};
 
+use png::Writer;
+use rand::{Rng, distributions::Uniform, prelude::Distribution, thread_rng};
 use rayon::{
     iter::ParallelIterator,
     prelude::{IntoParallelIterator, ParallelDrainRange},
 };
+use votery::{
+    generators::gaussian::{FuzzyType, Gaussian},
+    methods::{Borda, VotingMethod},
+    orders::tied::TiedI,
+};
 
-use png::Writer;
-use rand::{distributions::Uniform, prelude::Distribution, thread_rng, Rng};
-use votery::{generators::gaussian::{FuzzyType, Gaussian}, methods::{Borda, VotingMethod}, orders::tied::TiedI};
-
-use crate::{candidates::OptimizingCandidates, color::{blend_colors, Color, VoteColorBlending}};
+use crate::{
+    candidates::OptimizingCandidates,
+    color::{Color, VoteColorBlending, blend_colors},
+};
 
 pub mod candidates;
 pub mod color;
@@ -125,7 +131,6 @@ fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File
     encoder.set_depth(png::BitDepth::Eight);
     encoder.write_header().unwrap()
 }
-
 
 fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
     let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points, config.fuzzy);
@@ -260,8 +265,6 @@ where
     most_common.unwrap().clone()
 }
 
-
-
 fn add_circle(
     image: &mut Vec<Vec<[u8; 3]>>,
     color: Color,
@@ -298,11 +301,7 @@ fn add_circle(
 // maps [MIN, MAX) -> [0, RESOLUTION)
 fn f64_to_coord(u: f64, resolution: usize) -> usize {
     let s = ((u - MIN) / (MAX - MIN) * resolution as f64) as usize;
-    if s >= resolution {
-        resolution - 1
-    } else {
-        s
-    }
+    if s >= resolution { resolution - 1 } else { s }
 }
 
 fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolution: usize) {
@@ -355,13 +354,16 @@ fn sample_pixel<R: Rng>(
 
 pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]> {
     let dist = Uniform::new_inclusive(0.0, 1.0);
-    (0..n).into_iter().map(|_| {
-        let mut d = [0.0; DIMENSIONS];
-        for i in 0..DIMENSIONS {
-            d[i] = dist.sample(rng);
-        }
-        d
-    }).collect()
+    (0..n)
+        .into_iter()
+        .map(|_| {
+            let mut d = [0.0; DIMENSIONS];
+            for i in 0..DIMENSIONS {
+                d[i] = dist.sample(rng);
+            }
+            d
+        })
+        .collect()
 }
 
 pub fn render_animation(
