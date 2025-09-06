@@ -6,7 +6,8 @@ pub struct Color {
     values: [f64; 3],
 }
 
-///
+// TODO: Bad name?
+/// Methods to convert a ranking into a color
 #[derive(Clone, Copy)]
 pub enum VoteColorBlending {
     /// The average of the winners of a vote

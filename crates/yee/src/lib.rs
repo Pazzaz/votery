@@ -1,11 +1,13 @@
+//! A library to generate [Yee Diagrams][electopedia], which illustrate voting
+//! behaviour in a two-dimensional voting space.
+//!
+//! [electopedia]: https://electowiki.org/wiki/Yee_diagram
+
 use std::{fs::File, io::BufWriter, path::Path};
 
 use png::Writer;
 use rand::{Rng, distributions::Uniform, prelude::Distribution, thread_rng};
-use rayon::{
-    iter::ParallelIterator,
-    prelude::{IntoParallelIterator, ParallelDrainRange},
-};
+use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 use votery::{
     generators::gaussian::{FuzzyType, Gaussian},
     methods::{Borda, VotingMethod},
@@ -29,31 +31,74 @@ pub const DIMENSIONS: usize = 2;
 const MIN: f64 = 0.0;
 const MAX: f64 = 1.0;
 
+// TODO: Is this correct?
+// TODO: Should it be called "DynamicSampling"?
+/// Should the sampling procedure be adaptive, meaning we sample more on pixels
+/// where the result is unsure
 #[derive(PartialEq, Eq)]
-enum Adaptive {
+pub enum Adaptive {
+    /// Not adaptive
     Disable,
+
+    /// Adaptive
     Enable,
+
+    // Adaptive and stores information about how many samples were calculated for each pixel
     Display,
 }
 
-enum Blending {
+/// How should we blend our samples?
+pub enum Blending {
+    /// Take the sample that occurs the maximum number of times
     Max,
+
+    /// Take the average of all samples
     Average,
 }
 
+/// All parameters used to generate a diagram (may be multiple frames)
 pub struct ImageConfig {
-    points: usize,
+    /// Points generated around every pixel, i.e. amount of voters
+    pub points: usize,
+
+    /// The pixel width (and height) of the square diagram
     pub resolution: usize,
+
+    /// Timesteps to illustrate
     pub frames: usize,
+
+    /// Number of candidates which voters can choose from
     pub candidates: usize,
-    sample_size: usize,
-    max_noise: f64,
-    variance: f64,
-    adapt_mode: Adaptive,
-    around_size: usize,
-    blending: Blending,
-    vote_color: VoteColorBlending,
-    fuzzy: FuzzyType,
+
+    /// Samples computed for each pixel, for each round of sampling
+    pub sample_size: usize,
+
+    // TODO: Merge with "Adaptive" maybe?
+    /// Noise tolerance threshold, smaller threshold means we'll take more
+    /// samples to be sure what a pixel should be
+    pub max_noise: f64,
+
+    /// Variance when sampling voter positions around a pixel
+    pub variance: f64,
+
+    // TODO: Are all of these implemented?
+    /// Should the sampling procedure dynamically change how many samples it
+    /// uses per pixel
+    pub adapt_mode: Adaptive,
+
+    // TODO: Merge with "Adaptive" maybe?
+    /// When dynamically sampling and a pixel is resampled because of noise, how
+    /// many of it's neighbours that should be resampled
+    pub around_size: usize,
+
+    /// Method to blend samples of colors into a single color
+    pub blending: Blending,
+
+    /// Method to convert ranking to color
+    pub vote_color: VoteColorBlending,
+
+    /// Controls when a voter should rank two candidates as equal
+    pub fuzzy: FuzzyType,
 }
 
 impl Default for ImageConfig {
