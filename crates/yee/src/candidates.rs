@@ -3,6 +3,29 @@ use votery::orders::tied::TiedIRef;
 
 use crate::{MAX, MIN, vector::Vector};
 
+/// Decides how candidates should act over time
+pub enum Candidates {
+    /// Their positions are static, doesn't change
+    Static,
+
+    /// Their positions bounce around the state space
+    Bouncing,
+
+    // TODO: Is this description correct?
+    /// Each candidate optimizes their position independently to improve their
+    /// ranking
+    ///
+    /// They move towards candidates with a better ranking, and move away from
+    /// candidates with a worse ranking
+    Optimizing,
+}
+
+pub enum CandidatesState {
+    Static(Vec<[f64; 2]>),
+    Bouncing(BouncingCandidates),
+    Optimizing(OptimizingCandidates),
+}
+
 // A struct to represent a set of candidates which "bounce around" in the yee
 // diagram.
 pub struct BouncingCandidates {

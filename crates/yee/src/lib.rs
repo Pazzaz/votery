@@ -369,6 +369,7 @@ fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolu
 //       }
 // }
 
+// TODO: Don't use a list of values for vectors, just use a tuple
 fn vector(n: &[f64]) -> bool {
     if n.len() != DIMENSIONS {
         return false;
@@ -411,6 +412,7 @@ pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]
         .collect()
 }
 
+// TODO: Just send in the type of candidates
 pub fn render_animation(
     candidates: Vec<[f64; 2]>,
     directions: Vec<[f64; 2]>,
