@@ -1,3 +1,5 @@
+/// A two-dimensional vector
+#[derive(Debug, Clone, Copy)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,

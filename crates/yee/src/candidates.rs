@@ -21,7 +21,7 @@ pub enum Candidates {
 }
 
 pub enum CandidatesState {
-    Static(Vec<[f64; 2]>),
+    Static(Vec<Vector>),
     Bouncing(BouncingCandidates),
     Optimizing(OptimizingCandidates),
 }
@@ -29,30 +29,26 @@ pub enum CandidatesState {
 // A struct to represent a set of candidates which "bounce around" in the yee
 // diagram.
 pub struct BouncingCandidates {
-    pub candidates: Vec<[f64; 2]>,
-    pub directions: Vec<[f64; 2]>,
+    pub candidates: Vec<Vector>,
+    pub directions: Vec<Vector>,
 }
 
 impl BouncingCandidates {
-    pub fn new(candidates: Vec<[f64; 2]>, directions: Vec<[f64; 2]>) -> Self {
+    pub fn new(candidates: Vec<Vector>, directions: Vec<Vector>) -> Self {
         debug_assert!(candidates.len() == directions.len());
         BouncingCandidates { candidates, directions }
     }
 
     // Create a new `BouncingCandidates` where each direction has been chosen
     // randomly. All candidates will move at the same `speed`.
-    pub fn new_random_direction<R: Rng>(
-        rng: &mut R,
-        speed: f64,
-        candidates: Vec<[f64; 2]>,
-    ) -> Self {
+    pub fn new_random_direction<R: Rng>(rng: &mut R, speed: f64, candidates: Vec<Vector>) -> Self {
         let circle_uniform = Uniform::new(0f64, std::f64::consts::TAU);
-        let directions: Vec<[f64; 2]> = candidates
+        let directions: Vec<Vector> = candidates
             .iter()
             .map(|_| {
                 let v = circle_uniform.sample(rng);
                 let (x, y) = v.sin_cos();
-                [x * speed, y * speed]
+                Vector { x: x * speed, y: y * speed }
             })
             .collect();
         BouncingCandidates::new(candidates, directions)
@@ -64,40 +60,39 @@ impl BouncingCandidates {
 
     pub fn step(&mut self) {
         for j in 0..self.len() {
-            let [x, y] = self.candidates[j];
-            let [dx, dy] = self.directions[j];
-            let new_x = x + dx;
-            let new_y = y + dy;
+            let new = Vector::add(&self.candidates[j], &self.directions[j]);
+            let new_x = new.x;
+            let new_y = new.y;
             if new_x < 0.0 {
-                self.candidates[j][0] = 0.0;
-                self.directions[j][0] = -self.directions[j][0];
+                self.candidates[j].x = 0.0;
+                self.directions[j].x = -self.directions[j].x;
             } else if new_x > 1.0 {
-                self.candidates[j][0] = 1.0;
-                self.directions[j][0] = -self.directions[j][0];
+                self.candidates[j].x = 1.0;
+                self.directions[j].x = -self.directions[j].x;
             } else {
-                self.candidates[j][0] = new_x;
+                self.candidates[j].x = new_x;
             }
 
             if new_y < 0.0 {
-                self.candidates[j][1] = 0.0;
-                self.directions[j][1] = -self.directions[j][1];
+                self.candidates[j].y = 0.0;
+                self.directions[j].y = -self.directions[j].y;
             } else if new_y > 1.0 {
-                self.candidates[j][1] = 1.0;
-                self.directions[j][1] = -self.directions[j][1];
+                self.candidates[j].y = 1.0;
+                self.directions[j].y = -self.directions[j].y;
             } else {
-                self.candidates[j][1] = new_y;
+                self.candidates[j].y = new_y;
             }
         }
     }
 }
 
 pub struct OptimizingCandidates {
-    pub candidates: Vec<[f64; 2]>,
+    pub candidates: Vec<Vector>,
     speed: f64,
 }
 
 impl OptimizingCandidates {
-    pub fn new(candidates: Vec<[f64; 2]>, speed: f64) -> Self {
+    pub fn new(candidates: Vec<Vector>, speed: f64) -> Self {
         debug_assert!(0.0 < speed && speed <= 1.0);
         OptimizingCandidates { candidates, speed }
     }
@@ -108,9 +103,9 @@ impl OptimizingCandidates {
 
     pub fn step(&mut self, ranking: TiedIRef) {
         let old = &self.candidates;
-        let mut new_candidates = Vec::with_capacity(self.len());
+        let mut new_candidates: Vec<Vector> = Vec::with_capacity(self.len());
         for c1 in 0..self.candidates.len() {
-            let v1 = Vector::from_array(old[c1]);
+            let v1 = old[c1];
             let mut dv = Vector { x: 0.0, y: 0.0 };
             let mut before = true;
             for group in ranking.iter_groups() {
@@ -120,7 +115,7 @@ impl OptimizingCandidates {
                     continue;
                 }
                 for c2 in group {
-                    let v2 = Vector::from_array(old[*c2]);
+                    let v2 = old[*c2];
 
                     // This is the vector from c2 to c1.
                     let v3: Vector = v1.sub(&v2);
@@ -158,7 +153,7 @@ impl OptimizingCandidates {
             }
             dv.div_assign_s(self.len() as f64);
             let new_c1 = v1.add(&dv).clamp(MIN, MAX);
-            new_candidates.push(new_c1.as_array());
+            new_candidates.push(new_c1);
         }
         self.candidates = new_candidates;
     }

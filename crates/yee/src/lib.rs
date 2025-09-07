@@ -17,6 +17,7 @@ use votery::{
 use crate::{
     candidates::OptimizingCandidates,
     color::{Color, VoteColorBlending, blend_colors},
+    vector::Vector,
 };
 
 pub mod candidates;
@@ -132,7 +133,7 @@ pub struct SampleResult {
 // needed for other parts later)
 pub fn render_image(
     name: &str,
-    candidates: &[[f64; 2]],
+    candidates: &[Vector],
     colors: &[Color],
     config: &ImageConfig,
 ) -> SampleResult {
@@ -177,11 +178,10 @@ fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File
     encoder.write_header().unwrap()
 }
 
-fn get_image(candidates: &[[f64; 2]], colors: &[Color], config: &ImageConfig) -> SampleResult {
+fn get_image(candidates: &[Vector], colors: &[Color], config: &ImageConfig) -> SampleResult {
     let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points, config.fuzzy);
     for c in candidates {
-        assert!(vector(c));
-        g.add_candidate(c);
+        g.add_candidate(&c.as_array());
     }
     let mut iterations = 0;
     let mut all_samples: Vec<Vec<Vec<Color>>> =
@@ -310,12 +310,7 @@ where
     most_common.unwrap().clone()
 }
 
-fn add_circle(
-    image: &mut Vec<Vec<[u8; 3]>>,
-    color: Color,
-    pos: &[f64; DIMENSIONS],
-    resolution: usize,
-) {
+fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: Color, pos: &Vector, resolution: usize) {
     let r = 0.02;
     let pi = std::f64::consts::PI;
     let mut angle: f64 = 0.0;
@@ -324,8 +319,8 @@ fn add_circle(
         while r_in < r {
             let x1 = r_in * f64::cos(angle * pi / 180.0);
             let y1 = r_in * f64::sin(angle * pi / 180.0);
-            let x = pos[0] + x1;
-            let y = pos[1] + y1;
+            let x = pos.x + x1;
+            let y = pos.y + y1;
             put_pixel(image, x, y, color, resolution);
             r_in += 0.001
         }
@@ -336,8 +331,8 @@ fn add_circle(
     while angle < 360.0 {
         let x1 = r * f64::cos(angle * pi / 180.0);
         let y1 = r * f64::sin(angle * pi / 180.0);
-        let x = pos[0] + x1;
-        let y = pos[1] + y1;
+        let x = pos.x + x1;
+        let y = pos.y + y1;
         put_pixel(image, x, y, color::BLACK, resolution);
         angle += 0.1;
     }
@@ -368,19 +363,6 @@ fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolu
 //             putpixel(x + x1, y + y1, color);
 //       }
 // }
-
-// TODO: Don't use a list of values for vectors, just use a tuple
-fn vector(n: &[f64]) -> bool {
-    if n.len() != DIMENSIONS {
-        return false;
-    }
-    for &i in n {
-        if i < MIN || MAX < i {
-            return false;
-        }
-    }
-    true
-}
 
 fn sample_pixel<R: Rng>(
     g: &Gaussian,
@@ -419,7 +401,8 @@ pub fn render_animation(
     colors: &[Color],
     config: &ImageConfig,
 ) {
-    let mut moving_candidates = OptimizingCandidates::new(candidates, 0.1);
+    let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
+    let mut moving_candidates = OptimizingCandidates::new(candidates_vec, 0.1);
     for i in 0..config.frames {
         let SampleResult { mut all_rankings, .. } = render_image(
             &format!("animation/slow_borda_{}", i),
