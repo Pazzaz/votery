@@ -11,7 +11,7 @@ pub enum CandidatesMovement {
     /// Their positions bounce around the state space
     ///
     /// Parameter is the speed of the candidates
-    Bouncing(f64),
+    Bouncing { speed: f64 },
 
     // TODO: Is this description correct?
     /// Each candidate optimizes their position independently to improve their
@@ -21,20 +21,20 @@ pub enum CandidatesMovement {
     /// candidates with a worse ranking
     ///
     /// Parameter is the speed of the candidates
-    Optimizing(f64),
+    Optimizing { speed: f64 },
 }
 
 impl CandidatesMovement {
     pub fn to_state(&self, candidates: Vec<Vector>) -> CandidatesState {
         match self {
             CandidatesMovement::Static => CandidatesState::Static(candidates),
-            CandidatesMovement::Bouncing(speed) => {
+            CandidatesMovement::Bouncing { speed } => {
                 // TODO: Choose directions in a better way
                 let mut rng = thread_rng();
                 let state = BouncingCandidates::new_random_direction(&mut rng, *speed, candidates);
                 CandidatesState::Bouncing(state)
             }
-            CandidatesMovement::Optimizing(speed) => {
+            CandidatesMovement::Optimizing { speed } => {
                 CandidatesState::Optimizing(OptimizingCandidates::new(candidates, *speed))
             }
         }
