@@ -11,5 +11,5 @@ fn main() {
     }
     let colors: Vec<Color> =
         (0..candidates.len()).into_iter().map(|i| Color::dutch_field(i)).collect();
-    render_animation(candidates, directions, &colors, &config);
+    render_animation(candidates, &colors, &config);
 }

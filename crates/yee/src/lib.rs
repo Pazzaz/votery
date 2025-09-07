@@ -15,7 +15,7 @@ use votery::{
 };
 
 use crate::{
-    candidates::OptimizingCandidates,
+    candidates::CandidatesMovement,
     color::{Color, VoteColorBlending, blend_colors},
     vector::Vector,
 };
@@ -100,6 +100,9 @@ pub struct ImageConfig {
 
     /// Controls when a voter should rank two candidates as equal
     pub fuzzy: FuzzyType,
+
+    /// The candidates movement over time
+    pub candidate_movement: CandidatesMovement,
 }
 
 impl Default for ImageConfig {
@@ -117,6 +120,7 @@ impl Default for ImageConfig {
             blending: Blending::Average,
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
+            candidate_movement: CandidatesMovement::Optimizing(0.1),
         }
     }
 }
@@ -395,26 +399,21 @@ pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]
 }
 
 // TODO: Just send in the type of candidates
-pub fn render_animation(
-    candidates: Vec<[f64; 2]>,
-    directions: Vec<[f64; 2]>,
-    colors: &[Color],
-    config: &ImageConfig,
-) {
+pub fn render_animation(candidates: Vec<[f64; 2]>, colors: &[Color], config: &ImageConfig) {
     let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
-    let mut moving_candidates = OptimizingCandidates::new(candidates_vec, 0.1);
+    let mut moving_candidates = config.candidate_movement.to_state(candidates_vec);
     for i in 0..config.frames {
         let SampleResult { mut all_rankings, .. } = render_image(
             &format!("animation/slow_borda_{}", i),
-            &moving_candidates.candidates,
+            &moving_candidates.candidates(),
             colors,
             config,
         );
         let x = config.resolution / 4;
         let y = config.resolution / 2;
         let v = most_common(&mut all_rankings[y][x]);
-        println!("{:?}, {:?}", moving_candidates.candidates, v);
+        println!("{:?}, {:?}", moving_candidates.candidates(), v);
         moving_candidates.step(v.as_ref());
-        println!("{:?}", moving_candidates.candidates);
+        println!("{:?}", moving_candidates.candidates());
     }
 }

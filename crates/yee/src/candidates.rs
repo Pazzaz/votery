@@ -1,15 +1,17 @@
-use rand::{Rng, distributions::Uniform, prelude::Distribution};
+use rand::{Rng, distributions::Uniform, prelude::Distribution, thread_rng};
 use votery::orders::tied::TiedIRef;
 
 use crate::{MAX, MIN, vector::Vector};
 
-/// Decides how candidates should act over time
-pub enum Candidates {
+/// Decides how candidates should act over time, used for configuration
+pub enum CandidatesMovement {
     /// Their positions are static, doesn't change
     Static,
 
     /// Their positions bounce around the state space
-    Bouncing,
+    ///
+    /// Parameter is the speed of the candidates
+    Bouncing(f64),
 
     // TODO: Is this description correct?
     /// Each candidate optimizes their position independently to improve their
@@ -17,13 +19,53 @@ pub enum Candidates {
     ///
     /// They move towards candidates with a better ranking, and move away from
     /// candidates with a worse ranking
-    Optimizing,
+    ///
+    /// Parameter is the speed of the candidates
+    Optimizing(f64),
 }
 
+impl CandidatesMovement {
+    pub fn to_state(&self, candidates: Vec<Vector>) -> CandidatesState {
+        match self {
+            CandidatesMovement::Static => CandidatesState::Static(candidates),
+            CandidatesMovement::Bouncing(speed) => {
+                // TODO: Choose directions in a better way
+                let mut rng = thread_rng();
+                let state = BouncingCandidates::new_random_direction(&mut rng, *speed, candidates);
+                CandidatesState::Bouncing(state)
+            }
+            CandidatesMovement::Optimizing(speed) => {
+                CandidatesState::Optimizing(OptimizingCandidates::new(candidates, *speed))
+            }
+        }
+    }
+}
+
+/// Each candidate's state, used during computation
 pub enum CandidatesState {
     Static(Vec<Vector>),
     Bouncing(BouncingCandidates),
     Optimizing(OptimizingCandidates),
+}
+
+impl CandidatesState {
+    pub fn candidates(&self) -> &[Vector] {
+        match self {
+            CandidatesState::Static(candidates) => candidates,
+            CandidatesState::Bouncing(s) => &s.candidates,
+            CandidatesState::Optimizing(s) => &s.candidates,
+        }
+    }
+
+    pub fn step(&mut self, ranking: TiedIRef) {
+        match self {
+            // Static candidates don't change
+            CandidatesState::Static(_) => {}
+
+            CandidatesState::Bouncing(s) => s.step(),
+            CandidatesState::Optimizing(s) => s.step(ranking),
+        }
+    }
 }
 
 // A struct to represent a set of candidates which "bounce around" in the yee
