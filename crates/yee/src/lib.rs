@@ -120,7 +120,7 @@ impl Default for ImageConfig {
             blending: Blending::Average,
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
-            candidate_movement: CandidatesMovement::Optimizing(0.1),
+            candidate_movement: CandidatesMovement::Optimizing { speed : 0.1 },
         }
     }
 }
