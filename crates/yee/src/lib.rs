@@ -154,7 +154,8 @@ pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> 
     };
 
     debug_assert!(config.colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count, all_rankings, sample_heatmap } = get_image(candidates, config);
+    let SampleResult { mut image, sample_count, all_rankings, sample_heatmap } =
+        get_image(candidates, config);
     if let Some(adaptive_image) = &sample_heatmap {
         let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
@@ -233,20 +234,23 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 done = false;
                 continue;
             }
-            let more_samples = match config.blending {
-                Blending::Max => {
-                    let old_color = most_common(old);
-                    old.extend(new_colors);
-                    let new_color = most_common(old);
-                    old_color != new_color
-                }
-                Blending::Average => {
-                    let old_color = blend_colors(old.iter());
-                    old.extend(new_colors);
-                    let new_color = blend_colors(old.iter());
-                    let d = old_color.dist(&new_color);
-                    d > config.max_noise
-                }
+            let more_samples = match config.adapt_mode {
+                Adaptive::Disable => false,
+                Adaptive::Enable | Adaptive::Display => match config.blending {
+                    Blending::Max => {
+                        let old_color = most_common(old);
+                        old.extend(new_colors);
+                        let new_color = most_common(old);
+                        old_color != new_color
+                    }
+                    Blending::Average => {
+                        let old_color = blend_colors(old.iter());
+                        old.extend(new_colors);
+                        let new_color = blend_colors(old.iter());
+                        let d = old_color.dist(&new_color);
+                        d > config.max_noise
+                    }
+                },
             };
             if more_samples {
                 done = false;
@@ -280,7 +284,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 .map(|c| c.iter().map(|x| Color::bw(*x, *max_samples).quantize()).collect())
                 .collect();
             Some(res)
-        },
+        }
         Adaptive::Enable | Adaptive::Disable => None,
     };
 
@@ -418,6 +422,8 @@ impl<'a> Iterator for Renderer<'a> {
                 &self.candidates.candidates(),
                 self.config,
             );
+
+            // TODO: Why do we use the middle samples for this?
             let x = self.config.resolution / 2;
             let y = self.config.resolution / 2;
             let v = most_common(&mut res.all_rankings[y][x]);
