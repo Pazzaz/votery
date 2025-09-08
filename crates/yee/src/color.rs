@@ -65,7 +65,7 @@ impl Color {
         [self.r() as u8, self.g() as u8, self.b() as u8]
     }
 
-    fn to_srgb(&self) -> [f64; 3] {
+    fn to_srgb(self) -> [f64; 3] {
         fn f(u: f64) -> f64 {
             ((u + 0.055) / 1.055).powf(2.4)
         }
@@ -114,7 +114,7 @@ impl Color {
     pub const fn dutch_field(n: usize) -> Color {
         const DUTCH_FIELD_LEN: usize = 9;
         assert!(n < DUTCH_FIELD_LEN);
-        const DUTCH_FIELD: [&'static str; DUTCH_FIELD_LEN] = [
+        const DUTCH_FIELD: [&str; DUTCH_FIELD_LEN] = [
             "#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff",
             "#00bfa0",
         ];

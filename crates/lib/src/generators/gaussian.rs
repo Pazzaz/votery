@@ -43,11 +43,11 @@ impl Gaussian {
         self.candidates.extend(candidate);
     }
 
-    pub fn iter_candidates(&self) -> ChunksExact<f64> {
+    pub fn iter_candidates(&self) -> ChunksExact<'_, f64> {
         self.candidates.chunks_exact(self.dimensions)
     }
 
-    pub fn iter_candidates_mut(&mut self) -> ChunksExactMut<f64> {
+    pub fn iter_candidates_mut(&mut self) -> ChunksExactMut<'_, f64> {
         self.candidates.chunks_exact_mut(self.dimensions)
     }
 

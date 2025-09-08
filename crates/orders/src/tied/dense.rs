@@ -61,7 +61,7 @@ impl TiedIDense {
         let count = if elements == 0 {
             0
         } else {
-            assert!(orders.len() % elements == 0);
+            assert!(orders.len().is_multiple_of(elements));
             orders.len() / elements
         };
         assert!(ties.len() == count * elements.saturating_sub(1));
@@ -72,7 +72,7 @@ impl TiedIDense {
         self.elements
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TiedIRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TiedIRef<'_>> {
         (0..self.len()).map(|i| self.get(i))
     }
 

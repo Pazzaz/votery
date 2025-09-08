@@ -181,7 +181,7 @@ impl<'a> TiedRef<'a> {
         ti.winners()
     }
 
-    pub fn iter_groups(&self) -> GroupIterator {
+    pub fn iter_groups(&self) -> GroupIterator<'_> {
         GroupIterator { order: self.into() }
     }
 }

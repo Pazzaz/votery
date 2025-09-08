@@ -36,14 +36,6 @@ impl Vector {
         Vector { x: self.x * s, y: self.y * s }
     }
 
-    fn len(&self) -> f64 {
-        (self.x.powi(2) + self.y.powi(2)).sqrt()
-    }
-
-    fn dist(&self, b: &Vector) -> f64 {
-        ((self.x - b.x).powi(2) + (self.y - b.y).powi(2)).sqrt()
-    }
-
     pub fn clamp(&self, min: f64, max: f64) -> Vector {
         Vector { x: self.x.clamp(min, max), y: self.y.clamp(min, max) }
     }

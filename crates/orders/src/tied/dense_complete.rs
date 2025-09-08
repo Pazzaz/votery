@@ -39,7 +39,7 @@ impl TiedDense {
         TiedDense { orders: Vec::new(), ties: Vec::new(), elements }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TiedRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TiedRef<'_>> {
         (0..self.len()).map(|i| self.get(i))
     }
 

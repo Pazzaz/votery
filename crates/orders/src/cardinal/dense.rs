@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, ops::RangeBounds};
+use std::{cmp::Ordering, iter::repeat_n, ops::RangeBounds};
 
 use rand::distr::{Distribution, Uniform};
 
@@ -168,7 +168,7 @@ impl CardinalDense {
         Ok(BinaryDense::new_from_parts(binary_orders, self.elements))
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = CardinalRef> {
+    pub fn iter(&self) -> impl Iterator<Item = CardinalRef<'_>> {
         (0..self.len()).map(|i| self.get(i))
     }
 
@@ -231,9 +231,7 @@ impl CardinalDense {
         if out.try_reserve(self.elements).is_err() {
             return Err(SumError::Alloc);
         }
-        for _ in 0..self.elements {
-            out.push(0);
-        }
+        out.extend(repeat_n(0, self.elements));
         if self.max.checked_mul(self.len()).is_none() {
             // If there's a chance that we overflow we'll have to check for it every
             // iteration.

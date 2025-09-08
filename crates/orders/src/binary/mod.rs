@@ -59,7 +59,7 @@ impl<'a> BinaryRef<'a> {
     }
 
     pub fn values(&self) -> &'a [bool] {
-        &self.values
+        self.values
     }
 }
 

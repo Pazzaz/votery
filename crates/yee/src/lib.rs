@@ -125,7 +125,7 @@ impl Default for ImageConfig {
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
             candidate_movement: CandidatesMovement::Optimizing { speed: 0.1 },
-            colors: (0..4).into_iter().map(|i| Color::dutch_field(i)).collect(),
+            colors: (0..4).map(Color::dutch_field).collect(),
         }
     }
 }
@@ -213,7 +213,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 let mut new_samples1 = Vec::with_capacity(config.sample_size);
                 let mut new_samples2 = Vec::with_capacity(config.sample_size);
                 for _ in 0..config.sample_size {
-                    let (color, vote) = sample_pixel(&g, xi, yi, &mut rng, &config);
+                    let (color, vote) = sample_pixel(&g, xi, yi, &mut rng, config);
                     new_samples1.push(color);
                     new_samples2.push(vote);
                 }
@@ -228,7 +228,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
             all_rankings[yi][xi].extend(new_votes);
             sample_count[yi][xi] += 1;
             let old = &mut all_samples[yi][xi];
-            if old.len() == 0 || needs_samples[yi][xi] {
+            if old.is_empty() || needs_samples[yi][xi] {
                 needs_samples[yi][xi] = true;
                 old.extend(new_colors);
                 done = false;
@@ -291,14 +291,14 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
     SampleResult { image, sample_count, all_rankings, sample_heatmap }
 }
 
-fn most_common<T>(v: &mut Vec<T>) -> T
+fn most_common<T>(v: &mut [T]) -> T
 where
     T: Default + PartialOrd + Clone,
 {
-    if v.len() == 0 {
+    if v.is_empty() {
         return T::default();
     }
-    v.sort_by(|a, b| a.partial_cmp(&b).unwrap());
+    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut most_common = None;
     let mut current_count = 0;
     let mut max_count = 0;
@@ -385,11 +385,10 @@ fn sample_pixel<R: Rng>(
 pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]> {
     let dist = Uniform::new_inclusive(0.0, 1.0);
     (0..n)
-        .into_iter()
         .map(|_| {
             let mut d = [0.0; DIMENSIONS];
-            for i in 0..DIMENSIONS {
-                d[i] = dist.sample(rng);
+            for d_i in d.iter_mut().take(DIMENSIONS) {
+                *d_i = dist.sample(rng);
             }
             d
         })
@@ -419,7 +418,7 @@ impl<'a> Iterator for Renderer<'a> {
         if self.steps <= self.config.frames {
             let mut res = render_image(
                 &format!("animation/slow_borda_{}", self.steps),
-                &self.candidates.candidates(),
+                self.candidates.candidates(),
                 self.config,
             );
 

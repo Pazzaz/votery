@@ -32,7 +32,7 @@ impl TotalDense {
         TotalDense { orders: Vec::new(), elements }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = TotalRef> {
+    pub fn iter(&self) -> impl Iterator<Item = TotalRef<'_>> {
         (0..self.len()).map(|i| self.get(i))
     }
 

@@ -38,7 +38,7 @@ impl<'a> ChainRef<'a> {
     }
 
     pub fn order(&self) -> &[usize] {
-        &self.order
+        self.order
     }
 
     pub fn len(&self) -> usize {

@@ -29,7 +29,7 @@ impl BinaryDense {
     }
 
     pub fn new_from_parts(orders: Vec<bool>, elements: usize) -> BinaryDense {
-        assert!(orders.is_empty() && elements == 0 || orders.len() % elements == 0);
+        assert!(orders.is_empty() && elements == 0 || orders.len().is_multiple_of(elements));
         BinaryDense { orders, elements }
     }
 

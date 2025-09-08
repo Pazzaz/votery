@@ -68,7 +68,7 @@ impl<'a> CardinalRef<'a> {
     }
 
     pub fn values(&self) -> &'a [usize] {
-        &self.values
+        self.values
     }
 
     /// Convert to binary order, where any value less than `cutoff` becomes

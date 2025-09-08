@@ -69,7 +69,7 @@ impl ChainDense {
         true
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = ChainRef> {
+    pub fn iter(&self) -> impl Iterator<Item = ChainRef<'_>> {
         (0..self.len()).map(|i| self.get(i))
     }
 }
