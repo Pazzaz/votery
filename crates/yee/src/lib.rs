@@ -354,20 +354,6 @@ fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolu
     image[yy][xx] = color.quantize();
 }
 
-// void DrawCircle(int x, int y, int r, int color)
-// {
-//       static const double PI = 3.1415926535;
-//       double i, angle, x1, y1;
-
-//       for(i = 0; i < 360; i += 0.1)
-//       {
-//             angle = i;
-//             x1 = r * cos(angle * PI / 180);
-//             y1 = r * sin(angle * PI / 180);
-//             putpixel(x + x1, y + y1, color);
-//       }
-// }
-
 fn sample_pixel<R: Rng>(
     g: &Gaussian,
     xi: usize,
