@@ -42,10 +42,11 @@ pub enum Adaptive {
     Disable,
 
     /// Adaptive
-    Enable,
-
-    // Adaptive and stores information about how many samples were calculated for each pixel
-    Display,
+    Enable {
+        /// Whether to calculate information about how many samples
+        /// were calculated for each pixel
+        display: bool,
+    },
 }
 
 /// How should we blend our samples?
@@ -128,7 +129,7 @@ impl Default for ImageConfig {
             sample_size: 5,
             max_noise: 0.5,
             variance: 0.2,
-            adapt_mode: Adaptive::Enable,
+            adapt_mode: Adaptive::Enable { display: false },
             around_size: 3,
             blending: Blending::Average,
             vote_color: VoteColorBlending::Harmonic,
@@ -157,10 +158,11 @@ pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> 
     // Output file
     // TODO: This shouldn't be part of the library
     let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
-    let writer_adaptive: Option<_> = if config.adapt_mode == Adaptive::Display {
-        Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
-    } else {
-        None
+    let writer_adaptive: Option<_> = match config.adapt_mode {
+        Adaptive::Enable { display: true } => {
+            Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
+        }
+        Adaptive::Disable | Adaptive::Enable { display: false } => None,
     };
 
     debug_assert!(config.colors.len() == config.candidates);
@@ -243,7 +245,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
             }
             let more_samples = match config.adapt_mode {
                 Adaptive::Disable => false,
-                Adaptive::Enable | Adaptive::Display => match config.blending {
+                Adaptive::Enable { .. } => match config.blending {
                     Blending::Max => {
                         let old_color = most_common(old);
                         old.extend(new_colors);
@@ -284,7 +286,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
     }
 
     let sample_heatmap: Option<Vec<Vec<[u8; 3]>>> = match config.adapt_mode {
-        Adaptive::Display => {
+        Adaptive::Enable { display: true } => {
             let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
             let res = sample_count
                 .iter()
@@ -292,7 +294,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 .collect();
             Some(res)
         }
-        Adaptive::Enable | Adaptive::Disable => None,
+        Adaptive::Enable { display: false } | Adaptive::Disable => None,
     };
 
     match config.draw_candidates {
