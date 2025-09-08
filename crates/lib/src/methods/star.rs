@@ -9,7 +9,7 @@ use orders::{
 use super::VotingMethod;
 
 /// STAR (Score Then Automatic Runoff) voting is a single winner protocol.
-/// Ties are resolved according to the "Official Tiebreaker Protocol" described at https://www.starvoting.org/ties
+/// Ties are resolved according to the "Official Tiebreaker Protocol" described at <https://www.starvoting.org/ties>
 pub struct Star {
     score: Tied,
 }

@@ -9,10 +9,10 @@
 //!   rank or a low rank.
 //! - [`Cardinal`](cardinal), a ranked order where every element is assigned
 //!   some number.
-//! - `PartialOrder`,
-//! - [`Rank`](rank), a linear order containing every element.
-//! - [`TiedRank`](tied_rank), a linear order containing every element, where
-//!   some elements can be tied.
+//! - [`PartialOrder`](partial_order), a partial order
+//! - [`Total`](strict), a linear order containing every element.
+//! - [`Tied`](tied), a linear order containing every element, where some
+//!   elements can be tied.
 //!
 //! There are also variants of the orders which don't store all elements. Stored
 //! elements are considered higher in the poset than non-stored elements.

@@ -1,13 +1,3 @@
-//! Different orders of elements
-//!
-//! There are two main types of orders:
-//! - [`Rank`] - An order of elements without ties, where earlier elements are
-//!   ranked higher. There are also reference versions which don't own the data:
-//!   [`RankRef`]
-//! - [`TiedRank`] - An order of elements with ties,  where earlier elements are
-//!   ranked higher and where some elements can be tied with others. There are
-//!   also reference versions which don't own the data: [`TiedRankRef`].
-
 use rand::{
     Rng,
     seq::{IteratorRandom, SliceRandom},
@@ -20,7 +10,7 @@ use crate::{
     unique_and_bounded,
 };
 
-/// A possibly incomplete order without any ties, owned version of [`RankRef`]
+/// A possibly incomplete order without any ties, owned version of [`ChainRef`]
 #[derive(Debug, PartialEq, Eq)]
 pub struct Chain {
     pub(crate) elements: usize,
