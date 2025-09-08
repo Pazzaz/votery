@@ -15,7 +15,7 @@ use votery::{
 };
 
 use crate::{
-    candidates::CandidatesMovement,
+    candidates::{CandidatesMovement, CandidatesState},
     color::{Color, VoteColorBlending, blend_colors},
     vector::Vector,
 };
@@ -103,6 +103,10 @@ pub struct ImageConfig {
 
     /// The candidates movement over time
     pub candidate_movement: CandidatesMovement,
+
+    // TODO: We should verify somewhere that the number of colors is the number of candidates
+    /// Color of each candidate
+    pub colors: Vec<Color>,
 }
 
 impl Default for ImageConfig {
@@ -120,13 +124,15 @@ impl Default for ImageConfig {
             blending: Blending::Average,
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
-            candidate_movement: CandidatesMovement::Optimizing { speed : 0.1 },
+            candidate_movement: CandidatesMovement::Optimizing { speed: 0.1 },
+            colors: (0..4).into_iter().map(|i| Color::dutch_field(i)).collect(),
         }
     }
 }
 
 // We have this big struct to store results from sampling an image, but we
 // should use `Option`.
+#[derive(Debug, Default)]
 pub struct SampleResult {
     pub image: Vec<Vec<[u8; 3]>>,
     pub sample_count: Vec<Vec<usize>>,
@@ -135,12 +141,7 @@ pub struct SampleResult {
 
 // TODO: This should return the image and all calculated votes (if they are
 // needed for other parts later)
-pub fn render_image(
-    name: &str,
-    candidates: &[Vector],
-    colors: &[Color],
-    config: &ImageConfig,
-) -> SampleResult {
+pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> SampleResult {
     debug_assert!(candidates.len() == config.candidates);
     // Output file
     // TODO: This shouldn't be part of the library
@@ -151,9 +152,8 @@ pub fn render_image(
         None
     };
 
-    debug_assert!(colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count, all_rankings } =
-        get_image(candidates, colors, config);
+    debug_assert!(config.colors.len() == config.candidates);
+    let SampleResult { mut image, sample_count, all_rankings } = get_image(candidates, config);
     if config.adapt_mode == Adaptive::Display {
         let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
         let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
@@ -164,7 +164,7 @@ pub fn render_image(
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
     for c in 0..config.candidates {
-        add_circle(&mut image, colors[c], &candidates[c], config.resolution);
+        add_circle(&mut image, config.colors[c], &candidates[c], config.resolution);
     }
     let image_bytes: Vec<u8> = image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
@@ -182,7 +182,7 @@ fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File
     encoder.write_header().unwrap()
 }
 
-fn get_image(candidates: &[Vector], colors: &[Color], config: &ImageConfig) -> SampleResult {
+fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
     let mut g = Gaussian::new(DIMENSIONS, config.variance, config.points, config.fuzzy);
     for c in candidates {
         g.add_candidate(&c.as_array());
@@ -216,7 +216,7 @@ fn get_image(candidates: &[Vector], colors: &[Color], config: &ImageConfig) -> S
                 let mut new_samples1 = Vec::with_capacity(config.sample_size);
                 let mut new_samples2 = Vec::with_capacity(config.sample_size);
                 for _ in 0..config.sample_size {
-                    let (color, vote) = sample_pixel(&g, xi, yi, &mut rng, &colors, &config);
+                    let (color, vote) = sample_pixel(&g, xi, yi, &mut rng, &config);
                     new_samples1.push(color);
                     new_samples2.push(vote);
                 }
@@ -373,14 +373,13 @@ fn sample_pixel<R: Rng>(
     xi: usize,
     yi: usize,
     rng: &mut R,
-    colors: &[Color],
     config: &ImageConfig,
 ) -> (Color, TiedI) {
     let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]).into();
     let vote: TiedI = Borda::count(&votes).unwrap().as_vote();
-    let color = Color::from_vote(config.vote_color, vote.as_ref(), colors);
+    let color = Color::from_vote(config.vote_color, vote.as_ref(), &config.colors);
     (color, vote)
 }
 
@@ -398,22 +397,49 @@ pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]
         .collect()
 }
 
-// TODO: Just send in the type of candidates
-pub fn render_animation(candidates: Vec<[f64; 2]>, colors: &[Color], config: &ImageConfig) {
-    let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
-    let mut moving_candidates = config.candidate_movement.to_state(candidates_vec);
-    for i in 0..config.frames {
-        let SampleResult { mut all_rankings, .. } = render_image(
-            &format!("animation/slow_borda_{}", i),
-            &moving_candidates.candidates(),
-            colors,
-            config,
-        );
-        let x = config.resolution / 4;
-        let y = config.resolution / 2;
-        let v = most_common(&mut all_rankings[y][x]);
-        println!("{:?}, {:?}", moving_candidates.candidates(), v);
-        moving_candidates.step(v.as_ref());
-        println!("{:?}", moving_candidates.candidates());
+struct Renderer<'a> {
+    config: &'a ImageConfig,
+    candidates: CandidatesState,
+    steps: usize,
+}
+
+impl<'a> Renderer<'a> {
+    // TODO: Include candidates and colors in config
+    fn new(config: &'a ImageConfig, candidates: Vec<[f64; 2]>) -> Self {
+        let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
+        let moving_candidates = config.candidate_movement.to_state(candidates_vec);
+        Self { config, candidates: moving_candidates, steps: 0 }
     }
+}
+
+impl<'a> Iterator for Renderer<'a> {
+    // TODO: We want to return references, to avoid allocation
+    type Item = SampleResult;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.steps <= self.config.frames {
+            let mut res = render_image(
+                &format!("animation/slow_borda_{}", self.steps),
+                &self.candidates.candidates(),
+                self.config,
+            );
+            let x = self.config.resolution / 2;
+            let y = self.config.resolution / 2;
+            let v = most_common(&mut res.all_rankings[y][x]);
+            println!("{:?}, {:?}", self.candidates.candidates(), v);
+            self.candidates.step(v.as_ref());
+            println!("{:?}", self.candidates.candidates());
+            self.steps += 1;
+            Some(res)
+        } else {
+            None
+        }
+    }
+}
+
+// TODO: Just send in the type of candidates
+pub fn render_animation(candidates: Vec<[f64; 2]>, config: &ImageConfig) {
+    let renderer = Renderer::new(config, candidates);
+
+    renderer.count();
 }
