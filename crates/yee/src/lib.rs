@@ -137,6 +137,7 @@ pub struct SampleResult {
     pub image: Vec<Vec<[u8; 3]>>,
     pub sample_count: Vec<Vec<usize>>,
     pub all_rankings: Vec<Vec<Vec<TiedI>>>,
+    pub sample_heatmap: Option<Vec<Vec<[u8; 3]>>>,
 }
 
 // TODO: This should return the image and all calculated votes (if they are
@@ -153,13 +154,8 @@ pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> 
     };
 
     debug_assert!(config.colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count, all_rankings } = get_image(candidates, config);
-    if config.adapt_mode == Adaptive::Display {
-        let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
-        let adaptive_image: Vec<Vec<[u8; 3]>> = sample_count
-            .iter()
-            .map(|c| c.iter().map(|x| Color::bw(*x, *max_samples).quantize()).collect())
-            .collect();
+    let SampleResult { mut image, sample_count, all_rankings, sample_heatmap } = get_image(candidates, config);
+    if let Some(adaptive_image) = &sample_heatmap {
         let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
@@ -168,7 +164,7 @@ pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> 
     }
     let image_bytes: Vec<u8> = image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
-    SampleResult { image, sample_count, all_rankings }
+    SampleResult { image, sample_count, all_rankings, sample_heatmap }
 }
 
 fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File>> {
@@ -275,7 +271,20 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
             image[yi][xi] = blend_colors(all_samples[yi][xi].iter()).quantize();
         }
     }
-    SampleResult { image, sample_count, all_rankings }
+
+    let sample_heatmap: Option<Vec<Vec<[u8; 3]>>> = match config.adapt_mode {
+        Adaptive::Display => {
+            let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
+            let res = sample_count
+                .iter()
+                .map(|c| c.iter().map(|x| Color::bw(*x, *max_samples).quantize()).collect())
+                .collect();
+            Some(res)
+        },
+        Adaptive::Enable | Adaptive::Disable => None,
+    };
+
+    SampleResult { image, sample_count, all_rankings, sample_heatmap }
 }
 
 fn most_common<T>(v: &mut Vec<T>) -> T
