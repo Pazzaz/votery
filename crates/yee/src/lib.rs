@@ -107,6 +107,15 @@ pub struct ImageConfig {
     // TODO: We should verify somewhere that the number of colors is the number of candidates
     /// Color of each candidate
     pub colors: Vec<Color>,
+
+    /// How each candidate should be drawn in the diagram
+    pub draw_candidates: DrawCandidates,
+}
+
+pub enum DrawCandidates {
+    Disabled,
+    // TODO: Is it actually the radius?
+    Circle { radius: f64 },
 }
 
 impl Default for ImageConfig {
@@ -126,6 +135,7 @@ impl Default for ImageConfig {
             fuzzy: FuzzyType::Scaling(0.4),
             candidate_movement: CandidatesMovement::Optimizing { speed: 0.1 },
             colors: (0..4).map(Color::dutch_field).collect(),
+            draw_candidates: DrawCandidates::Circle { radius: 0.02 },
         }
     }
 }
@@ -154,18 +164,15 @@ pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> 
     };
 
     debug_assert!(config.colors.len() == config.candidates);
-    let SampleResult { mut image, sample_count, all_rankings, sample_heatmap } =
-        get_image(candidates, config);
-    if let Some(adaptive_image) = &sample_heatmap {
+    let res = get_image(candidates, config);
+    if let Some(adaptive_image) = &res.sample_heatmap {
         let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
         writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
     }
-    for c in 0..config.candidates {
-        add_circle(&mut image, config.colors[c], &candidates[c], config.resolution);
-    }
-    let image_bytes: Vec<u8> = image.iter().flatten().flatten().copied().collect();
+    let image_bytes: Vec<u8> = res.image.iter().flatten().flatten().copied().collect();
     writer.write_image_data(&image_bytes).unwrap();
-    SampleResult { image, sample_count, all_rankings, sample_heatmap }
+
+    res
 }
 
 fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File>> {
@@ -288,6 +295,15 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
         Adaptive::Enable | Adaptive::Disable => None,
     };
 
+    match config.draw_candidates {
+        DrawCandidates::Circle { radius } => {
+            for c in 0..config.candidates {
+                add_circle(&mut image, config.colors[c], &candidates[c], config.resolution, radius);
+            }
+        }
+        DrawCandidates::Disabled => {}
+    }
+
     SampleResult { image, sample_count, all_rankings, sample_heatmap }
 }
 
@@ -327,13 +343,18 @@ where
     most_common.unwrap().clone()
 }
 
-fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: Color, pos: &Vector, resolution: usize) {
-    let r = 0.02;
+fn add_circle(
+    image: &mut Vec<Vec<[u8; 3]>>,
+    color: Color,
+    pos: &Vector,
+    resolution: usize,
+    radius: f64,
+) {
     let pi = std::f64::consts::PI;
     let mut angle: f64 = 0.0;
     while angle < 360.0 {
         let mut r_in = 0.0;
-        while r_in < r {
+        while r_in < radius {
             let x1 = r_in * f64::cos(angle * pi / 180.0);
             let y1 = r_in * f64::sin(angle * pi / 180.0);
             let x = pos.x + x1;
@@ -346,8 +367,8 @@ fn add_circle(image: &mut Vec<Vec<[u8; 3]>>, color: Color, pos: &Vector, resolut
 
     let mut angle: f64 = 0.0;
     while angle < 360.0 {
-        let x1 = r * f64::cos(angle * pi / 180.0);
-        let y1 = r * f64::sin(angle * pi / 180.0);
+        let x1 = radius * f64::cos(angle * pi / 180.0);
+        let y1 = radius * f64::sin(angle * pi / 180.0);
         let x = pos.x + x1;
         let y = pos.y + y1;
         put_pixel(image, x, y, color::BLACK, resolution);
