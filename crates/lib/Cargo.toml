@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 orders = { path = "../orders" }
-rand = { version = "0.9.0", features = ["std_rng"] }
+rand = { workspace = true }
 rand_chacha = "0.9.0"
 rand_distr = "0.5.1"
 
