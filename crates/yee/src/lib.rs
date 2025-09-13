@@ -474,7 +474,14 @@ impl<'a> Iterator for Renderer<'a> {
             None
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.config.frames - self.steps;
+        (size, Some(size))
+    }
 }
+
+impl<'a> ExactSizeIterator for Renderer<'a> {}
 
 // TODO: Just send in the type of candidates
 pub fn render_animation(candidates: Vec<[f64; 2]>, config: &ImageConfig) {
