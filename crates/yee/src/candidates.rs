@@ -1,4 +1,4 @@
-use rand::{Rng, distributions::Uniform, prelude::Distribution, thread_rng};
+use rand::{Rng, distr::Uniform, prelude::Distribution};
 use votery::orders::tied::TiedIRef;
 
 use crate::{MAX, MIN, vector::Vector};
@@ -30,7 +30,7 @@ impl CandidatesMovement {
             CandidatesMovement::Static => CandidatesState::Static(candidates),
             CandidatesMovement::Bouncing { speed } => {
                 // TODO: Choose directions in a better way
-                let mut rng = thread_rng();
+                let mut rng = rand::rng();
                 let state = BouncingCandidates::new_random_direction(&mut rng, *speed, candidates);
                 CandidatesState::Bouncing(state)
             }
@@ -84,7 +84,7 @@ impl BouncingCandidates {
     // Create a new `BouncingCandidates` where each direction has been chosen
     // randomly. All candidates will move at the same `speed`.
     pub fn new_random_direction<R: Rng>(rng: &mut R, speed: f64, candidates: Vec<Vector>) -> Self {
-        let circle_uniform = Uniform::new(0f64, std::f64::consts::TAU);
+        let circle_uniform = Uniform::new(0f64, std::f64::consts::TAU).unwrap();
         let directions: Vec<Vector> = candidates
             .iter()
             .map(|_| {

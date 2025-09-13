@@ -1,12 +1,14 @@
 use rand::{
+    Rng,
     distr::{Distribution, Uniform},
-    seq::SliceRandom,
+    seq::{IndexedRandom, SliceRandom},
 };
 
 use super::{Tied, TiedDense};
 use crate::{
     DenseOrders, add_bool,
     cardinal::{CardinalDense, CardinalRef},
+    specific::SpecificDense,
     strict::ChainDense,
     tied::{TiedI, TiedIRef},
 };
@@ -236,6 +238,18 @@ impl TiedIDense {
             cardinal_rank.fill(0);
         }
         Ok(cardinal_orders)
+    }
+
+    // TODO: Could be inplace
+    pub fn to_specific<R: rand::Rng>(self, rng: &mut R) -> Result<SpecificDense, &'static str> {
+        // TODO: Add with_capacity
+        let mut out = SpecificDense::new(self.elements);
+        for order in self.iter() {
+            let winners = order.winners();
+            let winner = winners.choose(rng).unwrap();
+            out.add(*winner).unwrap();
+        }
+        Ok(out)
     }
 }
 

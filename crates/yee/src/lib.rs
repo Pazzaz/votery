@@ -6,11 +6,11 @@
 use std::{fs::File, io::BufWriter, path::Path};
 
 use png::Writer;
-use rand::{Rng, distributions::Uniform, prelude::Distribution, thread_rng};
+use rand::{Rng, distr::Uniform, prelude::Distribution};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 use votery::{
     generators::gaussian::{FuzzyType, Gaussian},
-    methods::{Borda, VotingMethod},
+    methods::{Borda, Fptp, VotingMethod as _},
     orders::tied::TiedI,
 };
 
@@ -111,6 +111,13 @@ pub struct ImageConfig {
 
     /// How each candidate should be drawn in the diagram
     pub draw_candidates: DrawCandidates,
+
+    pub voting_method: VotingMethod,
+}
+
+pub enum VotingMethod {
+    Borda,
+    Fptp,
 }
 
 pub enum DrawCandidates {
@@ -137,6 +144,7 @@ impl Default for ImageConfig {
             candidate_movement: CandidatesMovement::Optimizing { speed: 0.1 },
             colors: (0..4).map(Color::dutch_field).collect(),
             draw_candidates: DrawCandidates::Circle { radius: 0.02 },
+            voting_method: VotingMethod::Borda,
         }
     }
 }
@@ -218,7 +226,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
         let new_samples: Vec<(usize, usize, Vec<Color>, Vec<TiedI>)> = queue
             .par_drain(..)
             .map(|(xi, yi)| {
-                let mut rng = thread_rng();
+                let mut rng = rand::rng();
                 let mut new_samples1 = Vec::with_capacity(config.sample_size);
                 let mut new_samples2 = Vec::with_capacity(config.sample_size);
                 for _ in 0..config.sample_size {
@@ -390,7 +398,7 @@ fn put_pixel(image: &mut Vec<Vec<[u8; 3]>>, x: f64, y: f64, color: Color, resolu
     image[yy][xx] = color.quantize();
 }
 
-fn sample_pixel<R: Rng>(
+fn sample_pixel<R: rand::Rng>(
     g: &Gaussian,
     xi: usize,
     yi: usize,
@@ -400,13 +408,21 @@ fn sample_pixel<R: Rng>(
     let x: f64 = (xi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let y: f64 = (yi as f64) / (config.resolution as f64) * (MAX - MIN) + MIN;
     let votes = g.sample(rng, &[x, y]).into();
-    let vote: TiedI = Borda::count(&votes).unwrap().as_vote();
+    let vote: TiedI = match config.voting_method {
+        VotingMethod::Borda => Borda::count(&votes).unwrap().as_vote(),
+        VotingMethod::Fptp => {
+            // TODO: Maybe just sample winners directly?
+            let winners = votes.to_specific(rng).unwrap();
+            Fptp::count(&winners).unwrap().as_vote()
+        }
+    };
+    // TODO: Include method in config
     let color = Color::from_vote(config.vote_color, vote.as_ref(), &config.colors);
     (color, vote)
 }
 
 pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]> {
-    let dist = Uniform::new_inclusive(0.0, 1.0);
+    let dist = Uniform::new_inclusive(0.0, 1.0).unwrap();
     (0..n)
         .map(|_| {
             let mut d = [0.0; DIMENSIONS];

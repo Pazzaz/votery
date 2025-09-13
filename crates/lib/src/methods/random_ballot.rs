@@ -3,8 +3,7 @@ use orders::{
     tied::{TiedI, TiedIDense},
     DenseOrders,
 };
-use rand::{prelude::SliceRandom, Rng};
-use rand_distr::Uniform;
+use rand::{distr::Uniform, prelude::SliceRandom, Rng};
 
 use super::{get_order, RandomVotingMethod};
 
@@ -73,7 +72,7 @@ impl<'a> RandomVotingMethod<'a> for RandomBallotSingle {
         Self: Sized,
     {
         let _ = positions;
-        let i: usize = rng.sample(Uniform::new(0, data.len()));
+        let i: usize = rng.sample(Uniform::new(0, data.len()).unwrap());
         let vote = data.get(i);
         Ok(RandomBallotSingle { ranking: vote.owned() })
     }
