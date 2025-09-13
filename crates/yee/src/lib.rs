@@ -454,7 +454,7 @@ impl<'a> Iterator for Renderer<'a> {
     type Item = SampleResult;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.steps <= self.config.frames {
+        if self.steps < self.config.frames {
             let mut res = render_image(
                 &format!("animation/slow_borda_{}", self.steps),
                 self.candidates.candidates(),
