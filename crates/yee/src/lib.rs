@@ -461,13 +461,7 @@ impl<'a> Iterator for Renderer<'a> {
                 self.config,
             );
 
-            // TODO: Why do we use the middle samples for this?
-            let x = self.config.resolution / 2;
-            let y = self.config.resolution / 2;
-            let v = most_common(&mut res.all_rankings[y][x]);
-            println!("{:?}, {:?}", self.candidates.candidates(), v);
-            self.candidates.step(v.as_ref());
-            println!("{:?}", self.candidates.candidates());
+            self.candidates.step(&self.config, &mut res);
             self.steps += 1;
             Some(res)
         } else {

@@ -1,7 +1,7 @@
 use rand::{Rng, distr::Uniform, prelude::Distribution};
 use votery::orders::tied::TiedIRef;
 
-use crate::{MAX, MIN, vector::Vector};
+use crate::{ImageConfig, MAX, MIN, SampleResult, most_common, vector::Vector};
 
 /// Decides how candidates should act over time, used for configuration
 pub enum CandidatesMovement {
@@ -57,13 +57,20 @@ impl CandidatesState {
         }
     }
 
-    pub fn step(&mut self, ranking: TiedIRef) {
+    // res is taken as mutable just to be able to sort the list of rankings
+    pub fn step(&mut self, config: &ImageConfig, res: &mut SampleResult) {
         match self {
             // Static candidates don't change
             CandidatesState::Static(_) => {}
 
             CandidatesState::Bouncing(s) => s.step(),
-            CandidatesState::Optimizing(s) => s.step(ranking),
+            CandidatesState::Optimizing(s) => {
+                // TODO: Why do we use the middle samples for this?
+                let x = config.resolution / 2;
+                let y = config.resolution / 2;
+                let v = most_common(&mut res.all_rankings[y][x]);
+                s.step(v.as_ref());
+            }
         }
     }
 }
