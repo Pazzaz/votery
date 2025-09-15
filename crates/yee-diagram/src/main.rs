@@ -1,7 +1,7 @@
 use std::{fs::File, io::BufWriter, path::Path};
 
 use png::Writer;
-use yee::{random_candidates, Adaptive, ImageConfig, Renderer};
+use yee::{random_candidates, ImageConfig, Renderer};
 
 fn main() {
     let config = ImageConfig::default();
@@ -21,19 +21,16 @@ fn render_animation(candidates: Vec<[f64; 2]>, config: &ImageConfig) {
         let name = &format!("animation/slow_borda_{}", step);
         // Output file
         let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
-        let writer_adaptive: Option<_> = match config.adapt_mode {
-            Adaptive::Enable { display: true } => {
-                Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
-            }
-            Adaptive::Disable | Adaptive::Enable { display: false } => None,
-        };
-
-        if let Some(adaptive_image) = &res.sample_heatmap {
-            let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
-            writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
-        }
         let image_bytes: Vec<u8> = res.image.iter().flatten().flatten().copied().collect();
         writer.write_image_data(&image_bytes).unwrap();
+
+        // If there's a heatmap available we'll output that too
+        if let Some(adaptive_image) = &res.sample_heatmap {
+            let mut writer_adaptive =
+                create_png_writer(&format!("{}_bw.png", name), config.resolution);
+            let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
+            writer_adaptive.write_image_data(&image_bytes).unwrap();
+        }
     }
 }
 
