@@ -3,9 +3,6 @@
 //!
 //! [electopedia]: https://electowiki.org/wiki/Yee_diagram
 
-use std::{fs::File, io::BufWriter, path::Path};
-
-use png::Writer;
 use rand::{Rng, distr::Uniform, prelude::Distribution};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 use votery::{
@@ -157,43 +154,6 @@ pub struct SampleResult {
     pub sample_count: Vec<Vec<usize>>,
     pub all_rankings: Vec<Vec<Vec<TiedI>>>,
     pub sample_heatmap: Option<Vec<Vec<[u8; 3]>>>,
-}
-
-// TODO: This should return the image and all calculated votes (if they are
-// needed for other parts later)
-pub fn render_image(name: &str, candidates: &[Vector], config: &ImageConfig) -> SampleResult {
-    debug_assert!(candidates.len() == config.candidates);
-    // Output file
-    // TODO: This shouldn't be part of the library
-    let mut writer = create_png_writer(&format!("{}.png", name), config.resolution);
-    let writer_adaptive: Option<_> = match config.adapt_mode {
-        Adaptive::Enable { display: true } => {
-            Some(create_png_writer(&format!("{}_bw.png", name), config.resolution))
-        }
-        Adaptive::Disable | Adaptive::Enable { display: false } => None,
-    };
-
-    debug_assert!(config.colors.len() == config.candidates);
-    let res = get_image(candidates, config);
-    if let Some(adaptive_image) = &res.sample_heatmap {
-        let image_bytes: Vec<u8> = adaptive_image.iter().flatten().flatten().copied().collect();
-        writer_adaptive.unwrap().write_image_data(&image_bytes).unwrap();
-    }
-    let image_bytes: Vec<u8> = res.image.iter().flatten().flatten().copied().collect();
-    writer.write_image_data(&image_bytes).unwrap();
-
-    res
-}
-
-fn create_png_writer(filename: &str, resolution: usize) -> Writer<BufWriter<File>> {
-    println!("{}", filename);
-    let path = Path::new(filename);
-    let file = File::create(path).unwrap();
-    let w = BufWriter::new(file);
-    let mut encoder = png::Encoder::new(w, resolution as u32, resolution as u32);
-    encoder.set_color(png::ColorType::Rgb);
-    encoder.set_depth(png::BitDepth::Eight);
-    encoder.write_header().unwrap()
 }
 
 fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
@@ -434,7 +394,7 @@ pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]
         .collect()
 }
 
-struct Renderer<'a> {
+pub struct Renderer<'a> {
     config: &'a ImageConfig,
     candidates: CandidatesState,
     steps: usize,
@@ -442,7 +402,7 @@ struct Renderer<'a> {
 
 impl<'a> Renderer<'a> {
     // TODO: Include candidates and colors in config
-    fn new(config: &'a ImageConfig, candidates: Vec<[f64; 2]>) -> Self {
+    pub fn new(config: &'a ImageConfig, candidates: Vec<[f64; 2]>) -> Self {
         let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
         let moving_candidates = config.candidate_movement.to_state(candidates_vec);
         Self { config, candidates: moving_candidates, steps: 0 }
@@ -455,11 +415,7 @@ impl<'a> Iterator for Renderer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.steps < self.config.frames {
-            let mut res = render_image(
-                &format!("animation/slow_borda_{}", self.steps),
-                self.candidates.candidates(),
-                self.config,
-            );
+            let mut res = get_image(self.candidates.candidates(), self.config);
 
             self.candidates.step(&self.config, &mut res);
             self.steps += 1;
@@ -476,10 +432,3 @@ impl<'a> Iterator for Renderer<'a> {
 }
 
 impl<'a> ExactSizeIterator for Renderer<'a> {}
-
-// TODO: Just send in the type of candidates
-pub fn render_animation(candidates: Vec<[f64; 2]>, config: &ImageConfig) {
-    let renderer = Renderer::new(config, candidates);
-
-    renderer.count();
-}
