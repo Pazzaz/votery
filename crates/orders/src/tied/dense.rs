@@ -1,5 +1,4 @@
 use rand::{
-    Rng,
     distr::{Distribution, Uniform},
     seq::{IndexedRandom, SliceRandom},
 };
