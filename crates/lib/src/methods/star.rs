@@ -21,10 +21,10 @@ pub struct Star {
 // (3) choosing randomly (I can include this as an option, but then just don't
 // use it for now)
 //
-// I should make seperate functions for all of these, which will take in a
+// I should make separate functions for all of these, which will take in a
 // &[usize] and &Cardinal and then return a TiedRank. I'm starting to think I
 // should just do it very low level and have functions be f: (&mut [usize],
-// &Cardinal) -> &mut [usize], so we just modify the orignal slice. This could
+// &Cardinal) -> &mut [usize], so we just modify the original slice. This could
 // be done by calculating a tiedvote and then reusing it when we need to break
 // more ties... wait, that won't work.
 

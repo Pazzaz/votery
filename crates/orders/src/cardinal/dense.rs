@@ -133,7 +133,7 @@ impl CardinalDense {
 
     /// The [Kotze-Pereira transformation](https://electowiki.org/wiki/Kotze-Pereira_transformation).
     #[doc(alias = "kotze")]
-    pub fn kp_tranform(&self) -> Result<BinaryDense, &'static str> {
+    pub fn kp_transform(&self) -> Result<BinaryDense, &'static str> {
         let mut binary_orders: Vec<bool> = Vec::new();
         let orders_size = self
             .elements
@@ -365,8 +365,8 @@ mod tests {
     }
 
     #[quickcheck]
-    fn kp_tranform_orders(cv: CardinalDense) -> bool {
-        match cv.kp_tranform() {
+    fn kp_transform_orders(cv: CardinalDense) -> bool {
+        match cv.kp_transform() {
             Ok(bv) => bv.len() == cv.len() * (cv.values() - 1),
             Err(_) => true,
         }

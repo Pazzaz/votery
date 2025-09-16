@@ -140,7 +140,7 @@ impl PartialOrder {
     }
 
     // Partition the partial order into (at most) `x` categories, so that "larger"
-    // values are in the earler categories
+    // values are in the earlier categories
     #[must_use]
     pub fn categorize(&self, x: usize) -> Vec<Vec<usize>> {
         if self.elements() == 0 || x == 0 {

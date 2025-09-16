@@ -1,0 +1,9 @@
+# https://github.com/crate-ci/typos
+# install:  cargo install typos-cli
+# run:      typos
+
+[default.extend-words]
+TOI = "TOI"
+
+[default.extend-identifiers]
+ba = "ba"
