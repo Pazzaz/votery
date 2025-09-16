@@ -1,14 +1,14 @@
 use votery::orders::tied::TiedIRef;
 
 // Normal RGB color
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Color {
     values: [f64; 3],
 }
 
 // TODO: Bad name?
 /// Methods to convert a ranking into a color
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum VoteColorBlending {
     /// The average of the winners of a vote
     Winners,

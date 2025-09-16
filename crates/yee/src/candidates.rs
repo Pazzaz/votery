@@ -4,6 +4,7 @@ use votery::orders::tied::TiedIRef;
 use crate::{ImageConfig, MAX, MIN, SampleResult, most_common, vector::Vector};
 
 /// Decides how candidates should act over time, used for configuration
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum CandidatesMovement {
     /// Their positions are static, doesn't change
     Static,

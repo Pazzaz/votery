@@ -33,7 +33,7 @@ const MAX: f64 = 1.0;
 // TODO: Should it be called "DynamicSampling"?
 /// Should the sampling procedure be adaptive, meaning we sample more on pixels
 /// where the result is unsure
-#[derive(PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub enum Adaptive {
     /// Not adaptive
     Disable,
@@ -47,6 +47,7 @@ pub enum Adaptive {
 }
 
 /// How should we blend our samples?
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum Blending {
     /// Take the sample that occurs the maximum number of times
     Max,
@@ -56,6 +57,7 @@ pub enum Blending {
 }
 
 /// All parameters used to generate a diagram (may be multiple frames)
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ImageConfig {
     /// Points generated around every pixel, i.e. amount of voters
     pub points: usize,
@@ -112,11 +114,13 @@ pub struct ImageConfig {
     pub voting_method: VotingMethod,
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum VotingMethod {
     Borda,
     Fptp,
 }
 
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum DrawCandidates {
     Disabled,
     // TODO: Is it actually the radius?

@@ -17,7 +17,7 @@ pub struct Gaussian {
 }
 
 /// Decides when two candidates should be tied
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum FuzzyType {
     /// There are ties if the distance to two candidates are less than `fuzzy`
     Absolute(f64),
