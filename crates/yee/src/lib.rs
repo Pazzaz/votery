@@ -6,10 +6,12 @@
 use rand::{Rng, distr::Uniform, prelude::Distribution};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 use votery::{
-    generators::gaussian::{FuzzyType, Gaussian},
+    generators::gaussian::Gaussian,
     methods::{Borda, Fptp, VotingMethod as _},
     orders::tied::TiedI,
 };
+
+pub use votery::generators::gaussian::FuzzyType;
 
 use crate::{
     candidates::{CandidatesMovement, CandidatesState},
