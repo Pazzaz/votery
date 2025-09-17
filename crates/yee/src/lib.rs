@@ -3,18 +3,17 @@
 //!
 //! [electopedia]: https://electowiki.org/wiki/Yee_diagram
 
-use rand::{Rng, distr::Uniform, prelude::Distribution};
+use rand::{distr::Uniform, prelude::Distribution};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
+pub use votery::generators::gaussian::FuzzyType;
 use votery::{
     generators::gaussian::Gaussian,
     methods::{Borda, Fptp, VotingMethod as _},
     orders::tied::TiedI,
 };
 
-pub use votery::generators::gaussian::FuzzyType;
-
 use crate::{
-    candidates::{CandidatesMovement, CandidatesState},
+    candidates::{BouncingCandidates, CandidatesMovement, CandidatesState, OptimizingCandidates},
     color::{Color, VoteColorBlending, blend_colors},
     vector::Vector,
 };
@@ -58,6 +57,14 @@ pub enum Blending {
     Average,
 }
 
+// TODO: Should we use struct of arrays or array of structs?
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
+pub struct Candidate {
+    pub x: f64,
+    pub y: f64,
+    pub color: Color,
+}
+
 /// All parameters used to generate a diagram (may be multiple frames)
 #[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub struct ImageConfig {
@@ -70,8 +77,8 @@ pub struct ImageConfig {
     /// Timesteps to illustrate
     pub frames: usize,
 
-    /// Number of candidates which voters can choose from
-    pub candidates: usize,
+    /// List of candidates
+    pub candidates: Vec<Candidate>,
 
     /// Samples computed for each pixel, for each round of sampling
     pub sample_size: usize,
@@ -106,10 +113,6 @@ pub struct ImageConfig {
     /// The candidates movement over time
     pub candidate_movement: CandidatesMovement,
 
-    // TODO: We should verify somewhere that the number of colors is the number of candidates
-    /// Color of each candidate
-    pub colors: Vec<Color>,
-
     /// How each candidate should be drawn in the diagram
     pub draw_candidates: DrawCandidates,
 
@@ -131,11 +134,20 @@ pub enum DrawCandidates {
 
 impl Default for ImageConfig {
     fn default() -> Self {
+        let mut candidates = Vec::new();
+        for i in 0..4 {
+            let color = Color::dutch_field(i);
+            let mut rng = rand::rng();
+            let dist = Uniform::new_inclusive(MIN, MAX).unwrap();
+            let x = dist.sample(&mut rng);
+            let y = dist.sample(&mut rng);
+            candidates.push(Candidate { x, y, color });
+        }
         ImageConfig {
             points: 1000,
             resolution: 50,
             frames: 1000,
-            candidates: 4,
+            candidates,
             sample_size: 5,
             max_noise: 0.5,
             variance: 0.2,
@@ -145,9 +157,27 @@ impl Default for ImageConfig {
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
             candidate_movement: CandidatesMovement::Optimizing { speed: 0.1 },
-            colors: (0..4).map(Color::dutch_field).collect(),
             draw_candidates: DrawCandidates::Circle { radius: 0.02 },
             voting_method: VotingMethod::Borda,
+        }
+    }
+}
+
+impl ImageConfig {
+    fn candidate_state(&self) -> CandidatesState {
+        let candidates: Vec<Vector> =
+            self.candidates.iter().map(|c| Vector { x: c.x, y: c.y }).collect();
+        match &self.candidate_movement {
+            CandidatesMovement::Static => CandidatesState::Static(candidates),
+            CandidatesMovement::Bouncing { speed } => {
+                // TODO: Choose directions in a better way
+                let mut rng = rand::rng();
+                let state = BouncingCandidates::new_random_direction(&mut rng, *speed, candidates);
+                CandidatesState::Bouncing(state)
+            }
+            CandidatesMovement::Optimizing { speed } => {
+                CandidatesState::Optimizing(OptimizingCandidates::new(candidates, *speed))
+            }
         }
     }
 }
@@ -273,8 +303,8 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
 
     match config.draw_candidates {
         DrawCandidates::Circle { radius } => {
-            for c in 0..config.candidates {
-                add_circle(&mut image, config.colors[c], &candidates[c], config.resolution, radius);
+            for c in &config.candidates {
+                add_circle(&mut image, c, config.resolution, radius);
             }
         }
         DrawCandidates::Disabled => {}
@@ -321,8 +351,7 @@ where
 
 fn add_circle(
     image: &mut Vec<Vec<[u8; 3]>>,
-    color: Color,
-    pos: &Vector,
+    candidate: &Candidate,
     resolution: usize,
     radius: f64,
 ) {
@@ -333,9 +362,9 @@ fn add_circle(
         while r_in < radius {
             let x1 = r_in * f64::cos(angle * pi / 180.0);
             let y1 = r_in * f64::sin(angle * pi / 180.0);
-            let x = pos.x + x1;
-            let y = pos.y + y1;
-            put_pixel(image, x, y, color, resolution);
+            let x = candidate.x + x1;
+            let y = candidate.y + y1;
+            put_pixel(image, x, y, candidate.color, resolution);
             r_in += 0.001
         }
         angle += 0.1;
@@ -345,8 +374,8 @@ fn add_circle(
     while angle < 360.0 {
         let x1 = radius * f64::cos(angle * pi / 180.0);
         let y1 = radius * f64::sin(angle * pi / 180.0);
-        let x = pos.x + x1;
-        let y = pos.y + y1;
+        let x = candidate.x + x1;
+        let y = candidate.y + y1;
         put_pixel(image, x, y, color::BLACK, resolution);
         angle += 0.1;
     }
@@ -383,21 +412,8 @@ fn sample_pixel<R: rand::Rng>(
         }
     };
     // TODO: Include method in config
-    let color = Color::from_vote(config.vote_color, vote.as_ref(), &config.colors);
+    let color = Color::from_vote(config.vote_color, vote.as_ref(), &config.candidates);
     (color, vote)
-}
-
-pub fn random_candidates<R: Rng>(rng: &mut R, n: usize) -> Vec<[f64; DIMENSIONS]> {
-    let dist = Uniform::new_inclusive(0.0, 1.0).unwrap();
-    (0..n)
-        .map(|_| {
-            let mut d = [0.0; DIMENSIONS];
-            for d_i in d.iter_mut().take(DIMENSIONS) {
-                *d_i = dist.sample(rng);
-            }
-            d
-        })
-        .collect()
 }
 
 pub struct Renderer<'a> {
@@ -408,9 +424,8 @@ pub struct Renderer<'a> {
 
 impl<'a> Renderer<'a> {
     // TODO: Include candidates and colors in config
-    pub fn new(config: &'a ImageConfig, candidates: Vec<[f64; 2]>) -> Self {
-        let candidates_vec: Vec<Vector> = candidates.into_iter().map(Vector::from_array).collect();
-        let moving_candidates = config.candidate_movement.to_state(candidates_vec);
+    pub fn new(config: &'a ImageConfig) -> Self {
+        let moving_candidates = config.candidate_state();
         Self { config, candidates: moving_candidates, steps: 0 }
     }
 }

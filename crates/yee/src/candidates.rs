@@ -25,23 +25,6 @@ pub enum CandidatesMovement {
     Optimizing { speed: f64 },
 }
 
-impl CandidatesMovement {
-    pub fn to_state(&self, candidates: Vec<Vector>) -> CandidatesState {
-        match self {
-            CandidatesMovement::Static => CandidatesState::Static(candidates),
-            CandidatesMovement::Bouncing { speed } => {
-                // TODO: Choose directions in a better way
-                let mut rng = rand::rng();
-                let state = BouncingCandidates::new_random_direction(&mut rng, *speed, candidates);
-                CandidatesState::Bouncing(state)
-            }
-            CandidatesMovement::Optimizing { speed } => {
-                CandidatesState::Optimizing(OptimizingCandidates::new(candidates, *speed))
-            }
-        }
-    }
-}
-
 /// Each candidate's state, used during computation
 pub enum CandidatesState {
     Static(Vec<Vector>),

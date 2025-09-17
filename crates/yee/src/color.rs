@@ -1,5 +1,7 @@
 use votery::orders::tied::TiedIRef;
 
+use crate::Candidate;
+
 // Normal RGB color
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Color {
@@ -134,16 +136,20 @@ impl Color {
     }
 
     /// Turn a vote into a color.
-    pub fn from_vote(vote_color: VoteColorBlending, vote: TiedIRef, colors: &[Color]) -> Color {
+    pub fn from_vote(
+        vote_color: VoteColorBlending,
+        vote: TiedIRef,
+        candidates: &[Candidate],
+    ) -> Color {
         match vote_color {
             VoteColorBlending::Harmonic => {
                 let mut mixes: Vec<Color> = Vec::new();
                 let mut weights: Vec<f64> = Vec::new();
                 for (gi, group) in vote.iter_groups().enumerate() {
-                    let mut hmm = Vec::new();
+                    let mut hmm: Vec<Color> = Vec::new();
                     for &i in group {
-                        debug_assert!(i < colors.len());
-                        hmm.push(colors[i]);
+                        debug_assert!(i < candidates.len());
+                        hmm.push(candidates[i].color);
                     }
                     let new_c = blend_colors(hmm.iter());
                     mixes.push(new_c);
@@ -152,7 +158,7 @@ impl Color {
                 blend_colors_weighted(mixes.iter(), Some(&weights))
             }
             VoteColorBlending::Winners => {
-                let i_colors = vote.winners().iter().map(|&i| &colors[i]);
+                let i_colors = vote.winners().iter().map(|&i| &candidates[i].color);
                 blend_colors(i_colors)
             }
         }

@@ -1,21 +1,16 @@
 use std::{fs::File, io::BufWriter, path::Path};
 
 use png::Writer;
-use yee::{random_candidates, ImageConfig, Renderer};
+use yee::{ImageConfig, Renderer};
 
 fn main() {
     let config = ImageConfig::default();
-    let candidates = random_candidates(&mut rand::rng(), config.candidates);
-    let mut directions = Vec::new();
-    for [x, y] in &candidates {
-        directions.push([y / 100.0, x / 100.0]);
-    }
-    render_animation(candidates, &config);
+    render_animation(&config);
 }
 
 // TODO: Just send in the type of candidates
-fn render_animation(candidates: Vec<[f64; 2]>, config: &ImageConfig) {
-    let renderer = Renderer::new(config, candidates);
+fn render_animation(config: &ImageConfig) {
+    let renderer = Renderer::new(config);
 
     for (step, res) in renderer.enumerate() {
         let name = &format!("animation/slow_borda_{}", step);
