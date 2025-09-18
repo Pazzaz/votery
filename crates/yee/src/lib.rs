@@ -184,7 +184,7 @@ impl ImageConfig {
 
 // We have this big struct to store results from sampling an image, but we
 // should use `Option`.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct SampleResult {
     pub image: Vec<Vec<[u8; 3]>>,
     pub sample_count: Vec<Vec<usize>>,

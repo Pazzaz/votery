@@ -10,7 +10,7 @@ use super::{Tied, tied_incomplete_ref::TiedIRef};
 use crate::{add_bool, sort_using};
 
 /// An order with possible ties.
-#[derive(Debug, PartialEq, Eq, Default, PartialOrd)]
+#[derive(Debug, PartialEq, Eq, Default, PartialOrd, serde::Deserialize, serde::Serialize)]
 pub struct TiedI {
     pub(crate) elements: usize,
     pub(crate) order: Vec<usize>,
