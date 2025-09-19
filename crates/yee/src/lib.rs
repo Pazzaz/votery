@@ -190,6 +190,7 @@ pub struct SampleResult {
     pub sample_count: Vec<Vec<usize>>,
     pub all_rankings: Vec<Vec<Vec<TiedI>>>,
     pub sample_heatmap: Option<Vec<Vec<[u8; 3]>>>,
+    pub candidates: Vec<Vector>,
 }
 
 fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
@@ -310,7 +311,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
         DrawCandidates::Disabled => {}
     }
 
-    SampleResult { image, sample_count, all_rankings, sample_heatmap }
+    SampleResult { image, sample_count, all_rankings, sample_heatmap, candidates: candidates.to_vec() }
 }
 
 fn most_common<T>(v: &mut [T]) -> T
