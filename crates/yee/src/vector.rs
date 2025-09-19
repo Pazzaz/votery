@@ -1,5 +1,5 @@
 /// A two-dimensional vector
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 pub struct Vector {
     pub x: f64,
     pub y: f64,
