@@ -3,7 +3,7 @@
 //!
 //! [electopedia]: https://electowiki.org/wiki/Yee_diagram
 
-use rand::{distr::Uniform, prelude::Distribution};
+use rand::{distr::{Uniform, uniform::SampleRange}, prelude::Distribution};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 pub use votery::generators::gaussian::FuzzyType;
 use votery::{
@@ -14,7 +14,7 @@ use votery::{
 
 use crate::{
     candidates::{BouncingCandidates, CandidatesMovement, CandidatesState, OptimizingCandidates},
-    color::{Color, VoteColorBlending, blend_colors},
+    color::{Color, DUTCH_FIELD_LEN, VoteColorBlending, blend_colors},
     vector::Vector,
 };
 
@@ -63,6 +63,17 @@ pub struct Candidate {
     pub x: f64,
     pub y: f64,
     pub color: Color,
+}
+
+impl Candidate {
+    pub fn new_random<R: rand::Rng>(rng: &mut R) -> Self {
+        let i = (0..DUTCH_FIELD_LEN).sample_single(rng).unwrap();
+        let color = Color::dutch_field(i);
+        let dist = Uniform::new_inclusive(MIN, MAX).unwrap();
+        let x = dist.sample(rng);
+        let y = dist.sample(rng);
+        Candidate { x, y, color }
+    }
 }
 
 /// All parameters used to generate a diagram (may be multiple frames)

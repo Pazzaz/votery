@@ -21,6 +21,8 @@ pub enum VoteColorBlending {
 
 pub const BLACK: Color = Color { values: [0.0, 0.0, 0.0] };
 
+pub const DUTCH_FIELD_LEN: usize = 9;
+
 impl Color {
     pub fn new(r: f64, g: f64, b: f64) -> Self {
         let c = Color { values: [r, g, b] };
@@ -114,7 +116,6 @@ impl Color {
     }
 
     pub const fn dutch_field(n: usize) -> Color {
-        const DUTCH_FIELD_LEN: usize = 9;
         assert!(n < DUTCH_FIELD_LEN);
         const DUTCH_FIELD: [&str; DUTCH_FIELD_LEN] = [
             "#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff",
