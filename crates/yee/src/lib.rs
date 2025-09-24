@@ -3,7 +3,10 @@
 //!
 //! [electopedia]: https://electowiki.org/wiki/Yee_diagram
 
-use rand::{distr::{Uniform, uniform::SampleRange}, prelude::Distribution};
+use rand::{
+    distr::{Uniform, uniform::SampleRange},
+    prelude::Distribution,
+};
 use rayon::{iter::ParallelIterator, prelude::ParallelDrainRange};
 pub use votery::generators::gaussian::FuzzyType;
 use votery::{
@@ -34,7 +37,7 @@ const MAX: f64 = 1.0;
 // TODO: Should it be called "DynamicSampling"?
 /// Should the sampling procedure be adaptive, meaning we sample more on pixels
 /// where the result is unsure
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, PartialEq, serde::Deserialize, serde::Serialize)]
 pub enum Adaptive {
     /// Not adaptive
     Disable,
@@ -44,6 +47,14 @@ pub enum Adaptive {
         /// Whether to calculate information about how many samples
         /// were calculated for each pixel
         display: bool,
+
+        /// Noise tolerance threshold, smaller threshold means we'll take more
+        /// samples to be sure what a pixel should be
+        max_noise: f64,
+
+        /// When dynamically sampling and a pixel is resampled because of noise,
+        /// how many of it's neighbours that should be resampled
+        around_size: usize,
     },
 }
 
@@ -94,11 +105,6 @@ pub struct ImageConfig {
     /// Samples computed for each pixel, for each round of sampling
     pub sample_size: usize,
 
-    // TODO: Merge with "Adaptive" maybe?
-    /// Noise tolerance threshold, smaller threshold means we'll take more
-    /// samples to be sure what a pixel should be
-    pub max_noise: f64,
-
     /// Variance when sampling voter positions around a pixel
     pub variance: f64,
 
@@ -106,11 +112,6 @@ pub struct ImageConfig {
     /// Should the sampling procedure dynamically change how many samples it
     /// uses per pixel
     pub adapt_mode: Adaptive,
-
-    // TODO: Merge with "Adaptive" maybe?
-    /// When dynamically sampling and a pixel is resampled because of noise, how
-    /// many of it's neighbours that should be resampled
-    pub around_size: usize,
 
     /// Method to blend samples of colors into a single color
     pub blending: Blending,
@@ -160,10 +161,8 @@ impl Default for ImageConfig {
             frames: 1000,
             candidates,
             sample_size: 5,
-            max_noise: 0.5,
             variance: 0.2,
-            adapt_mode: Adaptive::Enable { display: false },
-            around_size: 3,
+            adapt_mode: Adaptive::Enable { display: false, max_noise: 0.5, around_size: 3 },
             blending: Blending::Average,
             vote_color: VoteColorBlending::Harmonic,
             fuzzy: FuzzyType::Scaling(0.4),
@@ -259,9 +258,8 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 done = false;
                 continue;
             }
-            let more_samples = match config.adapt_mode {
-                Adaptive::Disable => false,
-                Adaptive::Enable { .. } => match config.blending {
+            if let Adaptive::Enable { max_noise, around_size, .. } = config.adapt_mode {
+                let more_samples = match config.blending {
                     Blending::Max => {
                         let old_color = most_common(old);
                         old.extend(new_colors);
@@ -273,22 +271,22 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                         old.extend(new_colors);
                         let new_color = blend_colors(old.iter());
                         let d = old_color.dist(&new_color);
-                        d > config.max_noise
+                        d > max_noise
                     }
-                },
-            };
-            if more_samples {
-                done = false;
-                let max_xi = xi.saturating_add(config.around_size).min(config.resolution - 1);
-                let min_xi = xi.saturating_sub(config.around_size);
-                let max_yi = yi.saturating_add(config.around_size).min(config.resolution - 1);
-                let min_yi = yi.saturating_sub(config.around_size);
-                for y in min_yi..=max_yi {
-                    for x in min_xi..=max_xi {
-                        needs_samples[y][x] = true;
+                };
+                if more_samples {
+                    done = false;
+                    let max_xi = xi.saturating_add(around_size).min(config.resolution - 1);
+                    let min_xi = xi.saturating_sub(around_size);
+                    let max_yi = yi.saturating_add(around_size).min(config.resolution - 1);
+                    let min_yi = yi.saturating_sub(around_size);
+                    for y in min_yi..=max_yi {
+                        for x in min_xi..=max_xi {
+                            needs_samples[y][x] = true;
+                        }
                     }
                 }
-            }
+            };
         }
         if done {
             break;
@@ -302,7 +300,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
     }
 
     let sample_heatmap: Option<Vec<Vec<[u8; 3]>>> = match config.adapt_mode {
-        Adaptive::Enable { display: true } => {
+        Adaptive::Enable { display: true, .. } => {
             let max_samples = sample_count.iter().map(|c| c.iter().max().unwrap()).max().unwrap();
             let res = sample_count
                 .iter()
@@ -310,7 +308,7 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
                 .collect();
             Some(res)
         }
-        Adaptive::Enable { display: false } | Adaptive::Disable => None,
+        Adaptive::Enable { display: false, .. } | Adaptive::Disable => None,
     };
 
     match config.draw_candidates {
@@ -322,7 +320,13 @@ fn get_image(candidates: &[Vector], config: &ImageConfig) -> SampleResult {
         DrawCandidates::Disabled => {}
     }
 
-    SampleResult { image, sample_count, all_rankings, sample_heatmap, candidates: candidates.to_vec() }
+    SampleResult {
+        image,
+        sample_count,
+        all_rankings,
+        sample_heatmap,
+        candidates: candidates.to_vec(),
+    }
 }
 
 fn most_common<T>(v: &mut [T]) -> T
